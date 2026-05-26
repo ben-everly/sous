@@ -57,3 +57,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
       - run: npm run build
+
+  db:
+    name: Database tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Start Supabase
+        run: npm run db:start
+      - name: Run pgTAP tests
+        run: npm run test:db
+      - name: Run database advisors
+        run: npm run db:advisors
