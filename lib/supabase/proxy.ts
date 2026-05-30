@@ -27,7 +27,23 @@ export async function updateSession(request: NextRequest) {
 
   // Must be called immediately after createServerClient with no intervening
   // logic — the SDK relies on this call to refresh the session.
-  await supabase.auth.getClaims()
+  // AUTHENTICATION GATE ONLY — proves who the user is, never authorizes data access.
+  // Fail secure: a throw/error counts as "no session", not "let through".
+  let claims = null
+  try {
+    claims = (await supabase.auth.getClaims()).data?.claims ?? null
+  } catch {
+    claims = null
+  }
+
+  const { pathname } = request.nextUrl
+  // Exact match for /login; prefix for the whole OAuth subtree.
+  const isPublic = pathname === '/login' || pathname.startsWith('/auth/')
+  if (!claims && !isPublic) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
 
   return response
 }
