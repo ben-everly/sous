@@ -1,5 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Load .env.local for local runs (NEXT_PUBLIC_* + SUPABASE_SECRET_KEY used by
+// the auth setup project). In CI the file is absent and these come from the job
+// env, so a missing file is fine.
+try {
+  process.loadEnvFile('.env.local')
+} catch {
+  // No .env.local — rely on the ambient environment (CI).
+}
+
+const authFile = 'e2e/.auth/user.json'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -13,8 +24,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], storageState: authFile },
+      dependencies: ['setup'],
     },
   ],
   webServer: {
