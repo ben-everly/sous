@@ -35,7 +35,9 @@ export async function AppHeader() {
       <span className="font-semibold tracking-tight">Sous</span>
       <div className="flex items-center gap-3">
         <Avatar className="size-8">
-          {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={name} />}
+          {profile?.avatar_url && (
+            <AvatarImage src={profile.avatar_url} alt={name} referrerPolicy="no-referrer" />
+          )}
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <span className="text-sm font-medium">{name}</span>

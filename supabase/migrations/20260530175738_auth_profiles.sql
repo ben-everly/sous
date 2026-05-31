@@ -7,7 +7,7 @@ revoke all on schema auth_hooks from anon;
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text check (char_length(display_name) <= 200),
-  avatar_url text,
+  avatar_url text check (avatar_url is null or avatar_url ~* '^https://'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -30,6 +30,11 @@ declare
     coalesce(new.raw_user_meta_data ->> 'full_name',
              new.raw_user_meta_data ->> 'name', ''),
     '[[:cntrl:]]', '', 'g'), 200)), '');
+  -- Provider avatar; accept only https URLs, otherwise null. Lenient like the
+  -- name: a bad value is dropped, never allowed to block signup.
+  avatar_raw text := coalesce(new.raw_user_meta_data ->> 'avatar_url',
+                              new.raw_user_meta_data ->> 'picture');
+  avatar text := case when avatar_raw ~* '^https://' then avatar_raw end;
 begin
   -- Drift detection: log present keys (keys only, never values) if expected name is absent.
   if name is null or name = '' then
@@ -40,8 +45,7 @@ begin
   end if;
 
   insert into public.profiles (id, display_name, avatar_url)
-  values (new.id, name, coalesce(new.raw_user_meta_data ->> 'avatar_url',
-                                  new.raw_user_meta_data ->> 'picture'));
+  values (new.id, name, avatar);
 
   return new;
 end;

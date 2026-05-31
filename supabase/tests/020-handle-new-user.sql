@@ -2,7 +2,7 @@
 -- lenient/absent metadata, and input sanitization (cleansed, never rejected).
 begin;
 
-select plan(9);
+select plan(11);
 
 -- 1. A normal signup with full_name creates a named profile.
 insert into auth.users (id, email, raw_user_meta_data)
@@ -69,6 +69,25 @@ select ok(
   (select display_name is not null
      from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000004'),
   'A dirty-but-nonempty name is stored cleansed, not rejected'
+);
+
+-- 6. A non-https avatar from the provider is dropped to null (not rejected).
+insert into auth.users (id, email, raw_user_meta_data)
+values ('aaaaaaaa-0000-0000-0000-000000000005', 'http@example.com',
+  '{"full_name": "Ada", "avatar_url": "http://insecure.example/a.png"}'::jsonb);
+select is(
+  (select avatar_url from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000005'),
+  null,
+  'Non-https avatar_url is dropped to null, signup still succeeds'
+);
+
+-- 7. The column CHECK rejects a direct update to a non-https avatar.
+select throws_ok(
+  $$update public.profiles set avatar_url = 'http://insecure.example/a.png'
+     where id = 'aaaaaaaa-0000-0000-0000-000000000005'$$,
+  '23514',
+  null,
+  'Column CHECK rejects a non-https avatar_url on update'
 );
 
 select * from finish();
