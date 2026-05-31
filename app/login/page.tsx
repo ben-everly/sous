@@ -1,23 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
-
-// Error contract shared with the OAuth callback (app/auth/callback/route.ts),
-// which produces these codes as ?error=… on failure.
-export type LoginError = 'auth' | 'cancelled'
-
-export function loginErrorMessage(e: LoginError): string {
-  switch (e) {
-    case 'auth':
-      return "Couldn't complete sign-in, please try again."
-    case 'cancelled':
-      return 'Sign-in was cancelled.'
-  }
-}
-
-function isLoginError(value: string | undefined): value is LoginError {
-  return value === 'auth' || value === 'cancelled'
-}
+import { isLoginError, loginErrorMessage } from '@/lib/auth/login-errors'
 
 export default async function LoginPage({
   searchParams,
