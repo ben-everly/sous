@@ -25,13 +25,15 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Must be called immediately after createServerClient with no intervening
-  // logic — the SDK relies on this call to refresh the session.
-  // AUTHENTICATION GATE ONLY — proves who the user is, never authorizes data access.
-  // Fail secure: a throw/error counts as "no session", not "let through".
+  // Must be called immediately after createServerClient — the SDK refreshes the
+  // session here. AUTHENTICATION GATE ONLY: proves identity, never authorizes
+  // data access (RLS does that). getClaims() verifies the JWT locally, so a
+  // revoked token passes until it expires. Fail secure — any error is treated
+  // as "no session".
   let claims = null
   try {
-    claims = (await supabase.auth.getClaims()).data?.claims ?? null
+    const { data, error } = await supabase.auth.getClaims()
+    claims = error ? null : (data?.claims ?? null)
   } catch {
     claims = null
   }

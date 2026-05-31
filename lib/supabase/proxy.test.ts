@@ -8,7 +8,10 @@ type ResponseMock = { cookies: { set: ReturnType<typeof vi.fn> } }
 const { responses } = vi.hoisted(() => ({ responses: [] as ResponseMock[] }))
 
 let capturedCookies: CookieHooks | undefined
-type GetClaimsResult = { data: { claims: { sub: string } | null } | null; error: null }
+type GetClaimsResult = {
+  data: { claims: { sub: string } | null } | null
+  error: { message: string } | null
+}
 const getClaims = vi.fn<() => Promise<GetClaimsResult>>()
 
 vi.mock('@supabase/ssr', () => ({
@@ -159,6 +162,21 @@ describe('Supabase proxy (updateSession)', () => {
 
   it('fails secure: a thrown getClaims() redirects to /login', async () => {
     getClaims.mockRejectedValue(new Error('network'))
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+    expect(response).toEqual({ __redirect: { pathname: '/login' } })
+  })
+
+  it('fails secure: a returned getClaims() error redirects to /login even with stale claims', async () => {
+    // The SDK returns an error alongside claims; the gate must ignore the
+    // claims, not trust them by coincidence of optional chaining.
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: 'u' } },
+      error: { message: 'invalid token' },
+    })
     const request = makeRequest({ pathname: '/dashboard' })
     const response = await updateSession(request as unknown as NextRequest)
 
