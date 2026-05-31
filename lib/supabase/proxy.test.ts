@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextResponse, type NextRequest } from 'next/server'
-import { updateSession } from './proxy'
+import { isPublicPath, updateSession } from './proxy'
 import type { CookieEntry, CookieHooks } from './test-utils'
 
 type ResponseMock = { cookies: { set: ReturnType<typeof vi.fn> } }
@@ -191,5 +191,24 @@ describe('Supabase proxy (updateSession)', () => {
 
     expect(mockedRedirect).toHaveBeenCalledTimes(1)
     expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+  })
+})
+
+describe('isPublicPath', () => {
+  it('treats /login as public (exact match)', () => {
+    expect(isPublicPath('/login')).toBe(true)
+  })
+
+  it('treats the /auth/* subtree as public (prefix)', () => {
+    expect(isPublicPath('/auth/callback')).toBe(true)
+  })
+
+  it('treats /login/anything as NOT public (exact match for /login)', () => {
+    expect(isPublicPath('/login/anything')).toBe(false)
+  })
+
+  it('treats protected routes as NOT public', () => {
+    expect(isPublicPath('/')).toBe(false)
+    expect(isPublicPath('/dashboard')).toBe(false)
   })
 })

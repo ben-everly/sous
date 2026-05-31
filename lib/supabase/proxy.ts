@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { env } from '@/lib/env'
 
+export function isPublicPath(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/auth/')
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -39,9 +43,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl
-  // Exact match for /login; prefix for the whole OAuth subtree.
-  const isPublic = pathname === '/login' || pathname.startsWith('/auth/')
-  if (!claims && !isPublic) {
+  if (!claims && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
