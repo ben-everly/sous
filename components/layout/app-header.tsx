@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireClaims } from '@/lib/auth/claims'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 
@@ -11,11 +12,8 @@ function initialsFrom(tokens: string[]): string {
 }
 
 export async function AppHeader() {
+  const claims = await requireClaims()
   const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-  const claims = data?.claims
-  // The proxy guarantees a session on (app) routes; guard defensively anyway.
-  if (!claims) return null
 
   const { data: profile } = await supabase
     .from('profiles')
