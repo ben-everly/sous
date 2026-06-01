@@ -84,9 +84,6 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
-      # Standard local Supabase service-role key (deterministic, local-only).
-      # Used solely by the Playwright auth setup project to seed a session.
-      SUPABASE_SECRET_KEY: local-dev-service-role-key
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -106,6 +103,12 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start Supabase
         run: npm run db:start
+      - name: Export the local service-role key
+        # The local key is deterministic but never committed; read it from the
+        # running stack so no secret lives in the repo.
+        run: |
+          eval "$(npx supabase status -o env)"
+          echo "SUPABASE_SECRET_KEY=$SECRET_KEY" >> "$GITHUB_ENV"
       - name: Run E2E tests
         run: npm run test:e2e
       - name: Upload Playwright report
