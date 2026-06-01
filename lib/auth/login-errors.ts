@@ -2,13 +2,17 @@ export const LOGIN_ERRORS = ['auth', 'cancelled'] as const
 
 export type LoginError = (typeof LOGIN_ERRORS)[number]
 
-const MESSAGES: Record<LoginError, string> = {
-  auth: "Couldn't complete sign-in, please try again.",
-  cancelled: 'Sign-in was cancelled.',
+// 'error' = something actually failed (assertive, destructive styling);
+// 'info' = a benign outcome like backing out on Google (polite, muted styling).
+export type LoginErrorTone = 'error' | 'info'
+
+const ERRORS: Record<LoginError, { message: string; tone: LoginErrorTone }> = {
+  auth: { message: 'Something went wrong signing you in. Try again below.', tone: 'error' },
+  cancelled: { message: "No problem — sign in whenever you're ready.", tone: 'info' },
 }
 
-export function loginErrorMessage(error: LoginError): string {
-  return MESSAGES[error]
+export function loginError(error: LoginError) {
+  return ERRORS[error]
 }
 
 export function isLoginError(value: string | null | undefined): value is LoginError {

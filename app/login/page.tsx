@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
-import { isLoginError, loginErrorMessage } from '@/lib/auth/login-errors'
+import { isLoginError, loginError } from '@/lib/auth/login-errors'
+import { cn } from '@/lib/utils'
 
 export default async function LoginPage({
   searchParams,
@@ -15,7 +16,7 @@ export default async function LoginPage({
   if (user) redirect('/')
 
   const { error } = await searchParams
-  const message = isLoginError(error) ? loginErrorMessage(error) : null
+  const notice = isLoginError(error) ? loginError(error) : null
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -26,9 +27,15 @@ export default async function LoginPage({
             Manage your kitchen inventory, recipes, and meal plans.
           </p>
         </div>
-        {message && (
-          <p role="alert" className="text-destructive text-center text-sm">
-            {message}
+        {notice && (
+          <p
+            role={notice.tone === 'error' ? 'alert' : 'status'}
+            className={cn(
+              'text-center text-sm',
+              notice.tone === 'error' ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
+            {notice.message}
           </p>
         )}
         <GoogleSignInButton />
