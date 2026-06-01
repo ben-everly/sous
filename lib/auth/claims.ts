@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 
 // The proxy gates every (app) route, so no session here means a matcher slip,
