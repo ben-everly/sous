@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -29,26 +29,30 @@ function GoogleIcon() {
 }
 
 export function GoogleSignInButton() {
-  const [isPending, startTransition] = useTransition()
+  const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  const signIn = () =>
-    startTransition(async () => {
-      setFailed(false)
-      const supabase = createClient()
-      // On success the browser client redirects the page to Google and this
-      // component unmounts, so isPending persists until navigation. Only the
-      // failure path returns here — surface it instead of silently re-enabling.
-      try {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: `${window.location.origin}/auth/callback` },
-        })
-        if (error) setFailed(true)
-      } catch {
+  const signIn = async () => {
+    setFailed(false)
+    setPending(true)
+    const supabase = createClient()
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      })
+      // signInWithOAuth resolves once the redirect is *initiated*, before the
+      // browser leaves the page. Keep `pending` true so the spinner persists
+      // through that navigation; only reset it if initiation actually failed.
+      if (error) {
         setFailed(true)
+        setPending(false)
       }
-    })
+    } catch {
+      setFailed(true)
+      setPending(false)
+    }
+  }
 
   return (
     <div className="space-y-2">
@@ -57,8 +61,8 @@ export function GoogleSignInButton() {
           Couldn&apos;t reach Google. Check your connection and try again.
         </p>
       )}
-      <Button onClick={signIn} disabled={isPending} className="w-full">
-        {isPending ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
+      <Button onClick={signIn} disabled={pending} className="w-full">
+        {pending ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
         Sign in with Google
       </Button>
     </div>

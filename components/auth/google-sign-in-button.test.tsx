@@ -18,7 +18,7 @@ describe('GoogleSignInButton', () => {
 
   afterEach(cleanup)
 
-  it('shows an error when signInWithOAuth returns an error', async () => {
+  it('shows an error and re-enables the button when signInWithOAuth returns an error', async () => {
     signInWithOAuth.mockResolvedValue({ data: null, error: { message: 'boom' } })
     render(<GoogleSignInButton />)
 
@@ -26,24 +26,28 @@ describe('GoogleSignInButton', () => {
     clickSignIn()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't reach google/i)
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled()
   })
 
-  it('shows an error when signInWithOAuth throws', async () => {
+  it('shows an error and re-enables the button when signInWithOAuth throws', async () => {
     signInWithOAuth.mockRejectedValue(new Error('network'))
     render(<GoogleSignInButton />)
 
     clickSignIn()
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled()
   })
 
-  it('shows no error on the success (redirecting) path', async () => {
+  it('stays disabled (spinner persists) on the success path while the page redirects', async () => {
     signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
     render(<GoogleSignInButton />)
+    const button = screen.getByRole('button', { name: /sign in with google/i })
 
     clickSignIn()
 
     await waitFor(() => expect(signInWithOAuth).toHaveBeenCalled())
+    expect(button).toBeDisabled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
