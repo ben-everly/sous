@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { isLoginError, loginError } from '@/lib/auth/login-errors'
-import { safeNext } from '@/lib/auth/safe-next'
+import { sameOriginPath } from '@/lib/auth/same-origin-path'
 import { cn } from '@/lib/utils'
 
 export default async function LoginPage({
@@ -15,7 +15,7 @@ export default async function LoginPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (user) redirect(safeNext(next))
+  if (user) redirect(sameOriginPath(next))
 
   const notice = isLoginError(error) ? loginError(error) : null
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type LoginError } from '@/lib/auth/login-errors'
-import { safeNext } from '@/lib/auth/safe-next'
+import { sameOriginPath } from '@/lib/auth/same-origin-path'
 
 const loginErrorUrl = (origin: string, error: LoginError) => `${origin}/login?error=${error}`
 
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${safeNext(searchParams.get('next'))}`)
+      return NextResponse.redirect(`${origin}${sameOriginPath(searchParams.get('next'))}`)
     }
     console.error('OAuth code exchange failed:', error.message)
   }
