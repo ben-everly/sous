@@ -2,20 +2,21 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { isLoginError, loginError } from '@/lib/auth/login-errors'
+import { safeNext } from '@/lib/auth/safe-next'
 import { cn } from '@/lib/utils'
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; next?: string }>
 }) {
+  const { error, next } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (user) redirect('/')
+  if (user) redirect(safeNext(next))
 
-  const { error } = await searchParams
   const notice = isLoginError(error) ? loginError(error) : null
 
   return (
@@ -38,7 +39,7 @@ export default async function LoginPage({
             {notice.message}
           </p>
         )}
-        <GoogleSignInButton />
+        <GoogleSignInButton next={next} />
       </div>
     </main>
   )

@@ -28,7 +28,7 @@ function GoogleIcon() {
   )
 }
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ next }: { next?: string }) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -36,10 +36,12 @@ export function GoogleSignInButton() {
     setFailed(false)
     setPending(true)
     const supabase = createClient()
+    const redirectTo = new URL('/auth/callback', window.location.origin)
+    if (next) redirectTo.searchParams.set('next', next)
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: redirectTo.toString() },
       })
       // signInWithOAuth resolves once the redirect is *initiated*, before the
       // browser leaves the page. Keep `pending` true so the spinner persists

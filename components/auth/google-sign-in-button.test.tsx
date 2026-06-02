@@ -50,4 +50,27 @@ describe('GoogleSignInButton', () => {
     expect(button).toBeDisabled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  it('threads next into the OAuth redirectTo', async () => {
+    signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
+    render(<GoogleSignInButton next="/recipes/1?sort=new" />)
+
+    clickSignIn()
+
+    await waitFor(() => expect(signInWithOAuth).toHaveBeenCalled())
+    const redirectTo = signInWithOAuth.mock.calls[0][0].options.redirectTo as string
+    expect(new URL(redirectTo).searchParams.get('next')).toBe('/recipes/1?sort=new')
+  })
+
+  it('omits next from redirectTo when not provided', async () => {
+    signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
+    render(<GoogleSignInButton />)
+
+    clickSignIn()
+
+    await waitFor(() => expect(signInWithOAuth).toHaveBeenCalled())
+    const redirectTo = signInWithOAuth.mock.calls[0][0].options.redirectTo as string
+    expect(new URL(redirectTo).pathname).toBe('/auth/callback')
+    expect(new URL(redirectTo).searchParams.has('next')).toBe(false)
+  })
 })

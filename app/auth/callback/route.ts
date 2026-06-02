@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type LoginError } from '@/lib/auth/login-errors'
+import { safeNext } from '@/lib/auth/safe-next'
 
 const loginErrorUrl = (origin: string, error: LoginError) => `${origin}/login?error=${error}`
 
-// OAuth redirect target. Always lands on `/` on success — no `next` parameter,
-// so there is no open-redirect surface to sanitize.
+// OAuth redirect target: exchange the code, then send the user to `next` or `/`.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
 
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}/`)
+      return NextResponse.redirect(`${origin}${safeNext(searchParams.get('next'))}`)
     }
     console.error('OAuth code exchange failed:', error.message)
   }

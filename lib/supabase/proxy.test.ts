@@ -38,7 +38,8 @@ const mockedRedirect = vi.mocked(NextResponse.redirect)
 function makeRequest({
   cookies = [] as CookieEntry[],
   pathname = '/',
-}: { cookies?: CookieEntry[]; pathname?: string } = {}) {
+  search = '',
+}: { cookies?: CookieEntry[]; pathname?: string; search?: string } = {}) {
   return {
     cookies: {
       getAll: vi.fn(() => [...cookies]),
@@ -46,7 +47,8 @@ function makeRequest({
     },
     nextUrl: {
       pathname,
-      clone: vi.fn(() => ({ pathname })),
+      search,
+      clone: vi.fn(() => ({ pathname, search, searchParams: new URLSearchParams(search) })),
     },
   }
 }
@@ -132,7 +134,23 @@ describe('Supabase proxy (updateSession)', () => {
 
     expect(mockedRedirect).toHaveBeenCalledTimes(1)
     expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
-    expect(response).toEqual({ __redirect: { pathname: '/login' } })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
+  })
+
+  it('preserves the attempted path (and query) as ?next on the login redirect', async () => {
+    const request = makeRequest({ pathname: '/recipes/1', search: '?sort=new' })
+    await updateSession(request as unknown as NextRequest)
+
+    const url = mockedRedirect.mock.calls[0][0] as unknown as { searchParams: URLSearchParams }
+    expect(url.searchParams.get('next')).toBe('/recipes/1?sort=new')
+  })
+
+  it('omits ?next when the attempted path is /', async () => {
+    const request = makeRequest({ pathname: '/' })
+    await updateSession(request as unknown as NextRequest)
+
+    const url = mockedRedirect.mock.calls[0][0] as unknown as { searchParams: URLSearchParams }
+    expect(url.searchParams.get('next')).toBeNull()
   })
 
   it('lets an unauthenticated request through to /login', async () => {
@@ -167,7 +185,7 @@ describe('Supabase proxy (updateSession)', () => {
 
     expect(mockedRedirect).toHaveBeenCalledTimes(1)
     expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
-    expect(response).toEqual({ __redirect: { pathname: '/login' } })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
   })
 
   it('fails secure: a returned getClaims() error redirects to /login even with stale claims', async () => {
@@ -182,7 +200,7 @@ describe('Supabase proxy (updateSession)', () => {
 
     expect(mockedRedirect).toHaveBeenCalledTimes(1)
     expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
-    expect(response).toEqual({ __redirect: { pathname: '/login' } })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
   })
 
   it('treats /login/anything as NOT public (exact match for /login)', async () => {
