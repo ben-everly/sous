@@ -8,7 +8,10 @@ export type LoginErrorTone = 'error' | 'info'
 
 const ERRORS: Record<LoginError, { message: string; tone: LoginErrorTone }> = {
   auth: { message: 'Something went wrong signing you in. Try again below.', tone: 'error' },
-  cancelled: { message: "No problem — sign in whenever you're ready.", tone: 'info' },
+  cancelled: {
+    message: 'Sign-in was cancelled. Try again, or use a different Google account.',
+    tone: 'info',
+  },
 }
 
 export function loginError(error: LoginError) {
