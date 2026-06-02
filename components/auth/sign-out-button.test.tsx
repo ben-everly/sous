@@ -33,4 +33,17 @@ describe('SignOutButton', () => {
     expect(replace).toHaveBeenCalledWith('/login')
     expect(refresh).toHaveBeenCalled()
   })
+
+  it('does not navigate and re-enables the button when sign-out fails', async () => {
+    signOut.mockResolvedValue({ error: { message: 'network' } })
+    render(<SignOutButton />)
+    const button = screen.getByRole('button', { name: /sign out/i })
+
+    fireEvent.click(button)
+
+    await waitFor(() => expect(signOut).toHaveBeenCalled())
+    expect(replace).not.toHaveBeenCalled()
+    expect(refresh).not.toHaveBeenCalled()
+    expect(button).toBeEnabled()
+  })
 })

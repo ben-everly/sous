@@ -48,6 +48,7 @@ describe('GoogleSignInButton', () => {
 
     await waitFor(() => expect(signInWithOAuth).toHaveBeenCalled())
     expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 

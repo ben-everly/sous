@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
@@ -63,8 +63,8 @@ export function GoogleSignInButton({ next }: { next?: string }) {
           Couldn&apos;t reach Google. Check your connection and try again.
         </p>
       )}
-      <Button onClick={signIn} disabled={pending} className="w-full">
-        {pending ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
+      <Button onClick={signIn} disabled={pending} aria-busy={pending} className="w-full">
+        {pending ? <LoaderCircle className="animate-spin" /> : <GoogleIcon />}
         Sign in with Google
       </Button>
     </div>
