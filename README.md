@@ -14,7 +14,7 @@ Built on Next.js 16 (App Router) and Supabase. See [`AGENTS.md`](./AGENTS.md) fo
 ```bash
 npm install
 npm run db:start                              # boots local Supabase via Docker
-cp .env.local.example .env.local              # then fill in from `npx supabase status -o env`
+cp .env.example .env                          # then fill in from `npx supabase status -o env`
 npm run dev
 ```
 
