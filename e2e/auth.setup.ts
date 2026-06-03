@@ -1,7 +1,6 @@
 import { test as setup, expect } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
-import { randomUUID } from 'node:crypto'
 import { adminClient } from './admin-client'
 import { TEST_USER } from './test-user'
 
@@ -16,10 +15,8 @@ setup('authenticate', async ({ context, baseURL }) => {
   const stale = list.users.find((u) => u.email === TEST_USER.email)
   if (stale) await admin.auth.admin.deleteUser(stale.id)
 
-  const password = randomUUID() // random per run, never logged
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: TEST_USER.email,
-    password,
     email_confirm: true,
     user_metadata: { full_name: TEST_USER.fullName, avatar_url: TEST_USER.avatarUrl },
   })
@@ -38,16 +35,23 @@ setup('authenticate', async ({ context, baseURL }) => {
     throw new Error('Seeded profile is missing — the handle_new_user trigger may be broken')
   }
 
-  // Sign in (a sign-in, not a signup — works despite closed self-registration)
-  // with a publishable-key client to get real session tokens.
+  // Email/password auth is off (Google-only app), so seed via the admin
+  // generateLink → verifyOtp path instead of signInWithPassword.
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: TEST_USER.email,
+  })
+  if (linkError || !link.properties?.hashed_token) {
+    throw new Error(`Failed to generate seed link: ${linkError?.message}`)
+  }
   const { data: signIn, error: signInError } = await createClient(
     url,
     publishableKey,
-  ).auth.signInWithPassword({ email: TEST_USER.email, password })
+  ).auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'email' })
   if (signInError || !signIn.session) {
-    throw new Error(`Failed to sign in test user: ${signInError?.message}`)
+    throw new Error(`Failed to seed session: ${signInError?.message}`)
   }
 
   // Capture setSession's cookies via @supabase/ssr so the name/format stays

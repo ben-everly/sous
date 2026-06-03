@@ -212,10 +212,9 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Footgun: enable_signup here maps to the email-provider master switch
-# (GOTRUE_EXTERNAL_EMAIL_ENABLED), so false disables email sign-in, not just
-# signup — kept true so E2E seeding (signInWithPassword) works.
-enable_signup = true
+# Footgun: this is the email-provider master switch, not just a signup toggle —
+# false disables all email/password auth. Off because the app is Google-only.
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
