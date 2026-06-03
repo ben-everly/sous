@@ -104,8 +104,6 @@ jobs:
       - name: Start Supabase
         run: npm run db:start
       - name: Export the local service-role key
-        # The local key is deterministic but never committed; read it from the
-        # running stack so no secret lives in the repo.
         run: |
           eval "$(npx supabase status -o env)"
           echo "SUPABASE_SECRET_KEY=$SECRET_KEY" >> "$GITHUB_ENV"

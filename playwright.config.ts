@@ -1,8 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Load .env for local runs (NEXT_PUBLIC_* + SUPABASE_SECRET_KEY used by the auth
-// setup project). In CI the file is absent and these come from the job env, so a
-// missing file is fine.
+// Load .env for local runs. In CI the file is absent and these come from the
+// job env, so a missing file is fine.
 try {
   process.loadEnvFile('.env')
 } catch {

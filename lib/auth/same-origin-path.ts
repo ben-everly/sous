@@ -1,5 +1,4 @@
-// Validate a post-login redirect target — return the path only if it stays on
-// our origin (else '/'), so a crafted `next` can't open-redirect off-site.
+// Prevents open redirects — an off-origin `next` falls back to '/'.
 export function sameOriginPath(next: string | null | undefined): string {
   if (!next) return '/'
   try {

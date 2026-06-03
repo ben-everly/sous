@@ -50,10 +50,8 @@ setup('authenticate', async ({ context, baseURL }) => {
     throw new Error(`Failed to sign in test user: ${signInError?.message}`)
   }
 
-  // Let @supabase/ssr serialize the session into auth cookies — the same code
-  // path the middleware reads — by capturing what setSession writes, then inject
-  // those cookies into the browser context. This keeps the cookie name/format
-  // SDK-owned (drift-proof) instead of hand-rolling it.
+  // Capture setSession's cookies via @supabase/ssr so the name/format stays
+  // SDK-owned (drift-proof) instead of hand-rolled.
   const captured: { name: string; value: string }[] = []
   const cookieWriter = createServerClient(url, publishableKey, {
     cookies: {

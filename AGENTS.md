@@ -6,6 +6,18 @@ This document serves as the core set of instructions and architectural rules for
 
 - **Terse Code**: Write concise, succinct code. Avoid unnecessary boilerplate or overly verbose explanations in code.
 - **Function Chaining**: Prefer function chaining over creating intermediate variable assignments whenever it maintains reasonable readability (e.g., `array.filter(...).map(...).reduce(...)` instead of assigning each step to a new variable).
+- **Comments earn their place**: A comment must add context the code cannot — a non-obvious _why_: a footgun, a trust/security boundary, or an intentional tradeoff and the alternative it rejects. If a comment only restates what the code plainly does, delete it. When in doubt, prefer no comment.
+- **No archaeology, no narration**: Never write comments that explain what the code used to do, what was just removed, or how the design evolved — that is what git history is for. Likewise, don't list a symbol's callers or importers; "Find usages"/grep tracks that live, and a hand-written copy only drifts. Don't re-describe a well-known language, library, or framework API, or a standard idiom — assume the reader can look it up; comment the surprising, not the standard.
+- **Keep comments terse**: When a comment earns its place, make it tight — the fewest words that carry the _why_. No preamble, no hedging, no restating the code around it. State the surprising fact, then stop — don't spell out the consequences that follow from it; the reader can derive those. When the noteworthy thing is a deliberate omission, say it's deliberate and why, nothing more. Prefer one line; let length follow necessity, not habit.
+
+  _Example — trim the derivable consequence:_
+
+  ```ts
+  // ❌ signInWithOAuth resolves before the browser leaves the page. Keep `pending`
+  //    true so the spinner persists through that navigation.
+  // ✅ signInWithOAuth resolves before the browser leaves the page — so the success
+  //    path deliberately leaves `pending` set.
+  ```
 
 ## 2. Architecture & Tech Stack
 

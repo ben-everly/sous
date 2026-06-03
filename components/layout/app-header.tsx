@@ -21,7 +21,7 @@ export async function AppHeader() {
     .eq('id', claims.sub)
     .maybeSingle()
 
-  // Email is always present; both profile columns are nullable.
+  // Email is always present in the claims.
   const emailLocalPart = (claims.email ?? '').split('@')[0]
   const name = profile?.display_name ?? emailLocalPart
   const initials = profile?.display_name

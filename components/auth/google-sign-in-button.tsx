@@ -43,9 +43,8 @@ export function GoogleSignInButton({ next }: { next?: string }) {
         provider: 'google',
         options: { redirectTo: redirectTo.toString() },
       })
-      // signInWithOAuth resolves once the redirect is *initiated*, before the
-      // browser leaves the page. Keep `pending` true so the spinner persists
-      // through that navigation; only reset it if initiation actually failed.
+      // signInWithOAuth resolves when the redirect is *initiated*, before the
+      // browser leaves the page — so the success path deliberately leaves `pending` set.
       if (error) {
         setFailed(true)
         setPending(false)

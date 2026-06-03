@@ -5,7 +5,6 @@ import { sameOriginPath } from '@/lib/auth/same-origin-path'
 
 const loginErrorUrl = (origin: string, error: LoginError) => `${origin}/login?error=${error}`
 
-// OAuth redirect target: exchange the code, then send the user to `next` or `/`.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
 
@@ -24,6 +23,5 @@ export async function GET(request: Request) {
     console.error('OAuth code exchange failed:', error.message)
   }
 
-  // Missing code or a failed exchange.
   return NextResponse.redirect(loginErrorUrl(origin, 'auth'))
 }

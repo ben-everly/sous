@@ -20,18 +20,16 @@ create policy "profiles_update_own" on public.profiles
   for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
--- Bootstrap on signup. Security definer; fails loud (no exception block) by design.
+-- Bootstrap on signup. Fails loud (no exception block) by design.
 create function auth_hooks.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare
-  -- Sanitize the one attacker-controlled input: strip control chars, trim, cap at 200,
-  -- empty -> null.
+  -- Sanitize the one attacker-controlled input.
   name text := nullif(btrim(left(regexp_replace(
     coalesce(new.raw_user_meta_data ->> 'full_name',
              new.raw_user_meta_data ->> 'name', ''),
     '[[:cntrl:]]', '', 'g'), 200)), '');
-  -- Provider avatar; accept only https URLs, otherwise null. Lenient like the
-  -- name: a bad value is dropped, never allowed to block signup.
+  -- Lenient like the name: a bad value is dropped, never allowed to block signup.
   avatar_raw text := coalesce(new.raw_user_meta_data ->> 'avatar_url',
                               new.raw_user_meta_data ->> 'picture');
   avatar text := case when avatar_raw ~* '^https://' then avatar_raw end;

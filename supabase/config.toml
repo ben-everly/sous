@@ -212,13 +212,10 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# In this CLI version `enable_signup` is the email PROVIDER master switch: it
-# maps to GOTRUE_EXTERNAL_EMAIL_ENABLED, so `false` disables email sign-in too,
-# not just signup. E2E seeding needs email sign-in (signInWithPassword), so keep
-# it enabled locally/in CI (neither is a trust boundary; CI also seeds via the
-# service-role admin API). Production must close email self-registration by
-# overriding this to false in a [remotes.<name>.auth.email] block — same pattern
-# as skip_nonce_check above. Google remains the only intended sign-in path.
+# Footgun: enable_signup here maps to the email-provider master switch
+# (GOTRUE_EXTERNAL_EMAIL_ENABLED), so false disables email sign-in, not just
+# signup — kept true so E2E seeding (signInWithPassword) works. Remotes close it
+# (enforced in config.security.test.ts).
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
@@ -340,7 +337,9 @@ enabled = true
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 redirect_uri = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI)"
-skip_nonce_check = true                                          # LOCAL DEV ONLY — must be false in any remote/prod project
+# LOCAL DEV ONLY — unsafe in prod; remotes must set false (enforced in
+# config.security.test.ts).
+skip_nonce_check = true
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.

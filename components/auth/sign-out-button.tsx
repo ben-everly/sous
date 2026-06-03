@@ -19,7 +19,7 @@ export function SignOutButton() {
         return
       }
       // signOut clears the auth cookies client-side; refresh re-runs the server
-      // tree (and the proxy) with no session so the UI reflects the sign-out.
+      // tree (and the proxy) with no session.
       router.replace('/login')
       router.refresh()
     } catch {

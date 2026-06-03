@@ -1,5 +1,4 @@
--- Locks the profiles RLS contract: RLS is on, and a user can see/update only
--- their own row, never a stranger's.
+-- Locks the profiles RLS contract.
 begin;
 
 -- Seed two users; the on_auth_user_created trigger bootstraps their profiles.
