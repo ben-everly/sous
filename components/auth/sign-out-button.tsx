@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button'
 export function SignOutButton() {
   const router = useRouter()
   const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   const signOut = async () => {
+    setFailed(false)
     setPending(true)
     try {
       const { error } = await createClient().auth.signOut()
       if (error) {
+        setFailed(true)
         setPending(false)
         return
       }
@@ -23,14 +26,22 @@ export function SignOutButton() {
       router.replace('/login')
       router.refresh()
     } catch {
+      setFailed(true)
       setPending(false)
     }
   }
 
   return (
-    <Button onClick={signOut} disabled={pending} aria-busy={pending} variant="ghost" size="sm">
-      {pending ? <LoaderCircle className="animate-spin" /> : <LogOut />}
-      Sign out
-    </Button>
+    <div className="flex items-center gap-2">
+      {failed && (
+        <p role="alert" className="text-destructive text-sm">
+          Couldn&apos;t sign you out. Try again.
+        </p>
+      )}
+      <Button onClick={signOut} disabled={pending} aria-busy={pending} variant="ghost" size="sm">
+        {pending ? <LoaderCircle className="animate-spin" /> : <LogOut />}
+        Sign out
+      </Button>
+    </div>
   )
 }

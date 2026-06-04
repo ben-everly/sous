@@ -46,4 +46,28 @@ describe('SignOutButton', () => {
     expect(refresh).not.toHaveBeenCalled()
     expect(button).toBeEnabled()
   })
+
+  it('shows an error message when sign-out fails', async () => {
+    signOut.mockResolvedValue({ error: { message: 'network' } })
+    render(<SignOutButton />)
+
+    fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn.t sign you out/i)
+  })
+
+  it('clears the error message on retry', async () => {
+    signOut.mockResolvedValue({ error: { message: 'network' } })
+    render(<SignOutButton />)
+    const button = screen.getByRole('button', { name: /sign out/i })
+
+    fireEvent.click(button)
+    await screen.findByRole('alert')
+
+    signOut.mockResolvedValue({ error: null })
+    fireEvent.click(button)
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/login'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })
