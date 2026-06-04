@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getClaims } from '@/lib/auth/claims'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { isLoginError, loginError } from '@/lib/auth/login-errors'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
@@ -11,11 +11,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string }>
 }) {
   const { error, next } = await searchParams
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (user) redirect(sameOriginPath(next))
+  if (await getClaims()) redirect(sameOriginPath(next))
 
   const notice = isLoginError(error) ? loginError(error) : null
 

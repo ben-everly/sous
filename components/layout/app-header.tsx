@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { requireClaims } from '@/lib/auth/claims'
+import type { SessionClaims } from '@/lib/auth/claims'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 
@@ -11,8 +11,7 @@ function initialsFrom(tokens: string[]): string {
     .join('')
 }
 
-export async function AppHeader() {
-  const claims = await requireClaims()
+export async function AppHeader({ claims }: { claims: SessionClaims }) {
   const supabase = await createClient()
 
   const { data: profile } = await supabase
