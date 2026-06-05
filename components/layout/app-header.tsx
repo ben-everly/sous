@@ -1,15 +1,8 @@
+import { User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import type { SessionClaims } from '@/lib/auth/claims'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SignOutButton } from '@/components/auth/sign-out-button'
-
-function initialsFrom(tokens: string[]): string {
-  return tokens
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((t) => t[0]!.toUpperCase())
-    .join('')
-}
 
 export async function AppHeader({ claims }: { claims: SessionClaims }) {
   const supabase = await createClient()
@@ -20,12 +13,7 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
     .eq('id', claims.sub)
     .maybeSingle()
 
-  // Email is always present in the claims.
-  const emailLocalPart = (claims.email ?? '').split('@')[0]
-  const name = profile?.display_name ?? emailLocalPart
-  const initials = profile?.display_name
-    ? initialsFrom(profile.display_name.split(/\s+/))
-    : initialsFrom(emailLocalPart.split(/[._+-]+/))
+  const name = profile?.display_name ?? (claims.email ?? '').split('@')[0]
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-3">
@@ -35,7 +23,9 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
           {profile?.avatar_url && (
             <AvatarImage src={profile.avatar_url} alt={name} referrerPolicy="no-referrer" />
           )}
-          <AvatarFallback>{initials}</AvatarFallback>
+          <AvatarFallback>
+            <User className="size-4" aria-hidden="true" />
+          </AvatarFallback>
         </Avatar>
         <span className="text-sm font-medium">{name}</span>
         <SignOutButton />
