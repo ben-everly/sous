@@ -24,7 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <noscript>
+          <p className="text-muted-foreground p-4 text-center text-sm">
+            Sous requires JavaScript. Enable it and reload the page.
+          </p>
+        </noscript>
+        {children}
+      </body>
     </html>
   )
 }
