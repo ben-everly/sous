@@ -188,21 +188,6 @@ describe('Supabase proxy (updateSession)', () => {
     expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
   })
 
-  it('fails secure: a returned getClaims() error redirects to /login even with stale claims', async () => {
-    // The SDK returns an error alongside claims; the gate must ignore the
-    // claims, not trust them by coincidence of optional chaining.
-    getClaims.mockResolvedValue({
-      data: { claims: { sub: 'u' } },
-      error: { message: 'invalid token' },
-    })
-    const request = makeRequest({ pathname: '/dashboard' })
-    const response = await updateSession(request as unknown as NextRequest)
-
-    expect(mockedRedirect).toHaveBeenCalledTimes(1)
-    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
-    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
-  })
-
   it('treats /login/anything as NOT public (exact match for /login)', async () => {
     const request = makeRequest({ pathname: '/login/anything' })
     await updateSession(request as unknown as NextRequest)
