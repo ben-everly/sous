@@ -43,12 +43,9 @@ export function GoogleSignInButton({ next }: { next?: string }) {
         provider: 'google',
         options: { redirectTo: redirectTo.toString() },
       })
+      if (error) throw error
       // signInWithOAuth resolves when the redirect is *initiated*, before the
       // browser leaves the page — so the success path deliberately leaves `pending` set.
-      if (error) {
-        setFailed(true)
-        setPending(false)
-      }
     } catch {
       setFailed(true)
       setPending(false)

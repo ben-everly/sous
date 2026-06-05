@@ -16,11 +16,7 @@ export function SignOutButton() {
     setPending(true)
     try {
       const { error } = await createClient().auth.signOut()
-      if (error) {
-        setFailed(true)
-        setPending(false)
-        return
-      }
+      if (error) throw error
       // signOut clears the auth cookies client-side; refresh re-runs the server
       // tree (and the proxy) with no session.
       router.replace('/login')
