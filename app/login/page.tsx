@@ -35,6 +35,7 @@ export default async function LoginPage({
             {notice.message}
           </p>
         )}
+        {/* TODO(launch): data disclosure + privacy policy link go here once a policy exists. */}
         <GoogleSignInButton next={next} />
       </div>
     </main>
