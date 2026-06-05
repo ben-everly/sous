@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(7);
+select plan(9);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
@@ -39,6 +39,22 @@ select is(
   (select display_name from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
   'Alice Updated',
   'Alice can update her own profile'
+);
+
+-- No INSERT policy: denied even for her own id (RLS fires before the PK conflict would).
+select throws_ok(
+  $$insert into public.profiles (id) values ('11111111-1111-1111-1111-111111111111')$$,
+  '42501',
+  null,
+  'Alice cannot insert a profile, even for her own id'
+);
+
+-- No DELETE policy: silently affects 0 rows.
+delete from public.profiles where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select count(*) from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  1::bigint,
+  'Alice cannot delete her own profile'
 );
 
 -- Attempt to update Bob's row: RLS silently affects 0 rows (no error).
