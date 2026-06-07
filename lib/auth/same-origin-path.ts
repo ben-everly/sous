@@ -1,11 +1,11 @@
-const BASE = 'http://localhost'
+const SENTINEL = 'http://localhost'
 
 // Prevents open redirects — an off-origin `next` falls back to '/'.
 export function sameOriginPath(next: string | null | undefined): string {
   if (!next) return '/'
   try {
-    const url = new URL(next, BASE)
-    if (url.origin !== BASE) return '/'
+    const url = new URL(next, SENTINEL)
+    if (url.origin !== SENTINEL) return '/'
     const path = url.pathname + url.search + url.hash
     return path.startsWith('/') ? path : '/'
   } catch {
