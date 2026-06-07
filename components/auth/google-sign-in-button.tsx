@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,16 @@ function GoogleIcon() {
 export function GoogleSignInButton({ next }: { next?: string }) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
+
+  // WebKit bfcaches this page despite no-store (reproduced in WebKitGTK), so Back
+  // from Google's consent screen revives it with `pending` still set — re-enable.
+  useEffect(() => {
+    const reset = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(false)
+    }
+    window.addEventListener('pageshow', reset)
+    return () => window.removeEventListener('pageshow', reset)
+  }, [])
 
   const signIn = async () => {
     setFailed(false)

@@ -52,6 +52,22 @@ describe('GoogleSignInButton', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('re-enables the button when a bfcache restore brings the page back', async () => {
+    signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
+    render(<GoogleSignInButton />)
+    const button = screen.getByRole('button', { name: /sign in with google/i })
+
+    clickSignIn()
+    await waitFor(() => expect(button).toBeDisabled())
+
+    const pageshow = new Event('pageshow')
+    Object.defineProperty(pageshow, 'persisted', { value: true })
+    fireEvent(window, pageshow)
+
+    expect(button).toBeEnabled()
+    expect(button).toHaveAttribute('aria-busy', 'false')
+  })
+
   it('threads next into the OAuth redirectTo', async () => {
     signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
     render(<GoogleSignInButton next="/recipes/1?sort=new" />)
