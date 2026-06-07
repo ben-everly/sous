@@ -47,6 +47,21 @@ describe('OAuth callback (GET)', () => {
     consoleError.mockRestore()
   })
 
+  it('logs a non-access_denied provider error before the auth redirect', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await get('?error=redirect_uri_mismatch&error_description=bad+uri')
+
+    expect(consoleError).toHaveBeenCalledWith(
+      'OAuth provider error:',
+      'redirect_uri_mismatch',
+      'bad uri',
+    )
+    expect(mockedRedirect).toHaveBeenCalledWith('http://localhost:3000/login?error=auth')
+    expect(exchangeCodeForSession).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
   it('lands a successful exchange on / when no next is present', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
 

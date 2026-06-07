@@ -23,5 +23,10 @@ export async function GET(request: Request) {
     console.error('OAuth code exchange failed:', error.message)
   }
 
+  const providerError = searchParams.get('error')
+  if (providerError) {
+    console.error('OAuth provider error:', providerError, searchParams.get('error_description'))
+  }
+
   return NextResponse.redirect(loginErrorUrl(origin, 'auth'))
 }
