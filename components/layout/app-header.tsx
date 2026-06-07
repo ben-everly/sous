@@ -21,8 +21,8 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
       <span className="font-semibold tracking-tight">Sous</span>
       <div className="flex items-center gap-3">
         <Avatar>
-          {/* Deliberate: hotlinking Google's CDN leaks IP/timing to Google (no-referrer
-              hides the page URL). Copying into Storage fixes that + URL expiry; deferred. */}
+          {/* TODO(launch): hotlinking Google's CDN leaks IP/timing to Google (no-referrer
+              hides only the page URL) — copy avatars into Storage; also fixes URL expiry. */}
           {profile?.avatar_url && (
             <AvatarImage src={profile.avatar_url} alt={name} referrerPolicy="no-referrer" />
           )}
