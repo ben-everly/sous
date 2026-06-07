@@ -28,7 +28,8 @@ This document serves as the core set of instructions and architectural rules for
   - it needs a **secret** or an **external API** (AI/LLM, payments, email/SMS);
   - it must **Zod-parse untrusted or LLM output** before persisting;
   - it needs **heavy or sensitive computation** unsafe or impractical on the client;
-  - it needs **multi-row transactional integrity** → prefer a Postgres function via `supabase.rpc(...)` (callable from web and mobile; RLS enforces authz).
+  - it needs **multi-row transactional integrity** → prefer a Postgres function via `supabase.rpc(...)` (callable from web and mobile; RLS enforces authz);
+  - it is **persistent app-shell UI** (header, nav) reading data the request already has server-side.
 - **Server reads (RSC)**: When a read must be server-side (per above), read directly in an async Server Component. Do not use Server Actions or API Routes for reads.
 - **Business Logic**: Server-required logic lives in `lib/services/` as plain, framework-agnostic async functions (no `'use server'`) — validation, external calls, side effects — unit-testable in isolation and shareable with mobile.
 - **Data Mutations (web)**: When a mutation must run server-side, wrap the service in a **Server Action** in `lib/actions/` — resolve auth, call the service, then `revalidatePath`/`revalidateTag`. No business logic in actions.
