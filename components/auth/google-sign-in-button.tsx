@@ -66,7 +66,7 @@ export function GoogleSignInButton({ next }: { next?: string }) {
     <div className="space-y-2">
       {failed && (
         <p role="alert" className="text-destructive text-center text-sm">
-          Couldn&apos;t reach Google. Check your connection and try again.
+          Something went wrong starting sign-in. Please try again.
         </p>
       )}
       <Button onClick={signIn} disabled={pending} aria-busy={pending} className="w-full">
