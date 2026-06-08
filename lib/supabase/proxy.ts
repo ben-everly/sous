@@ -32,13 +32,10 @@ export async function updateSession(request: NextRequest) {
   // Don't run code between createServerClient and getClaims — getClaims refreshes
   // the session and writes the refreshed cookies onto `response`. Auth gate only
   // (RLS authorizes data). Fail secure: a thrown getClaims counts as no session.
-  let claims = null
-  try {
-    const { data } = await supabase.auth.getClaims()
-    claims = data?.claims ?? null
-  } catch {
-    claims = null
-  }
+  const claims = await supabase.auth
+    .getClaims()
+    .then(({ data }) => data?.claims ?? null)
+    .catch(() => null)
 
   const { pathname } = request.nextUrl
   if (!claims && !isPublicPath(pathname)) {
