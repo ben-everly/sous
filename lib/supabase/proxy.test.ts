@@ -188,6 +188,16 @@ describe('Supabase proxy (updateSession)', () => {
     expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
   })
 
+  it('fails secure: a returned error wins even if claims are present', async () => {
+    getClaims.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: { message: 'stale' } })
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
+  })
+
   it('treats /login/anything as NOT public (exact match for /login)', async () => {
     const request = makeRequest({ pathname: '/login/anything' })
     await updateSession(request as unknown as NextRequest)
