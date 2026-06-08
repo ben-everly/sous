@@ -11,10 +11,16 @@ const loginErrorUrl = (origin: string, error: LoginError, next: string | null) =
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
+  const next = searchParams.get('next')
+  const providerError = searchParams.get('error')
 
   // User denied consent on Google's screen.
-  if (searchParams.get('error') === 'access_denied') {
-    return NextResponse.redirect(loginErrorUrl(origin, 'cancelled', searchParams.get('next')))
+  if (providerError === 'access_denied') {
+    return NextResponse.redirect(loginErrorUrl(origin, 'cancelled', next))
+  }
+
+  if (providerError) {
+    console.error('OAuth provider error:', providerError, searchParams.get('error_description'))
   }
 
   const code = searchParams.get('code')
@@ -22,15 +28,11 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${sameOriginPath(searchParams.get('next'))}`)
+      return NextResponse.redirect(`${origin}${sameOriginPath(next)}`)
     }
     console.error('OAuth code exchange failed:', error.message)
   }
 
-  const providerError = searchParams.get('error')
-  if (providerError) {
-    console.error('OAuth provider error:', providerError, searchParams.get('error_description'))
-  }
-
-  return NextResponse.redirect(loginErrorUrl(origin, 'auth', searchParams.get('next')))
+  // failed exchange, provider error, or a bare/replayed hit.
+  return NextResponse.redirect(loginErrorUrl(origin, 'auth', next))
 }
