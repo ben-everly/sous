@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getClaims } from '@/lib/auth/claims'
+import { getClaims } from '@/lib/auth/server-claims'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { isLoginError, loginError } from '@/lib/auth/login-errors'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'

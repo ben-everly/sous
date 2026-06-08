@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { env } from '@/lib/env'
+import { getClaimsFrom } from '@/lib/auth/claims'
 
 export function isPublicPath(pathname: string): boolean {
   return pathname === '/login' || pathname.startsWith('/auth/')
@@ -31,12 +32,8 @@ export async function updateSession(request: NextRequest) {
 
   // Don't run code between createServerClient and getClaims — getClaims refreshes
   // the session and writes the refreshed cookies onto `response`. Auth gate only
-  // (RLS authorizes data). Fail secure: a thrown or errored getClaims counts as
-  // no session.
-  const claims = await supabase.auth
-    .getClaims()
-    .then(({ data, error }) => (error ? null : (data?.claims ?? null)))
-    .catch(() => null)
+  // (RLS authorizes data).
+  const claims = await getClaimsFrom(supabase)
 
   const { pathname } = request.nextUrl
   if (!claims && !isPublicPath(pathname)) {

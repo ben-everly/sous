@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getClaims } from '@/lib/auth/claims'
+import { getClaims } from '@/lib/auth/server-claims'
 import { AppHeader } from '@/components/layout/app-header'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

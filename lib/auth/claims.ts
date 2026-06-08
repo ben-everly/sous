@@ -1,13 +1,12 @@
-import 'server-only'
-import { cache } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
 
-export const getClaims = cache(async () => {
-  const supabase = await createClient()
+// Fail secure: a thrown or errored getClaims counts as no session.
+export async function getClaimsFrom(supabase: SupabaseClient<Database>) {
   return supabase.auth
     .getClaims()
     .then(({ data, error }) => (error ? null : (data?.claims ?? null)))
     .catch(() => null)
-})
+}
 
-export type SessionClaims = NonNullable<Awaited<ReturnType<typeof getClaims>>>
+export type SessionClaims = NonNullable<Awaited<ReturnType<typeof getClaimsFrom>>>

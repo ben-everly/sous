@@ -1,34 +1,33 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getClaims } from './claims'
+import { describe, expect, it, vi } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
+import { getClaimsFrom } from './claims'
 
-const getClaimsMock = vi.fn()
+const clientWith = (getClaims: ReturnType<typeof vi.fn>) =>
+  ({ auth: { getClaims } }) as unknown as SupabaseClient<Database>
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(async () => ({ auth: { getClaims: getClaimsMock } })),
-}))
-
-describe('getClaims', () => {
-  beforeEach(() => {
-    getClaimsMock.mockReset()
-  })
-
+describe('getClaimsFrom', () => {
   it('returns the claims when a session is present', async () => {
-    getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: null })
-    await expect(getClaims()).resolves.toEqual({ sub: 'u' })
+    const supabase = clientWith(
+      vi.fn().mockResolvedValue({ data: { claims: { sub: 'u' } }, error: null }),
+    )
+    await expect(getClaimsFrom(supabase)).resolves.toEqual({ sub: 'u' })
   })
 
   it('returns null when there is no session', async () => {
-    getClaimsMock.mockResolvedValue({ data: null, error: null })
-    await expect(getClaims()).resolves.toBeNull()
+    const supabase = clientWith(vi.fn().mockResolvedValue({ data: null, error: null }))
+    await expect(getClaimsFrom(supabase)).resolves.toBeNull()
   })
 
   it('fails secure: returns null when getClaims throws', async () => {
-    getClaimsMock.mockRejectedValue(new Error('network'))
-    await expect(getClaims()).resolves.toBeNull()
+    const supabase = clientWith(vi.fn().mockRejectedValue(new Error('network')))
+    await expect(getClaimsFrom(supabase)).resolves.toBeNull()
   })
 
   it('fails secure: returns null on a returned error even if claims are present', async () => {
-    getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: { message: 'stale' } })
-    await expect(getClaims()).resolves.toBeNull()
+    const supabase = clientWith(
+      vi.fn().mockResolvedValue({ data: { claims: { sub: 'u' } }, error: { message: 'stale' } }),
+    )
+    await expect(getClaimsFrom(supabase)).resolves.toBeNull()
   })
 })
