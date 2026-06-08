@@ -1,7 +1,6 @@
 -- Private schema for security-definer trigger functions. Kept off the Data API by
 -- omitting it from [api].schemas in config.toml.
 create schema if not exists auth_hooks;
-revoke all on schema auth_hooks from anon;
 
 -- Per-user display info. Detail fields are intentionally nullable (lenient bootstrap).
 create table public.profiles (
@@ -61,3 +60,5 @@ begin new.updated_at = now(); return new; end;
 $$;
 create trigger profiles_set_updated_at before update on public.profiles
   for each row execute procedure auth_hooks.set_updated_at();
+
+revoke execute on all functions in schema auth_hooks from public;

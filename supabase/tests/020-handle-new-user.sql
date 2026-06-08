@@ -1,7 +1,20 @@
 -- Locks the handle_new_user bootstrap contract.
 begin;
 
-select plan(11);
+select plan(13);
+
+select is(
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'auth_hooks' and has_function_privilege('authenticated', p.oid, 'execute')),
+  0::bigint,
+  'no auth_hooks function is executable by authenticated'
+);
+select is(
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'auth_hooks' and has_function_privilege('anon', p.oid, 'execute')),
+  0::bigint,
+  'no auth_hooks function is executable by anon'
+);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values ('aaaaaaaa-0000-0000-0000-000000000001', 'named@example.com',
