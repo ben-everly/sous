@@ -21,4 +21,14 @@ describe('getClaims', () => {
     getClaimsMock.mockResolvedValue({ data: null, error: null })
     await expect(getClaims()).resolves.toBeNull()
   })
+
+  it('fails secure: returns null when getClaims throws', async () => {
+    getClaimsMock.mockRejectedValue(new Error('network'))
+    await expect(getClaims()).resolves.toBeNull()
+  })
+
+  it('fails secure: returns null on a returned error even if claims are present', async () => {
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: { message: 'stale' } })
+    await expect(getClaims()).resolves.toBeNull()
+  })
 })

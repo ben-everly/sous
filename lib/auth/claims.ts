@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export const getClaims = cache(async () => {
   const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-  return data?.claims ?? null
+  return supabase.auth
+    .getClaims()
+    .then(({ data, error }) => (error ? null : (data?.claims ?? null)))
+    .catch(() => null)
 })
 
 export type SessionClaims = NonNullable<Awaited<ReturnType<typeof getClaims>>>
