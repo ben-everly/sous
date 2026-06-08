@@ -24,7 +24,11 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
           {/* TODO(launch): hotlinking Google's CDN leaks IP/timing to Google (no-referrer
               hides only the page URL) — copy avatars into Storage; also fixes URL expiry. */}
           {profile?.avatar_url && (
-            <AvatarImage src={profile.avatar_url} alt={name} referrerPolicy="no-referrer" />
+            <AvatarImage
+              src={profile.avatar_url}
+              alt={name ?? 'Your profile'}
+              referrerPolicy="no-referrer"
+            />
           )}
           <AvatarFallback>
             <User className="size-4" aria-hidden="true" />
