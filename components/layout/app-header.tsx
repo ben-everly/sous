@@ -14,7 +14,7 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
     .maybeSingle()
   if (error) console.error('profile read failed:', error.message)
 
-  const name = profile?.display_name ?? claims.email?.split('@')[0]
+  const name = profile?.display_name
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-3">
