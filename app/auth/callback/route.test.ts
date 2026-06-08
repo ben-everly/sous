@@ -29,6 +29,26 @@ describe('OAuth callback (GET)', () => {
     expect(exchangeCodeForSession).not.toHaveBeenCalled()
   })
 
+  it('preserves next through the cancelled redirect for retry', async () => {
+    await get(`?error=access_denied&next=${encodeURIComponent('/recipes/42')}`)
+
+    expect(mockedRedirect).toHaveBeenCalledWith(
+      `http://localhost:3000/login?${new URLSearchParams({ error: 'cancelled', next: '/recipes/42' })}`,
+    )
+  })
+
+  it('preserves next through the auth-error redirect for retry', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    exchangeCodeForSession.mockResolvedValue({ error: { message: 'bad code' } })
+
+    await get(`?code=abc&next=${encodeURIComponent('/recipes/42')}`)
+
+    expect(mockedRedirect).toHaveBeenCalledWith(
+      `http://localhost:3000/login?${new URLSearchParams({ error: 'auth', next: '/recipes/42' })}`,
+    )
+    consoleError.mockRestore()
+  })
+
   it('redirects a missing code to the auth error', async () => {
     await get('')
 
