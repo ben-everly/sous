@@ -1,9 +1,7 @@
-import { redirect } from 'next/navigation'
-import { getClaims } from '@/lib/auth/server-claims'
+import { redirectIfAuthed } from '@/lib/auth/gate'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
-import { isLoginError, loginError } from '@/lib/auth/login-errors'
-import { sameOriginPath } from '@/lib/auth/same-origin-path'
-import { cn } from '@/lib/utils'
+import { LoginNotice } from '@/components/auth/login-notice'
+import { isLoginError } from '@/lib/auth/login-errors'
 
 export default async function LoginPage({
   searchParams,
@@ -11,9 +9,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string }>
 }) {
   const { error, next } = await searchParams
-  if (await getClaims()) redirect(sameOriginPath(next))
-
-  const notice = isLoginError(error) ? loginError(error) : null
+  await redirectIfAuthed(next)
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -24,17 +20,7 @@ export default async function LoginPage({
             Manage your kitchen inventory, recipes, and meal plans.
           </p>
         </div>
-        {notice && (
-          <p
-            role={notice.tone === 'error' ? 'alert' : 'status'}
-            className={cn(
-              'text-center text-sm',
-              notice.tone === 'error' ? 'text-destructive' : 'text-muted-foreground',
-            )}
-          >
-            {notice.message}
-          </p>
-        )}
+        {isLoginError(error) && <LoginNotice error={error} />}
         {/* TODO(launch): data disclosure + privacy policy link go here once a policy exists. */}
         {/* TODO(launch): offer an email/password sign-in option — Google is the only path for v1. */}
         <GoogleSignInButton next={next} />
