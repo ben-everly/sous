@@ -35,6 +35,8 @@ export async function AppHeader({ claims }: { claims: SessionClaims }) {
           </AvatarFallback>
         </Avatar>
         {name && <span className="text-sm font-medium">{name}</span>}
+        {/* TODO(launch): account menu here — data export + delete account (profiles ON DELETE
+            CASCADE already makes deletion cheap). */}
         <SignOutButton />
       </div>
     </header>
