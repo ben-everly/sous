@@ -25,7 +25,9 @@ describe('GoogleSignInButton', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     clickSignIn()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/something went wrong starting sign-in/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /something went wrong starting sign-in/i,
+    )
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled()
   })
 
