@@ -43,3 +43,7 @@ npm run db:types
 | `npm run db:reset`                | Reset the local database                   |
 | `npm run db:types`                | Regenerate `types/database.types.ts`       |
 | `npm run db:advisors`             | Run Supabase security/performance advisors |
+
+## Deployment
+
+See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the production setup checklist.
