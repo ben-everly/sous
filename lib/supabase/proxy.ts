@@ -3,10 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { env } from '@/lib/env'
 import { getClaimsFrom } from '@/lib/auth/claims'
-
-export function isPublicPath(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/auth/')
-}
+import { isPublicPath, loginRedirectPath } from '@/lib/auth/routes'
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -35,14 +32,9 @@ export async function updateSession(request: NextRequest) {
   // (RLS authorizes data).
   const claims = await getClaimsFrom(supabase)
 
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl
   if (!claims && !isPublicPath(pathname)) {
-    const dest = pathname + request.nextUrl.search
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    url.search = ''
-    if (dest !== '/') url.searchParams.set('next', dest)
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL(loginRedirectPath(pathname, search), request.url))
   }
 
   return response
