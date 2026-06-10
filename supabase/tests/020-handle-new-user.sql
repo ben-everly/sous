@@ -1,7 +1,7 @@
 -- Locks the handle_new_user bootstrap contract.
 begin;
 
-select plan(13);
+select plan(15);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -94,6 +94,30 @@ select throws_ok(
   null,
   'Column CHECK rejects a non-https avatar_url on update'
 );
+
+-- Fails loud by design: a failed profile insert must abort the whole signup,
+-- never leaving an auth.users row without a profile. Force the insert to fail.
+create function public._force_profile_failure() returns trigger language plpgsql as $$
+begin raise exception 'forced profile failure'; end;
+$$;
+create trigger _force_profile_failure before insert on public.profiles
+  for each row execute procedure public._force_profile_failure();
+
+select throws_ok(
+  $$insert into auth.users (id, email, raw_user_meta_data)
+     values ('aaaaaaaa-0000-0000-0000-000000000006', 'fatal@example.com', '{}'::jsonb)$$,
+  'P0001',
+  'forced profile failure',
+  'A failed profile insert aborts the signup (handle_new_user fails loud)'
+);
+select is(
+  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000006'),
+  0::bigint,
+  'No orphan auth.users row remains when the profile insert fails'
+);
+
+drop trigger _force_profile_failure on public.profiles;
+drop function public._force_profile_failure();
 
 select * from finish();
 rollback;
