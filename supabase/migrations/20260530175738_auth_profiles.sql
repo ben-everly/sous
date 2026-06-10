@@ -13,6 +13,8 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- No insert/delete policy by design: handle_new_user is the only writer,
+-- the auth.users cascade the only remover.
 create policy "profiles_select_own" on public.profiles
   for select to authenticated using (id = (select auth.uid()));
 create policy "profiles_update_own" on public.profiles
