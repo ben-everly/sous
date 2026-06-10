@@ -49,6 +49,22 @@ describe('OAuth callback (GET)', () => {
     consoleError.mockRestore()
   })
 
+  it('drops an off-origin next from the cancelled redirect', async () => {
+    await get(`?error=access_denied&next=${encodeURIComponent('//evil.com')}`)
+
+    expect(mockedRedirect).toHaveBeenCalledWith('http://localhost:3000/login?error=cancelled')
+  })
+
+  it('drops an off-origin next from the auth-error redirect', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    exchangeCodeForSession.mockResolvedValue({ error: { message: 'bad code' } })
+
+    await get(`?code=abc&next=${encodeURIComponent('https://evil.test/x')}`)
+
+    expect(mockedRedirect).toHaveBeenCalledWith('http://localhost:3000/login?error=auth')
+    consoleError.mockRestore()
+  })
+
   it('redirects a missing code to the auth error', async () => {
     await get('')
 
