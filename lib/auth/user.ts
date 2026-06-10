@@ -4,7 +4,8 @@ import { getClaimsFrom, type SessionClaims } from '@/lib/auth/claims'
 
 type Profile = Pick<Database['public']['Tables']['profiles']['Row'], 'display_name' | 'avatar_url'>
 
-export type AuthedUser = { claims: SessionClaims; profile: Profile | null }
+// The signup trigger guarantees a profile row per authed user, so a read error is an anomaly.
+export type AuthedUser = { claims: SessionClaims; profile: Profile | null; profileError: boolean }
 
 export async function getUserFrom(supabase: SupabaseClient<Database>): Promise<AuthedUser | null> {
   const claims = await getClaimsFrom(supabase)
@@ -17,5 +18,5 @@ export async function getUserFrom(supabase: SupabaseClient<Database>): Promise<A
     .maybeSingle()
   if (error) console.error('profile read failed:', error.message)
 
-  return { claims, profile }
+  return { claims, profile, profileError: Boolean(error) }
 }
