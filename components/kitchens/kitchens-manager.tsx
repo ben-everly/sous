@@ -33,6 +33,7 @@ export function KitchensManager({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     // RLS scopes the read to the owner; no client-side owner filter needed.
@@ -63,18 +64,23 @@ export function KitchensManager({
       name = newName.trim()
       if (name === '' || name.length > NAME_MAX) return
     }
-
-    const { data, error } = await supabase
-      .from('kitchens')
-      .insert({ owner_id: ownerId, name })
-      .select('id, name, created_at')
-      .single()
-    if (error || !data) {
-      toast.error('Could not create the kitchen.')
-      return
+    if (creating) return
+    setCreating(true)
+    try {
+      const { data, error } = await supabase
+        .from('kitchens')
+        .insert({ owner_id: ownerId, name })
+        .select('id, name, created_at')
+        .single()
+      if (error || !data) {
+        toast.error('Could not create the kitchen.')
+        return
+      }
+      setKitchens((ks) => [...(ks ?? []), data])
+      setNewName('')
+    } finally {
+      setCreating(false)
     }
-    setKitchens((ks) => [...(ks ?? []), data])
-    setNewName('')
   }
 
   const rename = async (id: string) => {
@@ -106,7 +112,7 @@ export function KitchensManager({
       {kitchens.length === 0 ? (
         <div className="space-y-3 rounded-md border border-dashed p-6 text-center">
           <p className="text-muted-foreground text-sm">You have no kitchens yet.</p>
-          <Button onClick={create}>
+          <Button onClick={create} disabled={creating}>
             <Plus /> Create a kitchen
           </Button>
         </div>
@@ -189,7 +195,7 @@ export function KitchensManager({
               aria-label="New kitchen name"
               onChange={(e) => setNewName(e.target.value)}
             />
-            <Button type="submit" disabled={newName.trim() === ''}>
+            <Button type="submit" disabled={creating || newName.trim() === ''}>
               <Plus /> Add kitchen
             </Button>
           </form>
