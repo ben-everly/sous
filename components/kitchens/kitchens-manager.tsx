@@ -27,7 +27,7 @@ export function KitchensManager({
   ownerId: string
   ownerDisplayName: string | null
 }) {
-  const supabase = createClient()
+  const [supabase] = useState(createClient)
   const [kitchens, setKitchens] = useState<Kitchen[] | null>(null) // null = loading
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -62,7 +62,7 @@ export function KitchensManager({
     let name: string | null = null
     if (!isFirst) {
       name = newName.trim()
-      if (name === '' || name.length > NAME_MAX) return
+      if (name === '') return
     }
     if (creating) return
     setCreating(true)
@@ -85,9 +85,9 @@ export function KitchensManager({
 
   const rename = async (id: string) => {
     const name = editName.trim()
-    if (name === '' || name.length > NAME_MAX) return
+    if (name === '') return
     const prev = kitchens
-    setKitchens((ks) => ks!.map((k) => (k.id === id ? { ...k, name } : k)))
+    setKitchens(kitchens.map((k) => (k.id === id ? { ...k, name } : k)))
     setEditingId(null)
     const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
     if (error) {
@@ -98,7 +98,7 @@ export function KitchensManager({
 
   const remove = async (kitchen: Kitchen) => {
     const prev = kitchens
-    setKitchens((ks) => ks!.filter((k) => k.id !== kitchen.id))
+    setKitchens(kitchens.filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
     const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
     if (error) {
