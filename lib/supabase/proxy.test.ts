@@ -8,7 +8,10 @@ type ResponseMock = { cookies: { set: ReturnType<typeof vi.fn> } }
 const { responses } = vi.hoisted(() => ({ responses: [] as ResponseMock[] }))
 
 let capturedCookies: CookieHooks | undefined
-type GetClaimsResult = { data: { claims: { sub: string } | null } | null; error: null }
+type GetClaimsResult = {
+  data: { claims: { sub: string } | null } | null
+  error: { message: string } | null
+}
 const getClaims = vi.fn<() => Promise<GetClaimsResult>>()
 
 vi.mock('@supabase/ssr', () => ({
@@ -25,30 +28,42 @@ vi.mock('next/server', () => ({
       responses.push(response)
       return response
     }),
+    redirect: vi.fn((url: { pathname: string }) => ({ __redirect: url })),
   },
 }))
 
 const mockedNext = vi.mocked(NextResponse.next)
+const mockedRedirect = vi.mocked(NextResponse.redirect)
 
-function makeRequest(initialCookies: CookieEntry[] = []) {
+function makeRequest({
+  cookies = [] as CookieEntry[],
+  pathname = '/',
+  search = '',
+}: { cookies?: CookieEntry[]; pathname?: string; search?: string } = {}) {
   return {
+    url: `http://localhost:3000${pathname}${search}`,
     cookies: {
-      getAll: vi.fn(() => [...initialCookies]),
+      getAll: vi.fn(() => [...cookies]),
       set: vi.fn(),
     },
+    nextUrl: { pathname, search },
   }
 }
+
+const authed = () => getClaims.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: null })
 
 describe('Supabase proxy (updateSession)', () => {
   beforeEach(() => {
     capturedCookies = undefined
     responses.length = 0
     mockedNext.mockClear()
+    mockedRedirect.mockClear()
     getClaims.mockReset()
     getClaims.mockResolvedValue({ data: { claims: null }, error: null })
   })
 
   it('returns the initial response when no cookies are set during refresh', async () => {
+    authed()
     const request = makeRequest()
     const response = await updateSession(request as unknown as NextRequest)
 
@@ -57,8 +72,9 @@ describe('Supabase proxy (updateSession)', () => {
   })
 
   it('forwards getAll to request.cookies', async () => {
+    authed()
     const initial = [{ name: 'sb-access-token', value: 'tok', options: {} }]
-    const request = makeRequest(initial)
+    const request = makeRequest({ cookies: initial })
 
     await updateSession(request as unknown as NextRequest)
 
@@ -67,6 +83,7 @@ describe('Supabase proxy (updateSession)', () => {
   })
 
   it('setAll writes to request (no options) and a recreated response (with options)', async () => {
+    authed()
     const request = makeRequest()
     await updateSession(request as unknown as NextRequest)
 
@@ -89,7 +106,7 @@ describe('Supabase proxy (updateSession)', () => {
     expect(responses[0].cookies.set).not.toHaveBeenCalled()
   })
 
-  it('returns the recreated response when cookies are set during refresh', async () => {
+  it("returns the recreated response when getClaims's setAll runs during refresh", async () => {
     getClaims.mockImplementation(async () => {
       capturedCookies?.setAll([
         { name: 'sb-access-token', value: 'refreshed', options: { httpOnly: true } },
@@ -105,5 +122,84 @@ describe('Supabase proxy (updateSession)', () => {
     expect(responses[1].cookies.set).toHaveBeenCalledWith('sb-access-token', 'refreshed', {
       httpOnly: true,
     })
+    expect(mockedRedirect).not.toHaveBeenCalled()
+  })
+
+  it('redirects an unauthenticated request to /login', async () => {
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
+  })
+
+  it('preserves the attempted path (and query) as ?next on the login redirect', async () => {
+    const request = makeRequest({ pathname: '/recipes/1', search: '?sort=new' })
+    await updateSession(request as unknown as NextRequest)
+
+    const url = mockedRedirect.mock.calls[0][0] as unknown as { searchParams: URLSearchParams }
+    expect(url.searchParams.get('next')).toBe('/recipes/1?sort=new')
+  })
+
+  it('omits ?next when the attempted path is /', async () => {
+    const request = makeRequest({ pathname: '/' })
+    await updateSession(request as unknown as NextRequest)
+
+    const url = mockedRedirect.mock.calls[0][0] as unknown as { searchParams: URLSearchParams }
+    expect(url.searchParams.get('next')).toBeNull()
+  })
+
+  it('lets an unauthenticated request through to /login', async () => {
+    const request = makeRequest({ pathname: '/login' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).not.toHaveBeenCalled()
+    expect(response).toBe(responses[0])
+  })
+
+  it('lets an unauthenticated request through to the /auth/* subtree', async () => {
+    const request = makeRequest({ pathname: '/auth/callback' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).not.toHaveBeenCalled()
+    expect(response).toBe(responses[0])
+  })
+
+  it('lets an authenticated request through to a protected route', async () => {
+    authed()
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).not.toHaveBeenCalled()
+    expect(response).toBe(responses[0])
+  })
+
+  it('fails secure: a thrown getClaims() redirects to /login', async () => {
+    getClaims.mockRejectedValue(new Error('network'))
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
+  })
+
+  it('fails secure: a returned error wins even if claims are present', async () => {
+    getClaims.mockResolvedValue({ data: { claims: { sub: 'u' } }, error: { message: 'stale' } })
+    const request = makeRequest({ pathname: '/dashboard' })
+    const response = await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
+    expect(response).toMatchObject({ __redirect: { pathname: '/login' } })
+  })
+
+  it('treats /login/anything as NOT public (exact match for /login)', async () => {
+    const request = makeRequest({ pathname: '/login/anything' })
+    await updateSession(request as unknown as NextRequest)
+
+    expect(mockedRedirect).toHaveBeenCalledTimes(1)
+    expect(mockedRedirect.mock.calls[0][0]).toMatchObject({ pathname: '/login' })
   })
 })

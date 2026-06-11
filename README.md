@@ -13,8 +13,8 @@ Built on Next.js 16 (App Router) and Supabase. See [`AGENTS.md`](./AGENTS.md) fo
 
 ```bash
 npm install
-npm run db:start                              # boots local Supabase via Docker
-cp .env.local.example .env.local              # then fill in from `npx supabase status -o env`
+npm run db:start                              # generates the JWT signing key, then boots local Supabase
+cp .env.example .env                          # then fill in from `npx supabase status -o env`
 npm run dev
 ```
 
@@ -43,3 +43,7 @@ npm run db:types
 | `npm run db:reset`                | Reset the local database                   |
 | `npm run db:types`                | Regenerate `types/database.types.ts`       |
 | `npm run db:advisors`             | Run Supabase security/performance advisors |
+
+## Deployment
+
+See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the production setup checklist.

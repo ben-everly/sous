@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { env } from '@/lib/env'
+import { getClaimsFrom } from '@/lib/auth/claims'
+import { isPublicPath, loginRedirectPath } from '@/lib/auth/routes'
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -25,9 +27,15 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Must be called immediately after createServerClient with no intervening
-  // logic — the SDK relies on this call to refresh the session.
-  await supabase.auth.getClaims()
+  // Don't run code between createServerClient and getClaims — getClaims refreshes
+  // the session and writes the refreshed cookies onto `response`. Auth gate only
+  // (RLS authorizes data).
+  const claims = await getClaimsFrom(supabase)
+
+  const { pathname, search } = request.nextUrl
+  if (!claims && !isPublicPath(pathname)) {
+    return NextResponse.redirect(new URL(loginRedirectPath(pathname, search), request.url))
+  }
 
   return response
 }

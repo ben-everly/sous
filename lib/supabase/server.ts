@@ -1,9 +1,12 @@
+import 'server-only'
+import { cache } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database.types'
 import { env } from '@/lib/env'
 
-export async function createClient() {
+// cache() dedupes to one client per request, so callers share a single session refresh.
+export const createClient = cache(async () => {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
@@ -27,4 +30,4 @@ export async function createClient() {
       },
     },
   )
-}
+})

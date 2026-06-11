@@ -9,6 +9,9 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     alias: {
       '@': path.resolve(__dirname, './'),
+      // `server-only`'s default export throws outside an RSC context (Vitest
+      // doesn't set the `react-server` condition); stub it to an empty module.
+      'server-only': path.resolve(__dirname, './test/stubs/empty.ts'),
     },
     exclude: [
       '**/node_modules/**',

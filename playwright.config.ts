@@ -1,5 +1,15 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Load .env for local runs. In CI the file is absent and these come from the
+// job env, so a missing file is fine.
+try {
+  process.loadEnvFile('.env')
+} catch {
+  // No .env — rely on the ambient environment (CI).
+}
+
+const authFile = 'e2e/.auth/user.json'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -13,8 +23,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], storageState: authFile },
+      dependencies: ['setup'],
     },
   ],
   webServer: {

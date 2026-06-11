@@ -1,5 +1,4 @@
 -- Runs before all other test files (alphabetical order).
--- Enables pgTAP and asserts the extension is available.
 begin;
 
 create extension if not exists pgtap with schema extensions;
