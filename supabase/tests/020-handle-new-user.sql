@@ -1,7 +1,7 @@
 -- Locks the handle_new_user bootstrap contract.
 begin;
 
-select plan(15);
+select plan(19);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -29,12 +29,27 @@ select is(
   'https://example.com/a.png',
   'Trigger copies avatar_url'
 );
+select is(
+  (select count(*) from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  1::bigint,
+  'Trigger bootstraps exactly one kitchen for the new user'
+);
+select is(
+  (select name from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  null,
+  'The bootstrapped kitchen is nameless'
+);
 
 delete from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000001';
 select is(
   (select count(*) from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000001'),
   0::bigint,
   'Deleting the user cascades to the profile'
+);
+select is(
+  (select count(*) from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  0::bigint,
+  'Deleting the user cascades to the kitchen'
 );
 
 insert into auth.users (id, email, raw_user_meta_data)
@@ -43,6 +58,11 @@ select is(
   (select display_name from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000002'),
   null,
   'Empty metadata yields a nameless profile (no error)'
+);
+select is(
+  (select count(*) from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000002'),
+  1::bigint,
+  'Empty metadata still bootstraps a kitchen (fail-loud bootstrap preserved)'
 );
 
 insert into auth.users (id, email, raw_user_meta_data)
