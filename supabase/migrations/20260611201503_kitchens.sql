@@ -42,6 +42,7 @@ create trigger kitchens_set_updated_at before update on public.kitchens
 -- in the signup transaction; no exception block by design — a failure aborts signup rather
 -- than commit a user with no kitchen. The new user has zero kitchens, so the null name
 -- satisfies kitchens_one_unnamed_per_owner.
+-- Body copied verbatim from 20260530175738_auth_profiles.sql; only the kitchen insert is new.
 create or replace function auth_hooks.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare

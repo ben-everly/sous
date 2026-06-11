@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(14);
+select plan(15);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.kitchens'::regclass),
@@ -77,6 +77,17 @@ select is(
   (select count(*) from public.kitchens where name is null),
   1::bigint,
   'A nameless kitchen is allowed once the first is named'
+);
+
+-- ...and again after deleting it (the other branch of the rename-or-delete rule).
+delete from public.kitchens
+  where owner_id = '11111111-1111-1111-1111-111111111111' and name is null;
+insert into public.kitchens (owner_id) values ('11111111-1111-1111-1111-111111111111');
+select is(
+  (select count(*) from public.kitchens
+     where owner_id = '11111111-1111-1111-1111-111111111111' and name is null),
+  1::bigint,
+  'A nameless kitchen is allowed again after deleting the previous one'
 );
 
 -- updated_at bumps on update. Seed a stale row directly; the BEFORE UPDATE trigger only fires on UPDATE.
