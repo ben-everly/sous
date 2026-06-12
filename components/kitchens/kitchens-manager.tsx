@@ -131,7 +131,7 @@ export function KitchensManager({
       {kitchens.length === 0 ? (
         <div className="space-y-3 rounded-md border border-dashed p-6 text-center">
           <p className="text-muted-foreground text-sm">You have no kitchens yet.</p>
-          <Button onClick={create} disabled={creating}>
+          <Button onClick={create} disabled={creating} aria-busy={creating}>
             <Plus /> Create a kitchen
           </Button>
         </div>
@@ -158,7 +158,12 @@ export function KitchensManager({
                         onChange={(e) => setEditName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Escape' && setEditingId(null)}
                       />
-                      <Button type="submit" size="sm" disabled={editName.trim() === '' || renaming}>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={editName.trim() === '' || renaming}
+                        aria-busy={renaming}
+                      >
                         Save
                       </Button>
                       <Button
@@ -215,7 +220,7 @@ export function KitchensManager({
               aria-label="New kitchen name"
               onChange={(e) => setNewName(e.target.value)}
             />
-            <Button type="submit" disabled={creating || newName.trim() === ''}>
+            <Button type="submit" disabled={creating || newName.trim() === ''} aria-busy={creating}>
               <Plus /> Add kitchen
             </Button>
           </form>
@@ -239,7 +244,11 @@ export function KitchensManager({
             <Button variant="ghost" onClick={() => setPendingDelete(null)}>
               Cancel
             </Button>
-            <Button disabled={deleting} onClick={() => pendingDelete && remove(pendingDelete)}>
+            <Button
+              disabled={deleting}
+              aria-busy={deleting}
+              onClick={() => pendingDelete && remove(pendingDelete)}
+            >
               Delete
             </Button>
           </DialogFooter>
