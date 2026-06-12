@@ -151,11 +151,7 @@ export function KitchensManager({
                         aria-label="Kitchen name"
                         onChange={(e) => setEditName(e.target.value)}
                       />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={editName.trim() === '' || renaming}
-                      >
+                      <Button type="submit" size="sm" disabled={editName.trim() === '' || renaming}>
                         Save
                       </Button>
                       <Button
