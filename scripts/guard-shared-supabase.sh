@@ -3,7 +3,9 @@
 # stack is shared across all worktrees, so reset/stop here disrupts every checkout.
 # Override with FORCE_SHARED_SUPABASE=1 when that is genuinely the intent.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+# Nothing to guard outside a git checkout.
+toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$toplevel"
 . scripts/worktree.sh
 
 in_primary_worktree && exit 0
