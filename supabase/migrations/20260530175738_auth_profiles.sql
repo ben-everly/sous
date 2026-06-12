@@ -21,22 +21,31 @@ create policy "profiles_update_own" on public.profiles
   for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
+-- Sanitize attacker-controlled signup metadata. Pure transform, so security invoker
+-- (not definer) and immutable.
+create function auth_hooks.sanitize_meta_name(meta jsonb)
+returns text language sql immutable set search_path = '' as $$
+  select nullif(btrim(left(regexp_replace(
+    coalesce(meta ->> 'full_name', meta ->> 'name', ''),
+    '[[:cntrl:]]', '', 'g'), 200)), '');
+$$;
+
+-- Drop the avatar unless it's an https URL — a bad value never blocks signup.
+create function auth_hooks.sanitize_meta_avatar(meta jsonb)
+returns text language sql immutable set search_path = '' as $$
+  select case when raw ~* '^https://' then raw end
+  from (select coalesce(meta ->> 'avatar_url', meta ->> 'picture') as raw) s;
+$$;
+
 -- Bootstrap on signup. No exception block by design: a failed insert aborts the signup rather than orphan an auth.users row.
 create function auth_hooks.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare
-  -- Sanitize the one attacker-controlled input.
-  name text := nullif(btrim(left(regexp_replace(
-    coalesce(new.raw_user_meta_data ->> 'full_name',
-             new.raw_user_meta_data ->> 'name', ''),
-    '[[:cntrl:]]', '', 'g'), 200)), '');
-  -- Lenient like the name: a bad value is dropped, never allowed to block signup.
-  avatar_raw text := coalesce(new.raw_user_meta_data ->> 'avatar_url',
-                              new.raw_user_meta_data ->> 'picture');
-  avatar text := case when avatar_raw ~* '^https://' then avatar_raw end;
+  name text := auth_hooks.sanitize_meta_name(new.raw_user_meta_data);
+  avatar text := auth_hooks.sanitize_meta_avatar(new.raw_user_meta_data);
 begin
   -- Drift detection: log present keys (keys only, never values) if expected name is absent.
-  if name is null or name = '' then
+  if name is null then
     raise log 'handle_new_user: expected name keys absent for %, meta keys present: %',
       new.id,
       (select array_agg(k order by k)

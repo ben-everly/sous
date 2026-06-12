@@ -38,25 +38,17 @@ create policy "kitchens_delete_own" on public.kitchens
 create trigger kitchens_set_updated_at before update on public.kitchens
   for each row execute procedure auth_hooks.set_updated_at();
 
--- Extend the signup bootstrap: insert a nameless kitchen after the profile. Second insert
--- in the signup transaction; no exception block by design — a failure aborts signup rather
--- than commit a user with no kitchen. The new user has zero kitchens, so the null name
--- satisfies kitchens_one_unnamed_per_owner.
+-- No exception block by design: a kitchen-insert failure aborts signup rather than commit a
+-- user with no kitchen. A brand-new user has zero kitchens, so the null name satisfies
+-- kitchens_one_unnamed_per_owner.
 create or replace function auth_hooks.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare
-  -- Sanitize the one attacker-controlled input.
-  name text := nullif(btrim(left(regexp_replace(
-    coalesce(new.raw_user_meta_data ->> 'full_name',
-             new.raw_user_meta_data ->> 'name', ''),
-    '[[:cntrl:]]', '', 'g'), 200)), '');
-  -- Lenient like the name: a bad value is dropped, never allowed to block signup.
-  avatar_raw text := coalesce(new.raw_user_meta_data ->> 'avatar_url',
-                              new.raw_user_meta_data ->> 'picture');
-  avatar text := case when avatar_raw ~* '^https://' then avatar_raw end;
+  name text := auth_hooks.sanitize_meta_name(new.raw_user_meta_data);
+  avatar text := auth_hooks.sanitize_meta_avatar(new.raw_user_meta_data);
 begin
   -- Drift detection: log present keys (keys only, never values) if expected name is absent.
-  if name is null or name = '' then
+  if name is null then
     raise log 'handle_new_user: expected name keys absent for %, meta keys present: %',
       new.id,
       (select array_agg(k order by k)
