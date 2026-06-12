@@ -89,6 +89,11 @@ export function KitchensManager({
   const rename = async (id: string) => {
     const name = editName.trim()
     if (name === '' || renaming) return
+    // Unchanged name: close the editor without a write (no pointless updated_at bump).
+    if (name === kitchens.find((k) => k.id === id)?.name) {
+      setEditingId(null)
+      return
+    }
     setRenaming(true)
     const prev = kitchens
     setKitchens((ks) => (ks ?? []).map((k) => (k.id === id ? { ...k, name } : k)))
@@ -151,6 +156,7 @@ export function KitchensManager({
                         maxLength={NAME_MAX}
                         aria-label="Kitchen name"
                         onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && setEditingId(null)}
                       />
                       <Button type="submit" size="sm" disabled={editName.trim() === '' || renaming}>
                         Save
