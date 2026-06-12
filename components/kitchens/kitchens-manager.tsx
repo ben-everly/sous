@@ -87,7 +87,7 @@ export function KitchensManager({
     const name = editName.trim()
     if (name === '') return
     const prev = kitchens
-    setKitchens(kitchens.map((k) => (k.id === id ? { ...k, name } : k)))
+    setKitchens((ks) => (ks ?? []).map((k) => (k.id === id ? { ...k, name } : k)))
     setEditingId(null)
     const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
     if (error) {
@@ -98,7 +98,7 @@ export function KitchensManager({
 
   const remove = async (kitchen: Kitchen) => {
     const prev = kitchens
-    setKitchens(kitchens.filter((k) => k.id !== kitchen.id))
+    setKitchens((ks) => (ks ?? []).filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
     const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
     if (error) {
