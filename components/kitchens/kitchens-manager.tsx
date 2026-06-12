@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@/types/database.types'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-type Kitchen = { id: string; name: string | null; created_at: string }
+type Kitchen = Pick<Database['public']['Tables']['kitchens']['Row'], 'id' | 'name' | 'created_at'>
 
 const NAME_MAX = 200
 
