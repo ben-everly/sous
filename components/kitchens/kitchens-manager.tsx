@@ -34,6 +34,8 @@ export function KitchensManager({
   const [editName, setEditName] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
   const [creating, setCreating] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     // RLS scopes the read to the owner; no client-side owner filter needed.
@@ -85,25 +87,36 @@ export function KitchensManager({
 
   const rename = async (id: string) => {
     const name = editName.trim()
-    if (name === '') return
+    if (name === '' || renaming) return
+    setRenaming(true)
     const prev = kitchens
     setKitchens((ks) => (ks ?? []).map((k) => (k.id === id ? { ...k, name } : k)))
     setEditingId(null)
-    const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
-    if (error) {
-      setKitchens(prev)
-      toast.error('Could not rename the kitchen.')
+    try {
+      const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
+      if (error) {
+        setKitchens(prev)
+        toast.error('Could not rename the kitchen.')
+      }
+    } finally {
+      setRenaming(false)
     }
   }
 
   const remove = async (kitchen: Kitchen) => {
+    if (deleting) return
+    setDeleting(true)
     const prev = kitchens
     setKitchens((ks) => (ks ?? []).filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
-    const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
-    if (error) {
-      setKitchens(prev)
-      toast.error('Could not delete the kitchen.')
+    try {
+      const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
+      if (error) {
+        setKitchens(prev)
+        toast.error('Could not delete the kitchen.')
+      }
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -138,7 +151,11 @@ export function KitchensManager({
                         aria-label="Kitchen name"
                         onChange={(e) => setEditName(e.target.value)}
                       />
-                      <Button type="submit" size="sm" disabled={editName.trim() === ''}>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={editName.trim() === '' || renaming}
+                      >
                         Save
                       </Button>
                       <Button
@@ -219,7 +236,9 @@ export function KitchensManager({
             <Button variant="ghost" onClick={() => setPendingDelete(null)}>
               Cancel
             </Button>
-            <Button onClick={() => pendingDelete && remove(pendingDelete)}>Delete</Button>
+            <Button disabled={deleting} onClick={() => pendingDelete && remove(pendingDelete)}>
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
