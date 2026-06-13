@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -21,27 +21,39 @@ import type { Kitchen } from './types'
 export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string | null }) {
   const [supabase] = useState(createClient)
   const [kitchens, setKitchens] = useState<Kitchen[] | null>(null) // null = loading
+  const [loadError, setLoadError] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [bootstrapping, setBootstrapping] = useState(false)
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoadError(false)
+    setKitchens(null)
     // RLS scopes the read to the owner; no client-side owner filter needed.
     supabase
       .from('kitchens')
       .select('id, name, created_at')
       .order('created_at')
       .then(({ data, error }) => {
-        if (error) {
-          toast.error('Could not load your kitchens.')
-          setKitchens([])
-          return
-        }
-        setKitchens(data)
+        if (error) setLoadError(true)
+        else setKitchens(data)
       })
   }, [supabase])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (loadError) {
+    return (
+      <div className="mt-6 space-y-3 rounded-md border border-dashed p-6 text-center">
+        <p className="text-muted-foreground text-sm">Could not load your kitchens.</p>
+        <Button onClick={load}>Try again</Button>
+      </div>
+    )
+  }
 
   if (kitchens === null) {
     return <p className="text-muted-foreground mt-6 text-sm">Loading…</p>
