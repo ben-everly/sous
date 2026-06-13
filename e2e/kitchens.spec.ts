@@ -14,9 +14,10 @@ test.describe('kitchens', () => {
     await expect(page).toHaveURL(/\/settings\/kitchens$/)
     await expect(page.getByText(ownerKitchen)).toBeVisible()
 
-    // Create a named kitchen.
+    // Create a named kitchen via a draft row.
+    await page.getByRole('button', { name: 'Add kitchen' }).click()
     await page.getByLabel('New kitchen name').fill('Beach House')
-    await page.getByRole('button', { name: /add kitchen/i }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('Beach House')).toBeVisible()
 
     // Rename it.

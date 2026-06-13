@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import type { Database } from '@/types/database.types'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -16,10 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-
-type Kitchen = Pick<Database['public']['Tables']['kitchens']['Row'], 'id' | 'name' | 'created_at'>
-
-const NAME_MAX = 200
+import { KitchenRow } from './kitchen-row'
+import { KitchenNameForm } from './kitchen-name-form'
+import type { Kitchen } from './types'
 
 export function KitchensManager({
   ownerId,
@@ -30,13 +27,11 @@ export function KitchensManager({
 }) {
   const [supabase] = useState(createClient)
   const [kitchens, setKitchens] = useState<Kitchen[] | null>(null) // null = loading
-  const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
+  const [draftOpen, setDraftOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [renaming, setRenaming] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [bootstrapping, setBootstrapping] = useState(false)
 
   useEffect(() => {
     // RLS scopes the read to the owner; no client-side owner filter needed.
@@ -58,55 +53,52 @@ export function KitchensManager({
     return <p className="text-muted-foreground mt-6 text-sm">Loading…</p>
   }
 
-  const create = async () => {
-    // Zero kitchens → insert nameless (the bootstrap/recovery path, no name input shown).
-    // Otherwise a non-empty name is required — always a subset of what the DB index permits.
-    const isFirst = kitchens.length === 0
-    let name: string | null = null
-    if (!isFirst) {
-      name = newName.trim()
-      if (name === '') return
+  const insert = async (name: string | null) => {
+    const { data, error } = await supabase
+      .from('kitchens')
+      .insert({ owner_id: ownerId, name })
+      .select('id, name, created_at')
+      .single()
+    if (error || !data) {
+      toast.error('Could not create the kitchen.')
+      return false
     }
-    if (creating) return
-    setCreating(true)
+    setKitchens((ks) => [...(ks ?? []), data])
+    return true
+  }
+
+  // Empty-state recovery: a user who deleted down to zero re-bootstraps a nameless kitchen
+  // (the same default the signup trigger creates). Named adds go through the draft row.
+  const bootstrap = async () => {
+    if (bootstrapping) return
+    setBootstrapping(true)
     try {
-      const { data, error } = await supabase
-        .from('kitchens')
-        .insert({ owner_id: ownerId, name })
-        .select('id, name, created_at')
-        .single()
-      if (error || !data) {
-        toast.error('Could not create the kitchen.')
-        return
-      }
-      setKitchens((ks) => [...(ks ?? []), data])
-      setNewName('')
+      await insert(null)
     } finally {
-      setCreating(false)
+      setBootstrapping(false)
     }
   }
 
-  const rename = async (id: string) => {
-    const name = editName.trim()
-    if (name === '' || renaming) return
-    // Unchanged name: close the editor without a write (no pointless updated_at bump).
+  const createNamed = async (name: string) => {
+    const ok = await insert(name)
+    if (ok) setDraftOpen(false)
+    return ok
+  }
+
+  const rename = async (id: string, name: string) => {
+    // The inline editor masks the row, so an optimistic write would be invisible — just await.
     if (name === kitchens.find((k) => k.id === id)?.name) {
       setEditingId(null)
-      return
+      return true
     }
-    setRenaming(true)
-    const prev = kitchens
+    const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
+    if (error) {
+      toast.error('Could not rename the kitchen.')
+      return false
+    }
     setKitchens((ks) => (ks ?? []).map((k) => (k.id === id ? { ...k, name } : k)))
     setEditingId(null)
-    try {
-      const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
-      if (error) {
-        setKitchens(prev)
-        toast.error('Could not rename the kitchen.')
-      }
-    } finally {
-      setRenaming(false)
-    }
+    return true
   }
 
   const remove = async (kitchen: Kitchen) => {
@@ -131,99 +123,43 @@ export function KitchensManager({
       {kitchens.length === 0 ? (
         <div className="space-y-3 rounded-md border border-dashed p-6 text-center">
           <p className="text-muted-foreground text-sm">You have no kitchens yet.</p>
-          <Button onClick={create} disabled={creating} aria-busy={creating}>
+          <Button onClick={bootstrap} disabled={bootstrapping} aria-busy={bootstrapping}>
             <Plus /> Create a kitchen
           </Button>
         </div>
       ) : (
         <>
           <ul className="divide-y rounded-md border">
-            {kitchens.map((k) => {
-              const label = kitchenLabel(k.name, ownerDisplayName)
-              return (
-                <li key={k.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  {editingId === k.id ? (
-                    <form
-                      className="flex flex-1 items-center gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        rename(k.id)
-                      }}
-                    >
-                      <Input
-                        autoFocus
-                        value={editName}
-                        maxLength={NAME_MAX}
-                        aria-label="Kitchen name"
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Escape' && setEditingId(null)}
-                      />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={editName.trim() === '' || renaming}
-                        aria-busy={renaming}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </form>
-                  ) : (
-                    <>
-                      <span className="text-sm font-medium">{label}</span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          aria-label={`Rename ${label}`}
-                          onClick={() => {
-                            setEditingId(k.id)
-                            setEditName(k.name ?? '')
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          aria-label={`Delete ${label}`}
-                          onClick={() => setPendingDelete(k)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              )
-            })}
+            {kitchens.map((k) => (
+              <KitchenRow
+                key={k.id}
+                kitchen={k}
+                ownerDisplayName={ownerDisplayName}
+                isEditing={editingId === k.id}
+                onEdit={() => setEditingId(k.id)}
+                onCancelEdit={() => setEditingId(null)}
+                onRename={(name) => rename(k.id, name)}
+                onRequestDelete={() => setPendingDelete(k)}
+              />
+            ))}
+            {draftOpen && (
+              <li className="flex items-center justify-between gap-3 px-4 py-3">
+                <KitchenNameForm
+                  initialValue=""
+                  inputLabel="New kitchen name"
+                  submitLabel="Add"
+                  onSubmit={createNamed}
+                  onCancel={() => setDraftOpen(false)}
+                />
+              </li>
+            )}
           </ul>
 
-          <form
-            className="flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              create()
-            }}
-          >
-            <Input
-              value={newName}
-              maxLength={NAME_MAX}
-              placeholder="New kitchen name"
-              aria-label="New kitchen name"
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <Button type="submit" disabled={creating || newName.trim() === ''} aria-busy={creating}>
+          {!draftOpen && (
+            <Button onClick={() => setDraftOpen(true)}>
               <Plus /> Add kitchen
             </Button>
-          </form>
+          )}
         </>
       )}
 
