@@ -17,9 +17,10 @@ primary=$(primary_worktree)
 link() {
   local rel=$1 src="$primary/$1" dst="$PWD/$1"
   [ -e "$src" ] || { echo "skip $rel (not in primary checkout)"; return; }
-  # A real (non-symlink) file would diverge from the shared stack; warn loudly to
-  # stderr rather than overwrite what the user put there.
-  [ -e "$dst" ] && [ ! -L "$dst" ] && { echo "WARNING: skipped $rel — real file present; delete it and rerun to share the primary's" >&2; return; }
+  if [ -e "$dst" ] && [ ! -L "$dst" ]; then
+    cmp -s "$src" "$dst" || echo "WARNING: $rel differs from the primary checkout; delete it and rerun to share the primary's" >&2
+    return
+  fi
   ln -sfn "$src" "$dst"
   echo "linked $rel -> $src"
 }
