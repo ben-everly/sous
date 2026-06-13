@@ -2,7 +2,8 @@
 -- invariant lives here — owner-only RLS, the name CHECK, and the partial unique index.
 create table public.kitchens (
   id uuid primary key default gen_random_uuid(),
-  owner_id uuid not null references auth.users (id) on delete cascade,
+  -- Lets the client omit owner_id; the insert RLS with check (not this default) enforces it.
+  owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   -- Nullable: the bootstrapped/first kitchen has no name (UI renders a fallback).
   -- The CHECK forbids empty/whitespace-only names, so a stored name is always meaningful.
   name text check (name is null or (btrim(name) <> '' and char_length(name) <= 200)),

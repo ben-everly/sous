@@ -18,13 +18,7 @@ import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
 import type { Kitchen } from './types'
 
-export function KitchensManager({
-  ownerId,
-  ownerDisplayName,
-}: {
-  ownerId: string
-  ownerDisplayName: string | null
-}) {
+export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string | null }) {
   const [supabase] = useState(createClient)
   const [kitchens, setKitchens] = useState<Kitchen[] | null>(null) // null = loading
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -56,7 +50,7 @@ export function KitchensManager({
   const insert = async (name: string | null) => {
     const { data, error } = await supabase
       .from('kitchens')
-      .insert({ owner_id: ownerId, name })
+      .insert({ name })
       .select('id, name, created_at')
       .single()
     if (error || !data) {

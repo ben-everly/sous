@@ -8,10 +8,7 @@ export default async function KitchensSettingsPage() {
     <section>
       <h2 className="text-xl font-semibold tracking-tight">Kitchens</h2>
       <p className="text-muted-foreground text-sm">Manage the kitchens you own.</p>
-      <KitchensManager
-        ownerId={user.claims.sub}
-        ownerDisplayName={user.profile?.display_name ?? null}
-      />
+      <KitchensManager ownerDisplayName={user.profile?.display_name ?? null} />
     </section>
   )
 }
