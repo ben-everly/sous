@@ -18,7 +18,7 @@ cp .env.example .env                          # then fill in from `npx supabase 
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). If port 3000 is taken, Next picks the next free port; Google OAuth is configured for `3000`–`3009`, so sign-in keeps working on any of those.
 
 After any schema change, regenerate types:
 
