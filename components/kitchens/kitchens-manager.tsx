@@ -66,6 +66,11 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
       .select('id, name, created_at')
       .single()
     if (error || !data) {
+      // 23505 = the one-unnamed-kitchen unique index; a concurrent insert already won, so reconcile.
+      if (error?.code === '23505') {
+        load()
+        return true
+      }
       toast.error('Could not create the kitchen.')
       return false
     }
