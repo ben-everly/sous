@@ -28,4 +28,11 @@ link() {
 # Only .env is shared deliberately; .env.local and any future .env.* stay per-worktree
 # so a stray secret file never auto-fans-out across checkouts.
 link .env
-link supabase/signing_keys.json
+
+# A missing signing key is the one silent footgun: the app still boots, but every session
+# silently invalidates. Warn loudly instead of relying on link's quiet stdout skip.
+if [ -e "$primary/supabase/signing_keys.json" ]; then
+  link supabase/signing_keys.json
+else
+  echo "WARNING: supabase/signing_keys.json not in the primary checkout — auth will silently fail until you run 'npm run db:start' there and rerun 'npm run worktree:init'" >&2
+fi
