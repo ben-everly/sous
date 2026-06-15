@@ -6,9 +6,11 @@
 # These helpers locate the primary checkout so callers can link shared dev files or
 # refuse the destructive commands from a linked worktree.
 
-# Absolute path of the primary checkout — git lists it first.
+# Absolute path of the primary checkout. `git worktree list` documents the main worktree
+# as listed first; strip the `worktree ` prefix rather than field-splitting so paths with
+# spaces survive.
 primary_worktree() {
-  git worktree list --porcelain | awk '/^worktree /{print $2; exit}'
+  git worktree list --porcelain | sed -n 's/^worktree //p' | head -1
 }
 
 this_worktree() {
