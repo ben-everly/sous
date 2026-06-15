@@ -20,8 +20,8 @@ import type { Kitchen } from './types'
 
 export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string | null }) {
   const [supabase] = useState(createClient)
-  const [kitchens, setKitchens] = useState<Kitchen[] | null>(null) // null = loading
-  const [loadError, setLoadError] = useState(false)
+  const [kitchens, setKitchens] = useState<Kitchen[]>([])
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
@@ -29,16 +29,19 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
   const [bootstrapping, setBootstrapping] = useState(false)
 
   const load = useCallback(() => {
-    setLoadError(false)
-    setKitchens(null)
+    setStatus('loading')
     // RLS scopes the read to the owner; no client-side owner filter needed.
     supabase
       .from('kitchens')
       .select('id, name, created_at')
       .order('created_at')
       .then(({ data, error }) => {
-        if (error) setLoadError(true)
-        else setKitchens(data)
+        if (error || !data) {
+          setStatus('error')
+        } else {
+          setKitchens(data)
+          setStatus('ready')
+        }
       })
   }, [supabase])
 
@@ -46,7 +49,7 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
     load()
   }, [load])
 
-  if (loadError) {
+  if (status === 'error') {
     return (
       <div className="mt-6 space-y-3 rounded-md border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">Could not load your kitchens.</p>
@@ -55,7 +58,7 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
     )
   }
 
-  if (kitchens === null) {
+  if (status === 'loading') {
     return <p className="text-muted-foreground mt-6 text-sm">Loading…</p>
   }
 
@@ -74,7 +77,7 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
       toast.error('Could not create the kitchen.')
       return false
     }
-    setKitchens((ks) => [...(ks ?? []), data])
+    setKitchens((ks) => [...ks, data])
     return true
   }
 
@@ -107,7 +110,7 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
       toast.error('Could not rename the kitchen.')
       return false
     }
-    setKitchens((ks) => (ks ?? []).map((k) => (k.id === id ? { ...k, name } : k)))
+    setKitchens((ks) => ks.map((k) => (k.id === id ? { ...k, name } : k)))
     setEditingId(null)
     return true
   }
@@ -116,7 +119,7 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
     if (deleting) return
     setDeleting(true)
     const prev = kitchens
-    setKitchens((ks) => (ks ?? []).filter((k) => k.id !== kitchen.id))
+    setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
     try {
       const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
