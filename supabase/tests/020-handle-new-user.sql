@@ -1,7 +1,7 @@
 -- Locks the handle_new_user bootstrap contract.
 begin;
 
-select plan(32);
+select plan(34);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -205,6 +205,30 @@ select is(
 
 drop trigger _force_profile_failure on public.profiles;
 drop function public._force_profile_failure();
+
+-- Same fail-loud contract for the second bootstrap insert: a failed kitchen insert must
+-- also abort the signup, never leaving a user without their bootstrapped kitchen.
+create function public._force_kitchen_failure() returns trigger language plpgsql as $$
+begin raise exception 'forced kitchen failure'; end;
+$$;
+create trigger _force_kitchen_failure before insert on public.kitchens
+  for each row execute procedure public._force_kitchen_failure();
+
+select throws_ok(
+  $$insert into auth.users (id, email, raw_user_meta_data)
+     values ('aaaaaaaa-0000-0000-0000-000000000007', 'nokitchen@example.com', '{}'::jsonb)$$,
+  'P0001',
+  'forced kitchen failure',
+  'A failed kitchen insert aborts the signup (handle_new_user fails loud)'
+);
+select is(
+  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000007'),
+  0::bigint,
+  'No orphan auth.users row remains when the kitchen insert fails'
+);
+
+drop trigger _force_kitchen_failure on public.kitchens;
+drop function public._force_kitchen_failure();
 
 select * from finish();
 rollback;
