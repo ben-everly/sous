@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(15);
+select plan(16);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.kitchens'::regclass),
@@ -140,6 +140,15 @@ select is(
   (select count(*) from public.kitchens),
   1::bigint,
   'Bob sees exactly one kitchen (his own), never Alice''s'
+);
+
+-- anon holds the table grant (Supabase default) but matches no policy, so RLS yields zero rows.
+-- Guards against a future policy edit that accidentally adds `to anon`.
+set local role anon;
+select is(
+  (select count(*) from public.kitchens),
+  0::bigint,
+  'anon sees no kitchens'
 );
 
 reset role;
