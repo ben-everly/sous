@@ -17,7 +17,7 @@
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "test:db": "supabase test db",
-    "db:keys": "test -f supabase/signing_keys.json || { echo '[]' > supabase/signing_keys.json && supabase gen signing-key --algorithm ES256 --append; }",
+    "db:keys": "test -f supabase/signing_keys.json || { bash scripts/guard-shared-supabase.sh db:keys && echo '[]' > supabase/signing_keys.json && supabase gen signing-key --algorithm ES256 --append; }",
     "db:start": "npm run db:keys && supabase start",
     "db:stop": "bash scripts/guard-shared-supabase.sh db:stop && supabase stop",
     "db:reset": "bash scripts/guard-shared-supabase.sh db:reset && supabase db reset --local",
