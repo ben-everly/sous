@@ -9,7 +9,6 @@
     "lint": "eslint",
     "lint:sh": "shellcheck -x scripts/*.sh",
     "typecheck": "tsc --noEmit",
-    "postinstall": "test -f scripts/worktree-init.sh && bash scripts/worktree-init.sh || true",
     "worktree:init": "bash scripts/worktree-init.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

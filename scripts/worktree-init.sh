@@ -4,7 +4,7 @@
 # match the running instance — a divergent key silently invalidates every session — so
 # we symlink rather than copy, keeping all worktrees on one source of truth.
 set -euo pipefail
-# Exit quietly outside a git checkout: postinstall runs everywhere (CI, tarball installs).
+# Nothing to link outside a git checkout.
 toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$toplevel"
 . scripts/worktree.sh
