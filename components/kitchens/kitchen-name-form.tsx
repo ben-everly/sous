@@ -25,12 +25,11 @@ export function KitchenNameForm({
   const [value, setValue] = useState(initialValue)
   const [pending, setPending] = useState(false)
 
-  const submit = async () => {
+  const submit = () => {
     const name = value.trim()
     if (name === '' || pending) return
     setPending(true)
-    // On success the parent unmounts this form; only re-enable if it rejected.
-    if (!(await onSubmit(name))) setPending(false)
+    onSubmit(name).finally(() => setPending(false))
   }
 
   return (
