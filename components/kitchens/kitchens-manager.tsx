@@ -59,7 +59,21 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
   }
 
   if (status === 'loading') {
-    return <p className="text-muted-foreground mt-6 text-sm">Loading…</p>
+    return (
+      <ul
+        className="mt-6 divide-y rounded-md border"
+        aria-busy="true"
+        aria-label="Loading kitchens"
+      >
+        <li aria-hidden className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="bg-muted h-4 w-40 animate-pulse rounded" />
+          <div className="flex items-center gap-1">
+            <div className="bg-muted size-8 animate-pulse rounded" />
+            <div className="bg-muted size-8 animate-pulse rounded" />
+          </div>
+        </li>
+      </ul>
+    )
   }
 
   const insert = async (name: string | null) => {
