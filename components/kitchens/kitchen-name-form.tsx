@@ -6,19 +6,20 @@ import { Input } from '@/components/ui/input'
 
 const NAME_MAX = 200
 
-// Shared by the rename editor and the create draft row — the only difference is what the
-// parent's onSubmit does (UPDATE vs INSERT). Resolves true on success so the parent can
-// unmount the form; false leaves it open (with the rejected value) to retry.
 export function KitchenNameForm({
   initialValue,
   inputLabel,
   submitLabel,
+  placeholder,
+  optional = false,
   onSubmit,
   onCancel,
 }: {
   initialValue: string
   inputLabel: string
   submitLabel: string
+  placeholder?: string
+  optional?: boolean
   onSubmit: (name: string) => Promise<boolean>
   onCancel: () => void
 }) {
@@ -27,7 +28,7 @@ export function KitchenNameForm({
 
   const submit = () => {
     const name = value.trim()
-    if (name === '' || pending) return
+    if ((name === '' && !optional) || pending) return
     setPending(true)
     onSubmit(name).finally(() => setPending(false))
   }
@@ -44,11 +45,17 @@ export function KitchenNameForm({
         autoFocus
         value={value}
         maxLength={NAME_MAX}
+        placeholder={placeholder}
         aria-label={inputLabel}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
       />
-      <Button type="submit" size="sm" disabled={value.trim() === '' || pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        size="sm"
+        disabled={(value.trim() === '' && !optional) || pending}
+        aria-busy={pending}
+      >
         {submitLabel}
       </Button>
       <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

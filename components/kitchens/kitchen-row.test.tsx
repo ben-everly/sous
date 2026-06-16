@@ -11,7 +11,6 @@ const kitchen = { id: 'k1', name: 'Beach House', created_at: '2026-01-01T00:00:0
 function renderRow(overrides: Partial<Props> = {}) {
   const props: Props = {
     kitchen,
-    ownerDisplayName: 'Ada',
     isEditing: false,
     onEdit: vi.fn(),
     onCancelEdit: vi.fn(),
@@ -35,9 +34,9 @@ describe('KitchenRow', () => {
     expect(screen.getByRole('button', { name: 'Delete Beach House' })).toBeInTheDocument()
   })
 
-  it('falls back to the owner label for a nameless kitchen', () => {
+  it('falls back to "My Kitchen" for a nameless kitchen', () => {
     renderRow({ kitchen: { ...kitchen, name: null } })
-    expect(screen.getByText("Ada's Kitchen")).toBeInTheDocument()
+    expect(screen.getByText('My Kitchen')).toBeInTheDocument()
   })
 
   it('requests edit and delete via callbacks', () => {

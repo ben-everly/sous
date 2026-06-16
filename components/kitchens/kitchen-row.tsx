@@ -8,7 +8,6 @@ import type { Kitchen } from './types'
 
 export function KitchenRow({
   kitchen,
-  ownerDisplayName,
   isEditing,
   onEdit,
   onCancelEdit,
@@ -16,14 +15,13 @@ export function KitchenRow({
   onRequestDelete,
 }: {
   kitchen: Kitchen
-  ownerDisplayName: string | null
   isEditing: boolean
   onEdit: () => void
   onCancelEdit: () => void
   onRename: (name: string) => Promise<boolean>
   onRequestDelete: () => void
 }) {
-  const label = kitchenLabel(kitchen.name, ownerDisplayName)
+  const label = kitchenLabel(kitchen.name)
 
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-3">

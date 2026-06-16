@@ -7,7 +7,7 @@ type Row = { id: string; name: string | null; created_at: string }
 const mocks = vi.hoisted(() => ({
   results: {
     select: { data: [] as Row[], error: null as null | { message: string } },
-    insert: { data: null as Row | null, error: null as null | { message: string } },
+    insert: { data: null as Row | null, error: null as null | { message: string; code?: string } },
     update: { error: null as null | { message: string } },
     delete: { error: null as null | { message: string } },
   },
@@ -50,7 +50,7 @@ vi.mock('@/lib/supabase/client', () => ({
 
 import { KitchensManager } from './kitchens-manager'
 
-const renderManager = () => render(<KitchensManager ownerDisplayName="Ada" />)
+const renderManager = () => render(<KitchensManager />)
 
 beforeEach(() => {
   mocks.results.select = { data: [], error: null }
@@ -111,6 +111,51 @@ describe('KitchensManager', () => {
 
     expect(await screen.findByText('Lake House')).toBeInTheDocument()
     expect(mocks.insertSpy).toHaveBeenCalledWith({ name: 'Lake House' })
+  })
+
+  it('creates the nameless personal kitchen when the draft is submitted blank', async () => {
+    mocks.results.insert = { data: { id: 'k1', name: null, created_at: '2026-01-01' }, error: null }
+    renderManager()
+    await screen.findByText(/you have no kitchens yet/i)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add kitchen' }))
+    expect(screen.getByLabelText('New kitchen name')).toHaveAttribute('placeholder', 'My Kitchen')
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(await screen.findByText('My Kitchen')).toBeInTheDocument()
+    expect(mocks.insertSpy).toHaveBeenCalledWith({ name: null })
+  })
+
+  it('requires a name and prompts naming once a default kitchen exists', async () => {
+    mocks.results.select = {
+      data: [{ id: 'k1', name: null, created_at: '2026-01-01' }],
+      error: null,
+    }
+    renderManager()
+    await screen.findByText('My Kitchen')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add kitchen' }))
+    expect(screen.getByLabelText('New kitchen name')).toHaveAttribute(
+      'placeholder',
+      'Name your kitchen',
+    )
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+  })
+
+  it('warns and keeps the draft open when the default-kitchen index rejects a blank create', async () => {
+    mocks.results.insert = { data: null, error: { message: 'duplicate', code: '23505' } }
+    renderManager()
+    await screen.findByText(/you have no kitchens yet/i)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add kitchen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        'You already have a default kitchen. Give this one a name.',
+      ),
+    )
+    expect(screen.getByLabelText('New kitchen name')).toBeInTheDocument()
   })
 
   it('rolls back an optimistic delete when the request fails', async () => {

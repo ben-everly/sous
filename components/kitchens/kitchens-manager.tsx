@@ -18,7 +18,7 @@ import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
 import type { Kitchen } from './types'
 
-export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string | null }) {
+export function KitchensManager() {
   const [supabase] = useState(createClient)
   const [kitchens, setKitchens] = useState<Kitchen[]>([])
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
@@ -26,7 +26,6 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
   const [draftOpen, setDraftOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [bootstrapping, setBootstrapping] = useState(false)
 
   const load = useCallback(() => {
     setStatus('loading')
@@ -76,41 +75,28 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
     )
   }
 
-  const insert = async (name: string | null) => {
+  const hasDefault = kitchens.some((k) => k.name === null)
+
+  // A blank name recreates the default kitchen; the partial unique index allows only one.
+  const create = async (name: string) => {
     const { data, error } = await supabase
       .from('kitchens')
-      .insert({ name })
+      .insert({ name: name === '' ? null : name })
       .select('id, name, created_at')
       .single()
     if (error || !data) {
-      // 23505 = the one-unnamed-kitchen unique index; a concurrent insert already won, so reconcile.
+      // 23505 = the one-default-kitchen unique index; a concurrent insert already made it.
       if (error?.code === '23505') {
+        toast.error('You already have a default kitchen. Give this one a name.')
         load()
-        return true
+        return false
       }
       toast.error('Could not create the kitchen.')
       return false
     }
     setKitchens((ks) => [...ks, data])
+    setDraftOpen(false)
     return true
-  }
-
-  // Empty-state recovery: a user who deleted down to zero re-bootstraps a nameless kitchen
-  // (the same default the signup trigger creates). Named adds go through the draft row.
-  const bootstrap = async () => {
-    if (bootstrapping) return
-    setBootstrapping(true)
-    try {
-      await insert(null)
-    } finally {
-      setBootstrapping(false)
-    }
-  }
-
-  const createNamed = async (name: string) => {
-    const ok = await insert(name)
-    if (ok) setDraftOpen(false)
-    return ok
   }
 
   const rename = async (id: string, name: string) => {
@@ -148,11 +134,11 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
 
   return (
     <div className="mt-6 space-y-6">
-      {kitchens.length === 0 ? (
+      {kitchens.length === 0 && !draftOpen ? (
         <div className="space-y-3 rounded-md border border-dashed p-6 text-center">
           <p className="text-muted-foreground text-sm">You have no kitchens yet.</p>
-          <Button onClick={bootstrap} disabled={bootstrapping} aria-busy={bootstrapping}>
-            <Plus /> Create a kitchen
+          <Button onClick={() => setDraftOpen(true)}>
+            <Plus /> Add kitchen
           </Button>
         </div>
       ) : (
@@ -162,7 +148,6 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
               <KitchenRow
                 key={k.id}
                 kitchen={k}
-                ownerDisplayName={ownerDisplayName}
                 isEditing={editingId === k.id}
                 onEdit={() => setEditingId(k.id)}
                 onCancelEdit={() => setEditingId(null)}
@@ -176,7 +161,9 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
                   initialValue=""
                   inputLabel="New kitchen name"
                   submitLabel="Add"
-                  onSubmit={createNamed}
+                  optional={!hasDefault}
+                  placeholder={hasDefault ? 'Name your kitchen' : kitchenLabel(null)}
+                  onSubmit={create}
                   onCancel={() => setDraftOpen(false)}
                 />
               </li>
@@ -199,9 +186,8 @@ export function KitchensManager({ ownerDisplayName }: { ownerDisplayName: string
           <DialogHeader>
             <DialogTitle>Delete kitchen?</DialogTitle>
             <DialogDescription>
-              This permanently deletes{' '}
-              {pendingDelete && kitchenLabel(pendingDelete.name, ownerDisplayName)} and everything
-              in it. This cannot be undone.
+              This permanently deletes {pendingDelete && kitchenLabel(pendingDelete.name)} and
+              everything in it. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

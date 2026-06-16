@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { TEST_USER } from './test-user'
 
-// The bootstrapped kitchen is nameless, so it renders with the owner fallback label.
-const ownerKitchen = `${TEST_USER.fullName}'s Kitchen`
+// The bootstrapped kitchen is nameless, so it renders with the first-person fallback label.
+const ownerKitchen = 'My Kitchen'
 
 test.describe('kitchens', () => {
   test('manage kitchens from settings', async ({ page }) => {
@@ -37,8 +37,9 @@ test.describe('kitchens', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText(/you have no kitchens yet/i)).toBeVisible()
 
-    // Re-create from empty → a nameless "My Kitchen" returns with the fallback label.
-    await page.getByRole('button', { name: /create a kitchen/i }).click()
+    // Re-create from empty → leave the name blank to get the default kitchen back.
+    await page.getByRole('button', { name: 'Add kitchen' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText(ownerKitchen)).toBeVisible()
   })
 })
