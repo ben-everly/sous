@@ -18,7 +18,7 @@ link() {
   local rel=$1 src="$primary/$1" dst="$PWD/$1"
   [ -e "$src" ] || { echo "skip $rel (not in primary checkout)"; return; }
   if [ -e "$dst" ] && [ ! -L "$dst" ]; then
-    cmp -s "$src" "$dst" || echo "WARNING: $rel differs from the primary checkout; delete it and rerun to link the primary's copy" >&2
+    echo "WARNING: $rel is not symlinked from the primary checkout. Delete it and rerun to link" >&2
     return
   fi
   ln -sfn "$src" "$dst"
