@@ -15,6 +15,10 @@ cat >&2 <<EOF
 Refusing '${1:-this command}': it affects the shared local Supabase stack that every worktree uses.
   this worktree: $(this_worktree)
   primary:       $(primary_worktree)
-Run it from the primary checkout, or set FORCE_SHARED_SUPABASE=1 to override.
 EOF
+if [ "${1:-}" = "db:keys" ]; then
+  echo "Run 'npm run worktree:init' to link the primary's signing key into this worktree." >&2
+else
+  echo "Run it from the primary checkout, or set FORCE_SHARED_SUPABASE=1 to override." >&2
+fi
 exit 1
