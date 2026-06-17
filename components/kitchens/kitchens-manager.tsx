@@ -8,13 +8,15 @@ import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { listKitchens, createKitchen, renameKitchen, deleteKitchen } from '@/lib/kitchens/queries'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
 import type { Kitchen } from '@/lib/kitchens/types'
@@ -167,32 +169,30 @@ export function KitchensManager() {
         </>
       )}
 
-      <Dialog
+      <AlertDialog
         open={pendingDelete !== null}
         onOpenChange={(open) => !open && setPendingDelete(null)}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete kitchen?</DialogTitle>
-            <DialogDescription>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete kitchen?</AlertDialogTitle>
+            <AlertDialogDescription>
               This permanently deletes {pendingDelete && kitchenLabel(pendingDelete.name)} and
               everything in it. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPendingDelete(null)}>
-              Cancel
-            </Button>
-            <Button
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
               disabled={deleting}
               aria-busy={deleting}
               onClick={() => pendingDelete && remove(pendingDelete)}
             >
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

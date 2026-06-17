@@ -41,6 +41,7 @@ vi.mock('@/lib/supabase/client', () => ({
         order: () => chain,
         eq: () => chain,
         single: () => chain,
+        maybeSingle: () => chain,
         then: (resolve: (v: unknown) => void) => resolve(mocks.results[op]),
       }
       return chain
