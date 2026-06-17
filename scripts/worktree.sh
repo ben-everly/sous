@@ -6,11 +6,11 @@
 # These helpers locate the primary checkout so callers can link shared dev files or
 # refuse the destructive commands from a linked worktree.
 
-# Absolute path of the primary checkout. `git worktree list` documents the main worktree
-# as listed first; strip the `worktree ` prefix rather than field-splitting so paths with
-# spaces survive.
+# The shared common git dir lives in the primary checkout by construction, so its parent is
+# the primary's root. --path-format=absolute (git 2.31+) is required: from the primary,
+# --git-common-dir alone returns a relative `.git`.
 primary_worktree() {
-  git worktree list --porcelain | sed -n 's/^worktree //p' | head -1
+  dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
 }
 
 this_worktree() {
