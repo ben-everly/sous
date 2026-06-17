@@ -13,7 +13,8 @@ lock="$common/.supabase-shared.lock"
 # flock (util-linux) is absent on stock macOS; degrade rather than block work.
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$lock"
-  flock 9
+  # Probe first so a contended lock announces the wait instead of looking like a hang.
+  flock -n 9 || { echo "waiting: another worktree is using the shared Supabase stack…" >&2; flock 9; }
 else
   echo "note: flock unavailable — not serializing shared-Supabase access across worktrees" >&2
 fi
