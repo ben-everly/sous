@@ -4,7 +4,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { Button } from '@/components/ui/button'
 import { KitchenNameForm } from './kitchen-name-form'
-import type { Kitchen } from './types'
+import type { Kitchen } from '@/lib/kitchens/types'
 
 export function KitchenRow({
   kitchen,

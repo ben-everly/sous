@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
+import { listKitchens, createKitchen, renameKitchen, deleteKitchen } from '@/lib/kitchens/queries'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
-import type { Kitchen } from './types'
+import type { Kitchen } from '@/lib/kitchens/types'
 
 export function KitchensManager() {
   const [supabase] = useState(createClient)
@@ -30,18 +31,14 @@ export function KitchensManager() {
   const load = useCallback(() => {
     setStatus('loading')
     // RLS scopes the read to the owner; no client-side owner filter needed.
-    supabase
-      .from('kitchens')
-      .select('id, name, created_at')
-      .order('created_at')
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setStatus('error')
-        } else {
-          setKitchens(data)
-          setStatus('ready')
-        }
-      })
+    listKitchens(supabase).then((data) => {
+      if (data === null) {
+        setStatus('error')
+      } else {
+        setKitchens(data)
+        setStatus('ready')
+      }
+    })
   }, [supabase])
 
   useEffect(() => {
@@ -77,26 +74,20 @@ export function KitchensManager() {
 
   const hasDefault = kitchens.some((k) => k.name === null)
 
-  // A blank name recreates the default kitchen; the partial unique index allows only one.
   const create = async (name: string) => {
-    const { data, error } = await supabase
-      .from('kitchens')
-      .insert({ name: name === '' ? null : name })
-      .select('id, name, created_at')
-      .single()
-    if (error || !data) {
-      // 23505 = the one-default-kitchen unique index; a concurrent insert already made it.
-      if (error?.code === '23505') {
-        toast.error('You already have a default kitchen. Give this one a name.')
-        load()
-        return false
-      }
-      toast.error('Could not create the kitchen.')
-      return false
+    const result = await createKitchen(supabase, name)
+    if (result.ok) {
+      setKitchens((ks) => [...ks, result.kitchen])
+      setDraftOpen(false)
+      return true
     }
-    setKitchens((ks) => [...ks, data])
-    setDraftOpen(false)
-    return true
+    if (result.reason === 'duplicate-default') {
+      toast.error('You already have a default kitchen. Give this one a name.')
+      load()
+    } else {
+      toast.error('Could not create the kitchen.')
+    }
+    return false
   }
 
   const rename = async (id: string, name: string) => {
@@ -105,8 +96,7 @@ export function KitchensManager() {
       setEditingId(null)
       return true
     }
-    const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
-    if (error) {
+    if (!(await renameKitchen(supabase, id, name))) {
       toast.error('Could not rename the kitchen.')
       return false
     }
@@ -122,8 +112,7 @@ export function KitchensManager() {
     setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
     try {
-      const { error } = await supabase.from('kitchens').delete().eq('id', kitchen.id)
-      if (error) {
+      if (!(await deleteKitchen(supabase, kitchen.id))) {
         setKitchens(prev)
         toast.error('Could not delete the kitchen.')
       }
