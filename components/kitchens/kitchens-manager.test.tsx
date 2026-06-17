@@ -172,7 +172,9 @@ describe('KitchensManager', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Delete$/ }))
 
     // Optimistically removed, then restored on failure — the row survives and we toast.
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
+    )
     expect(screen.getByText('Beach House')).toBeInTheDocument()
   })
 })

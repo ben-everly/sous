@@ -116,7 +116,7 @@ export function KitchensManager() {
     try {
       if (!(await deleteKitchen(supabase, kitchen.id))) {
         setKitchens(prev)
-        toast.error('Could not delete the kitchen.')
+        toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
       }
     } finally {
       setDeleting(false)
