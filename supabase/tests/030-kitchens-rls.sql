@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(16);
+select plan(18);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.kitchens'::regclass),
@@ -90,13 +90,27 @@ select is(
   'A nameless kitchen is allowed again after deleting the previous one'
 );
 
--- updated_at bumps on update. Seed a stale row directly; the BEFORE UPDATE trigger only fires on UPDATE.
-insert into public.kitchens (owner_id, name, updated_at)
-values ('11111111-1111-1111-1111-111111111111', 'Stale', '2000-01-01T00:00:00Z');
-update public.kitchens set name = 'Fresh' where name = 'Stale';
-select ok(
-  (select updated_at from public.kitchens where name = 'Fresh') > '2000-01-01T00:00:00Z'::timestamptz,
-  'updated_at is bumped on update'
+-- Timestamps are server-maintained: client-supplied created_at/updated_at are ignored on
+-- insert, and created_at is frozen on update. now() is the (constant) transaction time here,
+-- so a forged past value is detectable by comparing the stored value against now().
+insert into public.kitchens (owner_id, name, created_at, updated_at)
+values ('11111111-1111-1111-1111-111111111111', 'Stamped', '2000-01-01T00:00:00Z', '2000-01-01T00:00:00Z');
+select is(
+  (select created_at from public.kitchens where name = 'Stamped'),
+  now(),
+  'created_at supplied on insert is overwritten with now()'
+);
+select is(
+  (select updated_at from public.kitchens where name = 'Stamped'),
+  now(),
+  'updated_at supplied on insert is overwritten with now()'
+);
+update public.kitchens set name = 'Stamped2', created_at = '1999-01-01T00:00:00Z'
+  where name = 'Stamped';
+select is(
+  (select created_at from public.kitchens where name = 'Stamped2'),
+  now(),
+  'created_at is frozen on update; a client-supplied value is ignored'
 );
 
 -- Cannot touch Bob's kitchen: update + delete silently affect 0 rows (no error).

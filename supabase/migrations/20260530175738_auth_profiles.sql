@@ -63,13 +63,17 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure auth_hooks.handle_new_user();
 
--- updated_at maintenance. Plain security invoker (NOT definer): only touches the row
--- being updated.
-create function auth_hooks.set_updated_at()
+-- created_at/updated_at are forced here, never trusted from the client payload.
+-- Plain security invoker (NOT definer): only touches the row being written.
+create function auth_hooks.set_timestamps()
 returns trigger language plpgsql set search_path = '' as $$
-begin new.updated_at = now(); return new; end;
+begin
+  new.created_at = case when tg_op = 'INSERT' then now() else old.created_at end;
+  new.updated_at = now();
+  return new;
+end;
 $$;
-create trigger profiles_set_updated_at before update on public.profiles
-  for each row execute procedure auth_hooks.set_updated_at();
+create trigger profiles_set_timestamps before insert or update on public.profiles
+  for each row execute procedure auth_hooks.set_timestamps();
 
 revoke execute on all functions in schema auth_hooks from public;

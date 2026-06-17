@@ -36,8 +36,8 @@ create policy "kitchens_delete_own" on public.kitchens
   for delete to authenticated using (owner_id = (select auth.uid()));
 
 -- Reuses the auth-foundation trigger function (security invoker).
-create trigger kitchens_set_updated_at before update on public.kitchens
-  for each row execute procedure auth_hooks.set_updated_at();
+create trigger kitchens_set_timestamps before insert or update on public.kitchens
+  for each row execute procedure auth_hooks.set_timestamps();
 
 -- No exception block by design: a kitchen-insert failure aborts signup rather than commit a
 -- user with no kitchen. A brand-new user has zero kitchens, so the null name satisfies
