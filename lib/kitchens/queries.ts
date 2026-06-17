@@ -31,12 +31,23 @@ export async function createKitchen(supabase: Client, name: string): Promise<Cre
   return { ok: false, reason: 'unknown' }
 }
 
+// .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
 export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
-  const { error } = await supabase.from('kitchens').update({ name }).eq('id', id)
-  return !error
+  const { data, error } = await supabase
+    .from('kitchens')
+    .update({ name })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle()
+  return !error && data !== null
 }
 
 export async function deleteKitchen(supabase: Client, id: string): Promise<boolean> {
-  const { error } = await supabase.from('kitchens').delete().eq('id', id)
-  return !error
+  const { data, error } = await supabase
+    .from('kitchens')
+    .delete()
+    .eq('id', id)
+    .select('id')
+    .maybeSingle()
+  return !error && data !== null
 }

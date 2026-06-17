@@ -18,6 +18,7 @@ function clientReturning(resp: Resp) {
     order: () => chain,
     eq: () => chain,
     single: () => chain,
+    maybeSingle: () => chain,
     then: (resolve: (v: Resp) => void) => resolve(resp),
   }
   const supabase = { from: () => chain } as unknown as SupabaseClient<Database>
@@ -72,14 +73,20 @@ describe('createKitchen', () => {
 })
 
 describe('renameKitchen / deleteKitchen', () => {
-  it('return true when the write succeeds', async () => {
-    const { supabase } = clientReturning({ data: null, error: null })
+  it('return true when the write affects a row', async () => {
+    const { supabase } = clientReturning({ data: { id: 'k1' }, error: null })
     expect(await renameKitchen(supabase, 'k1', 'New')).toBe(true)
     expect(await deleteKitchen(supabase, 'k1')).toBe(true)
   })
 
   it('return false when the write errors', async () => {
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
+    expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
+    expect(await deleteKitchen(supabase, 'k1')).toBe(false)
+  })
+
+  it('return false when no row matched (RLS-filtered or stale id)', async () => {
+    const { supabase } = clientReturning({ data: null, error: null })
     expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
     expect(await deleteKitchen(supabase, 'k1')).toBe(false)
   })
