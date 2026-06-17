@@ -18,7 +18,7 @@
     "test:e2e": "bash scripts/with-supabase-lock.sh playwright test",
     "test:db": "bash scripts/with-supabase-lock.sh supabase test db",
     "db:keys": "test -f supabase/signing_keys.json || { bash scripts/guard-shared-supabase.sh db:keys && echo '[]' > supabase/signing_keys.json && supabase gen signing-key --algorithm ES256 --append; }",
-    "db:start": "npm run db:keys && supabase start",
+    "db:start": "npm run db:keys && bash scripts/with-supabase-lock.sh supabase start",
     "db:stop": "bash scripts/guard-shared-supabase.sh db:stop && bash scripts/with-supabase-lock.sh supabase stop",
     "db:reset": "bash scripts/guard-shared-supabase.sh db:reset && bash scripts/with-supabase-lock.sh supabase db reset --local",
     "db:types": "supabase gen types typescript --local > types/database.types.ts",

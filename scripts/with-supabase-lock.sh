@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Hold a lock on the shared local Supabase stack while running a command. All worktrees
-# share one stack (CLI keys containers by project_id), so concurrent db:reset/test:db/
-# test:e2e from different checkouts corrupt each other; a second run waits instead.
+# share one stack (CLI keys containers by project_id), so concurrent stack operations
+# (db:start/db:stop/db:reset/test:db/test:e2e) from different checkouts corrupt each other;
+# a second run waits instead.
 set -euo pipefail
 
 # One lock every worktree shares, in the common git dir. --path-format=absolute (git 2.31+):
