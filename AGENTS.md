@@ -53,11 +53,12 @@ This document serves as the core set of instructions and architectural rules for
 - **Self-Verification**: After completing any significant feature, modification, or milestone, you **must** autonomously run the following commands to verify the build is not broken and tests pass:
   1. `npm run lint`
   2. `npm run lint:sh` (when `scripts/*.sh` changed)
-  3. `npm run format:check`
-  4. `npm run typecheck`
-  5. `npm run test:unit`
-  6. `npm run test:db` (when schema, RLS, or triggers changed)
-  7. `npm run db:advisors` (when schema, RLS, or triggers changed)
-  8. `npm run build`
+  3. `npm run test:sh` (when `scripts/*.sh` changed)
+  4. `npm run format:check`
+  5. `npm run typecheck`
+  6. `npm run test:unit`
+  7. `npm run test:db` (when schema, RLS, or triggers changed)
+  8. `npm run db:advisors` (when schema, RLS, or triggers changed)
+  9. `npm run build`
      _(Note: E2E tests via Playwright should also be run before finalizing major user-facing milestones using `npx playwright test` or `npm run test:e2e`)._
 - **Self-Correction**: If any of these commands fail, you are strictly required to proactively fix the errors before concluding your turn. Do not leave a broken build or failing tests for the user.
