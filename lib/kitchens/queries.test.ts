@@ -7,13 +7,17 @@ type Resp = { data: unknown; error: { code?: string } | null }
 
 function clientReturning(resp: Resp) {
   const insertArg = vi.fn()
+  const updateArg = vi.fn()
   const chain = {
     select: () => chain,
     insert: (obj: unknown) => {
       insertArg(obj)
       return chain
     },
-    update: () => chain,
+    update: (obj: unknown) => {
+      updateArg(obj)
+      return chain
+    },
     delete: () => chain,
     order: () => chain,
     eq: () => chain,
@@ -22,7 +26,7 @@ function clientReturning(resp: Resp) {
     then: (resolve: (v: Resp) => void) => resolve(resp),
   }
   const supabase = { from: () => chain } as unknown as SupabaseClient<Database>
-  return { supabase, insertArg }
+  return { supabase, insertArg, updateArg }
 }
 
 describe('listKitchens', () => {
@@ -89,5 +93,11 @@ describe('renameKitchen / deleteKitchen', () => {
     const { supabase } = clientReturning({ data: null, error: null })
     expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
     expect(await deleteKitchen(supabase, 'k1')).toBe(false)
+  })
+
+  it('renames a blank name to the nameless default, matching createKitchen', async () => {
+    const { supabase, updateArg } = clientReturning({ data: { id: 'k1' }, error: null })
+    await renameKitchen(supabase, 'k1', '')
+    expect(updateArg).toHaveBeenCalledWith({ name: null })
   })
 })

@@ -31,11 +31,12 @@ export async function createKitchen(supabase: Client, name: string): Promise<Cre
   return { ok: false, reason: 'unknown' }
 }
 
+// A blank name resets to the nameless default
 // .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
 export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('kitchens')
-    .update({ name })
+    .update({ name: name === '' ? null : name })
     .eq('id', id)
     .select('id')
     .maybeSingle()
