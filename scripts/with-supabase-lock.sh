@@ -7,7 +7,12 @@ set -euo pipefail
 
 # One lock every worktree shares, in the common git dir. --path-format=absolute (git 2.31+):
 # a relative path would be cwd-keyed, so worktrees wouldn't share it.
-lock="$(git rev-parse --path-format=absolute --git-common-dir)/.supabase-shared.lock"
+common="$(git rev-parse --path-format=absolute --git-common-dir)"
+case "$common" in
+/*) ;;
+*) echo "error: this repo's worktree tooling needs git 2.31+ (--path-format=absolute)" >&2; exit 1 ;;
+esac
+lock="$common/.supabase-shared.lock"
 
 # flock (util-linux) is absent on stock macOS; degrade rather than block work.
 if command -v flock >/dev/null 2>&1; then

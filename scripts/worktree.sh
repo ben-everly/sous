@@ -20,3 +20,8 @@ this_worktree() {
 in_primary_worktree() {
   [ "$(primary_worktree)" = "$(this_worktree)" ]
 }
+
+case "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" in
+/*) ;;
+*) echo "error: this repo's worktree tooling needs git 2.31+ (--path-format=absolute)" >&2; exit 1 ;;
+esac
