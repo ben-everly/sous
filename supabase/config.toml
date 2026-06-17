@@ -156,6 +156,7 @@ site_url = "http://localhost:3000"
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # Port range for concurrent worktree dev servers; keep in sync with the README.
+# Local-dev only — never mirror this localhost range into the hosted project's allowlist.
 additional_redirect_urls = [
   "http://localhost:3000/auth/callback",
   "http://localhost:3001/auth/callback",
