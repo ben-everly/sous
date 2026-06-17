@@ -4,21 +4,27 @@
 # nuke the stack every checkout shares, so pin the invariant against the regression-prone scripts.
 
 setup() {
-  repo=$(git rev-parse --show-toplevel)
+  scripts="$BATS_TEST_DIRNAME"
   tmp=$(mktemp -d)
+  primary="$tmp/primary"
+  mkdir -p "$primary/scripts"
+  # Commit the working-tree scripts (not whatever HEAD holds) into a throwaway repo, so the
+  # test never registers a worktree against — or reads — the developer's real checkout.
+  cp "$scripts/worktree.sh" "$scripts/guard-shared-supabase.sh" "$primary/scripts/"
+  git -C "$primary" init -q
+  git -C "$primary" add -A
+  git -C "$primary" -c user.email=t@example.com -c user.name=test commit -q -m init
   wt="$tmp/wt"
-  git worktree add --detach "$wt" HEAD >/dev/null 2>&1
-  # Test the working-tree scripts, not whatever HEAD happened to commit.
-  cp "$repo/scripts/worktree.sh" "$repo/scripts/guard-shared-supabase.sh" "$wt/scripts/"
+  git -C "$primary" worktree add -q --detach "$wt" HEAD
 }
 
 teardown() {
-  git worktree remove --force "$wt" >/dev/null 2>&1 || true
+  git -C "$primary" worktree remove --force "$wt" 2>/dev/null || true
   rm -rf "$tmp"
 }
 
 @test "guard allows a destructive command in the primary checkout" {
-  cd "$repo"
+  cd "$primary"
   run bash scripts/guard-shared-supabase.sh db:reset
   [ "$status" -eq 0 ]
 }
