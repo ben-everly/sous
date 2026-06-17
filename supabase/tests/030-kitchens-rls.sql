@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(18);
+select plan(21);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.kitchens'::regclass),
@@ -46,6 +46,14 @@ select throws_ok(
   '42501',
   null,
   'Alice cannot insert a kitchen owned by Bob'
+);
+
+-- USING matches her own rows, so the with check (not the cross-user block) is what fires here.
+select throws_ok(
+  $$update public.kitchens set owner_id = '22222222-2222-2222-2222-222222222222' where owner_id = '11111111-1111-1111-1111-111111111111'$$,
+  '42501',
+  null,
+  'Alice cannot transfer her kitchen to Bob'
 );
 
 -- She already has the bootstrapped nameless kitchen; a second is barred by the partial unique index.
@@ -163,6 +171,21 @@ select is(
   (select count(*) from public.kitchens),
   0::bigint,
   'anon sees no kitchens'
+);
+
+-- anon matches no write policy: insert is rejected, delete affects 0 rows.
+select throws_ok(
+  $$insert into public.kitchens (owner_id, name) values ('22222222-2222-2222-2222-222222222222', 'Anon')$$,
+  '42501',
+  null,
+  'anon cannot insert a kitchen'
+);
+delete from public.kitchens;
+reset role;
+select is(
+  (select count(*) from public.kitchens where owner_id = '22222222-2222-2222-2222-222222222222'),
+  1::bigint,
+  'anon delete affects no rows'
 );
 
 reset role;
