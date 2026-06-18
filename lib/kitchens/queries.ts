@@ -19,15 +19,17 @@ export async function listKitchens(supabase: Client): Promise<Kitchen[] | null> 
 
 // The UI only ever creates named kitchens; the lone nameless kitchen is bootstrapped at signup.
 export async function createKitchen(supabase: Client, name: string): Promise<CreateResult> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('kitchens')
     .insert({ name })
     .select('id, name, created_at')
     .single()
+  if (error) console.error('createKitchen failed:', error.message)
   return data ? { ok: true, kitchen: data } : { ok: false }
 }
 
 // .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
+// A real error is logged; a zero-row match is an expected outcome, so it stays silent.
 export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('kitchens')
@@ -35,6 +37,7 @@ export async function renameKitchen(supabase: Client, id: string, name: string):
     .eq('id', id)
     .select('id')
     .maybeSingle()
+  if (error) console.error('renameKitchen failed:', error.message)
   return !error && data !== null
 }
 
@@ -45,5 +48,6 @@ export async function deleteKitchen(supabase: Client, id: string): Promise<boole
     .eq('id', id)
     .select('id')
     .maybeSingle()
+  if (error) console.error('deleteKitchen failed:', error.message)
   return !error && data !== null
 }

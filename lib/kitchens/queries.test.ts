@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import { createKitchen, deleteKitchen, listKitchens, renameKitchen } from './queries'
 
-type Resp = { data: unknown; error: { code?: string } | null }
+type Resp = { data: unknown; error: { code?: string; message?: string } | null }
 
 function clientReturning(resp: Resp) {
   const insertArg = vi.fn()
@@ -56,9 +56,12 @@ describe('createKitchen', () => {
     })
   })
 
-  it('reports failure when the insert errors', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
+  it('reports failure and logs when the insert errors', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
     expect(await createKitchen(supabase, 'Lake House')).toEqual({ ok: false })
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
   })
 })
 
@@ -69,16 +72,22 @@ describe('renameKitchen / deleteKitchen', () => {
     expect(await deleteKitchen(supabase, 'k1')).toBe(true)
   })
 
-  it('return false when the write errors', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
+  it('return false and log when the write errors', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
     expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
     expect(await deleteKitchen(supabase, 'k1')).toBe(false)
+    expect(spy).toHaveBeenCalledTimes(2)
+    spy.mockRestore()
   })
 
-  it('return false when no row matched (RLS-filtered or stale id)', async () => {
+  it('return false without logging when no row matched (RLS-filtered or stale id)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { supabase } = clientReturning({ data: null, error: null })
     expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
     expect(await deleteKitchen(supabase, 'k1')).toBe(false)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
   })
 
   it('sends the new name verbatim', async () => {

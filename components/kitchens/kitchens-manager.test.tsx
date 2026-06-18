@@ -127,6 +127,7 @@ describe('KitchensManager', () => {
   })
 
   it('rolls back an optimistic delete when the request fails', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.results.select = {
       data: [{ id: 'k1', name: 'Beach House', created_at: '2026-01-01' }],
       error: null,
@@ -143,5 +144,6 @@ describe('KitchensManager', () => {
       expect(mocks.toastError).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
     )
     expect(screen.getByText('Beach House')).toBeInTheDocument()
+    spy.mockRestore()
   })
 })
