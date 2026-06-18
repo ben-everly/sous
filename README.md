@@ -18,7 +18,7 @@ cp .env.example .env                          # then fill in from `npx supabase 
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). If port 3000 is taken, Next picks the next free port; Google OAuth is configured for `3000`–`3009`, so sign-in keeps working on any of those.
+Open [http://localhost:3000](http://localhost:3000). If port 3000 is taken, Next picks the next free port; Google OAuth is allowlisted for `3000`–`3009`, so sign-in keeps working on any of those — but not above `3009`, where it silently no-ops.
 
 After any schema change, regenerate types:
 
@@ -53,7 +53,7 @@ All git worktrees of this repo share **one** local Supabase stack — the CLI ke
 - **Destructive DB commands are guarded outside the primary checkout.** `db:reset` and `db:stop` refuse to run from a linked worktree, since they'd disrupt every checkout. Run them from the primary, or set `FORCE_SHARED_SUPABASE=1` to override.
 - **The primary checkout must stay put.** Linked worktrees symlink into it, so moving, renaming, or removing the primary leaves them with dangling links (missing `.env`, invalidated sessions). Re-run `npm run worktree:init` in each worktree after relocating the primary.
 - **DB-touching commands serialize automatically.** `db:start`, `db:reset`, `db:stop`, `test:db` (pgTAP), and `test:e2e` operate on the shared stack, so each takes an exclusive lock — a run from a second worktree waits rather than clobbering it. (Serialization needs `flock`, present on Linux and CI; on stock macOS it's absent — `brew install flock` to enable it. Without it these commands refuse to run, since an unserialized run can corrupt the shared stack; set `ALLOW_UNSERIALIZED_SUPABASE=1` to override.) `test:unit` is safe regardless — Supabase is mocked.
-- **Each dev server takes its own port.** With several worktrees running `npm run dev`, Next falls back through `3001`+; OAuth is configured for `3000`–`3009` (see [Setup](#setup)). An 11th concurrent server — or one landing above `3009` because other ports are taken — gets a redirect URL that isn't allowlisted, so Google sign-in silently fails until you free a port in range.
+- **Each dev server takes its own port.** With several worktrees running `npm run dev`, Next falls back through `3001`+, and OAuth is allowlisted only for `3000`–`3009` (see [Setup](#setup)). **If Google sign-in does nothing — no error, just a silent no-op — check the port in your address bar.** A server above `3009` (an 11th concurrent one, or one bumped past the range because lower ports are taken) gets a redirect URL that isn't allowlisted; free a port in range and restart `npm run dev`.
 
 ## Deployment
 
