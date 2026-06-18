@@ -23,8 +23,6 @@ export function UserMenu({ user }: { user: AuthedUser }) {
         className="flex items-center gap-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 rounded-md"
       >
         <Avatar>
-          {/* TODO(launch): hotlinking Google's CDN leaks IP/timing to Google (no-referrer
-              hides only the page URL) — copy avatars into Storage; also fixes URL expiry. */}
           {user.profile?.avatar_url && (
             <AvatarImage
               src={user.profile.avatar_url}

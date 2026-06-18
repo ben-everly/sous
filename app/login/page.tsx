@@ -21,8 +21,6 @@ export default async function LoginPage({
           </p>
         </div>
         {isLoginError(error) && <LoginNotice error={error} />}
-        {/* TODO(launch): data disclosure + privacy policy link go here once a policy exists. */}
-        {/* TODO(launch): offer an email/password sign-in option — Google is the only path for v1. */}
         <GoogleSignInButton next={next} />
       </div>
     </main>
