@@ -23,7 +23,8 @@ if command -v flock >/dev/null 2>&1; then
     msg="waiting: shared Supabase stack in use${held_by:+ by $held_by}"
     if [ -t 2 ]; then
       # Spin only on a terminal — a redraw loop would spam \r into CI logs and pipes.
-      # The real flock stays in the foreground so fd 9's lock survives into exec.
+      # 9>&- keeps the decorative subshell off fd 9 so it can't hold the lock open; the
+      # real flock stays in the foreground so fd 9's lock survives into exec.
       (
         frames='/-\|'
         i=0
@@ -31,9 +32,12 @@ if command -v flock >/dev/null 2>&1; then
           printf '\r%s %s' "$msg" "${frames:i++%4:1}" >&2
           sleep 0.1
         done
-      ) &
+      ) 9>&- &
       spinner=$!
+      # Without this, an interrupt mid-wait orphans the spinner and leaves its line on screen.
+      trap 'kill "$spinner" 2>/dev/null || true; printf "\r\033[K" >&2; exit 130' INT TERM
       flock 9 || { kill "$spinner" 2>/dev/null || true; echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
+      trap - INT TERM
       kill "$spinner" 2>/dev/null || true
       wait "$spinner" 2>/dev/null || true
       printf '\r\033[K' >&2 # erase the spinner line before the command's own output
@@ -42,9 +46,9 @@ if command -v flock >/dev/null 2>&1; then
       flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
     fi
   fi
-  # Record who holds it so the next waiter can name us. Written only while we hold the
-  # lock (single writer); left stale between runs, which is harmless — reads happen only
-  # under contention, when a real holder has just overwritten it.
+  # Record who holds the lock so the next waiter can name us — best-effort, diagnostic only.
+  # Never cleared, so a waiter may see a holder that has already finished, or (after a crash
+  # mid-write) a partial line. The wait is correct regardless; this label is only a hint.
   printf '%s (%s)\n' "$(this_worktree)" "$*" >"$holder_file"
 elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
   echo "WARNING: flock unavailable — running UNSERIALIZED; a concurrent worktree can corrupt the shared stack." >&2
