@@ -28,12 +28,12 @@ export function KitchensManager() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(() => {
-    setStatus('loading')
     // RLS scopes the read to the owner; no client-side owner filter needed.
-    listKitchens(supabase).then((data) => {
+    // Kept as .then (not async/await): the set-state-in-effect lint rule traces setState in an
+    // async body called from the effect, but not into a .then callback.
+    return listKitchens(supabase).then((data) => {
       if (data === null) {
         setStatus('error')
       } else {
@@ -43,15 +43,21 @@ export function KitchensManager() {
     })
   }, [supabase])
 
+  // Mount: status already starts 'loading', so the effect only fetches (no synchronous setState).
   useEffect(() => {
     load()
   }, [load])
+
+  const retry = () => {
+    setStatus('loading')
+    load()
+  }
 
   if (status === 'error') {
     return (
       <div className="mt-6 space-y-3 rounded-md border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">Could not load your kitchens.</p>
-        <Button onClick={load}>Try again</Button>
+        <Button onClick={retry}>Try again</Button>
       </div>
     )
   }
@@ -108,18 +114,14 @@ export function KitchensManager() {
   }
 
   const remove = async (kitchen: Kitchen) => {
-    if (deleting) return
-    setDeleting(true)
+    // Optimistic: closing the dialog unmounts the button, and the onClick's `pendingDelete &&`
+    // guards re-entry — so no in-flight flag is needed.
     const prev = kitchens
     setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
     setPendingDelete(null)
-    try {
-      if (!(await deleteKitchen(supabase, kitchen.id))) {
-        setKitchens(prev)
-        toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
-      }
-    } finally {
-      setDeleting(false)
+    if (!(await deleteKitchen(supabase, kitchen.id))) {
+      setKitchens(prev)
+      toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
     }
   }
 
@@ -183,11 +185,7 @@ export function KitchensManager() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleting}
-              aria-busy={deleting}
-              onClick={() => pendingDelete && remove(pendingDelete)}
-            >
+            <AlertDialogAction onClick={() => pendingDelete && remove(pendingDelete)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
