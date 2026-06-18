@@ -87,7 +87,7 @@ export function KitchensManager() {
       toast.error('You already have a default kitchen. Give this one a name.')
       load()
     } else {
-      toast.error('Could not create the kitchen.')
+      toast.error("Couldn't create the kitchen. Try again.")
     }
     return false
   }
@@ -99,7 +99,7 @@ export function KitchensManager() {
       return true
     }
     if (!(await renameKitchen(supabase, id, name))) {
-      toast.error('Could not rename the kitchen.')
+      toast.error("Couldn't rename the kitchen. Try again.")
       return false
     }
     setKitchens((ks) => ks.map((k) => (k.id === id ? { ...k, name } : k)))

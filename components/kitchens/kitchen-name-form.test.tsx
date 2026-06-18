@@ -71,7 +71,9 @@ describe('KitchenNameForm', () => {
     fireEvent.click(save)
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(save).toBeEnabled()
-    expect(screen.getByLabelText('Kitchen name')).toHaveValue('Lake')
+    const input = screen.getByLabelText('Kitchen name')
+    expect(input).toHaveValue('Lake')
+    await waitFor(() => expect(input).toHaveFocus())
   })
 
   it('marks the button busy and guards re-entry while a submit is in flight', async () => {

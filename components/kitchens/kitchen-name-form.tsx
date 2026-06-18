@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -25,12 +25,15 @@ export function KitchenNameForm({
 }) {
   const [value, setValue] = useState(initialValue)
   const [pending, setPending] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const submit = () => {
     const name = value.trim()
     if ((name === '' && !optional) || pending) return
     setPending(true)
-    onSubmit(name).finally(() => setPending(false))
+    onSubmit(name)
+      .then((ok) => ok || inputRef.current?.focus())
+      .finally(() => setPending(false))
   }
 
   return (
@@ -42,6 +45,7 @@ export function KitchenNameForm({
       }}
     >
       <Input
+        ref={inputRef}
         autoFocus
         value={value}
         maxLength={NAME_MAX}
