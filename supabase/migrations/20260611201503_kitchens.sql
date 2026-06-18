@@ -22,6 +22,10 @@ create unique index kitchens_one_unnamed_per_owner
 
 alter table public.kitchens enable row level security;
 
+-- Defense in depth: anon has no business here, so deny it at the grant layer too, not only via
+-- RLS matching no policy. A future accidental `to anon` policy then still cannot read any data.
+revoke all on public.kitchens from anon;
+
 -- Full CRUD policies (unlike profiles, where only the trigger writes) — this is what
 -- makes client-first CRUD safe. (select auth.uid()) is cached per-statement by the planner.
 create policy "kitchens_select_own" on public.kitchens

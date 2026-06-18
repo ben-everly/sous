@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(21);
+select plan(22);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.kitchens'::regclass),
@@ -164,28 +164,32 @@ select is(
   'Bob sees exactly one kitchen (his own), never Alice''s'
 );
 
--- anon holds the table grant (Supabase default) but matches no policy, so RLS yields zero rows.
--- Guards against a future policy edit that accidentally adds `to anon`.
+-- anon's table grants are revoked, so every operation is denied at the grant layer (42501) and
+-- never even reaches RLS. Holds the never-anon contract even if a future policy adds `to anon`.
 set local role anon;
-select is(
-  (select count(*) from public.kitchens),
-  0::bigint,
-  'anon sees no kitchens'
+select throws_ok(
+  $$select count(*) from public.kitchens$$,
+  '42501',
+  null,
+  'anon cannot read kitchens'
 );
-
--- anon matches no write policy: insert is rejected, delete affects 0 rows.
 select throws_ok(
   $$insert into public.kitchens (owner_id, name) values ('22222222-2222-2222-2222-222222222222', 'Anon')$$,
   '42501',
   null,
   'anon cannot insert a kitchen'
 );
-delete from public.kitchens;
+select throws_ok(
+  $$delete from public.kitchens$$,
+  '42501',
+  null,
+  'anon cannot delete kitchens'
+);
 reset role;
 select is(
   (select count(*) from public.kitchens where owner_id = '22222222-2222-2222-2222-222222222222'),
   1::bigint,
-  'anon delete affects no rows'
+  'Bob''s kitchen is untouched by the anon attempts'
 );
 
 reset role;
