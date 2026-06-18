@@ -38,5 +38,12 @@ in_primary_worktree() {
   [ "$(primary_worktree)" = "$(this_worktree)" ]
 }
 
+# Minting is two steps — seed `[]`, then append the key — so an interrupted run leaves an
+# empty array that a plain `-f` test accepts as real, silently invalidating every session.
+# Treat only a populated array (an actual JWK, identified by its "kid") as a usable key.
+has_signing_key() {
+  grep -q '"kid"' "${1:-supabase/signing_keys.json}" 2>/dev/null
+}
+
 # Fail fast at source time so every caller inherits the git-version guarantee.
 common_git_dir >/dev/null

@@ -16,7 +16,7 @@ setup() {
   # The shared dev files are untracked (like the real repo's gitignored ones) and created
   # after the commit, so the worktree checkout doesn't already contain them.
   printf 'ENV=primary\n' >"$primary/.env"
-  printf '[]\n' >"$primary/supabase/signing_keys.json"
+  printf '[\n  { "kid": "test" }\n]\n' >"$primary/supabase/signing_keys.json"
   wt="$tmp/wt"
   git -C "$primary" worktree add -q --detach "$wt" HEAD
 }
@@ -60,4 +60,12 @@ teardown() {
   run bash scripts/worktree-init.sh
   [[ "$output" == *"signing_keys.json"* ]]
   [ ! -e supabase/signing_keys.json ]
+}
+
+@test "warns instead of linking an empty-array signing key stub" {
+  printf '[]\n' >"$primary/supabase/signing_keys.json"
+  cd "$wt"
+  run bash scripts/worktree-init.sh
+  [[ "$output" == *"signing_keys.json"* ]]
+  [ ! -L supabase/signing_keys.json ]
 }

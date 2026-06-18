@@ -6,11 +6,14 @@
 # would otherwise both append a key to the one shared file.
 set -euo pipefail
 dir=$(dirname "$0")
+# shellcheck source=scripts/worktree.sh
+. "$dir/worktree.sh"
 
-# Key present — nothing to mint. The re-exec below replays this script under the lock, so
-# this same check is also the double-checked re-check on the second pass: a racing run that
+# Usable key present — nothing to mint. The re-exec below replays this script under the lock,
+# so this same check is also the double-checked re-check on the second pass: a racing run that
 # minted the key while we waited for the lock is caught here. Don't add a separate re-check.
-if [ -f supabase/signing_keys.json ]; then
+# An empty `[]` left by an interrupted mint is not usable, so it falls through and re-mints.
+if has_signing_key; then
   exit 0
 fi
 

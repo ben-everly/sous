@@ -23,6 +23,24 @@ teardown() {
   rm -rf "$tmp"
 }
 
+@test "has_signing_key accepts a populated key file" {
+  cd "$primary"
+  . scripts/worktree.sh
+  printf '[\n  { "kid": "abc123" }\n]\n' >key.json
+  run has_signing_key key.json
+  [ "$status" -eq 0 ]
+}
+
+@test "has_signing_key rejects an empty-array stub or a missing file" {
+  cd "$primary"
+  . scripts/worktree.sh
+  printf '[]\n' >stub.json
+  run has_signing_key stub.json
+  [ "$status" -ne 0 ]
+  run has_signing_key absent.json
+  [ "$status" -ne 0 ]
+}
+
 @test "guard allows a destructive command in the primary checkout" {
   cd "$primary"
   run bash scripts/guard-shared-supabase.sh db:reset

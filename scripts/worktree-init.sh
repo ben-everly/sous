@@ -30,8 +30,8 @@ link .env
 
 # A missing signing key is the one silent footgun: the app still boots, but every session
 # silently invalidates. Warn loudly instead of relying on link's quiet stdout skip.
-if [ -e "$primary/supabase/signing_keys.json" ]; then
+if has_signing_key "$primary/supabase/signing_keys.json"; then
   link supabase/signing_keys.json
 else
-  echo "WARNING: supabase/signing_keys.json not in the primary checkout — auth will silently fail until you run 'npm run db:start' there and rerun 'npm run worktree:init'" >&2
+  echo "WARNING: supabase/signing_keys.json missing or empty in the primary checkout — auth will silently fail until you run 'npm run db:start' there and rerun 'npm run worktree:init'" >&2
 fi
