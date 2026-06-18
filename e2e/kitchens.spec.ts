@@ -37,9 +37,11 @@ test.describe('kitchens', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText(/you have no kitchens yet/i)).toBeVisible()
 
-    // Re-create from empty → leave the name blank to get the default kitchen back.
+    // Re-create from empty: a name is required (the nameless kitchen is bootstrap-only).
     await page.getByRole('button', { name: 'Add kitchen' }).click()
+    await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled()
+    await page.getByLabel('New kitchen name').fill('Pantry')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
-    await expect(page.getByText(ownerKitchen)).toBeVisible()
+    await expect(page.getByText('Pantry')).toBeVisible()
   })
 })

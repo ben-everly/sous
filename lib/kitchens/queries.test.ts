@@ -43,36 +43,22 @@ describe('listKitchens', () => {
 })
 
 describe('createKitchen', () => {
-  it('stores a blank name as the nameless default', async () => {
-    const { supabase, insertArg } = clientReturning({
-      data: { id: 'k1', name: null, created_at: '2026-01-01' },
-      error: null,
-    })
-    const result = await createKitchen(supabase, '')
-    expect(insertArg).toHaveBeenCalledWith({ name: null })
-    expect(result).toEqual({
-      ok: true,
-      kitchen: { id: 'k1', name: null, created_at: '2026-01-01' },
-    })
-  })
-
-  it('stores a given name verbatim', async () => {
+  it('stores the given name and returns the new kitchen', async () => {
     const { supabase, insertArg } = clientReturning({
       data: { id: 'k2', name: 'Lake House', created_at: '2026-01-02' },
       error: null,
     })
-    await createKitchen(supabase, 'Lake House')
+    const result = await createKitchen(supabase, 'Lake House')
     expect(insertArg).toHaveBeenCalledWith({ name: 'Lake House' })
+    expect(result).toEqual({
+      ok: true,
+      kitchen: { id: 'k2', name: 'Lake House', created_at: '2026-01-02' },
+    })
   })
 
-  it('maps the one-default unique violation to duplicate-default', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: '23505' } })
-    expect(await createKitchen(supabase, '')).toEqual({ ok: false, reason: 'duplicate-default' })
-  })
-
-  it('maps any other failure to unknown', async () => {
+  it('reports failure when the insert errors', async () => {
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
-    expect(await createKitchen(supabase, 'Lake House')).toEqual({ ok: false, reason: 'unknown' })
+    expect(await createKitchen(supabase, 'Lake House')).toEqual({ ok: false })
   })
 })
 
@@ -95,9 +81,9 @@ describe('renameKitchen / deleteKitchen', () => {
     expect(await deleteKitchen(supabase, 'k1')).toBe(false)
   })
 
-  it('renames a blank name to the nameless default, matching createKitchen', async () => {
+  it('sends the new name verbatim', async () => {
     const { supabase, updateArg } = clientReturning({ data: { id: 'k1' }, error: null })
-    await renameKitchen(supabase, 'k1', '')
-    expect(updateArg).toHaveBeenCalledWith({ name: null })
+    await renameKitchen(supabase, 'k1', 'New')
+    expect(updateArg).toHaveBeenCalledWith({ name: 'New' })
   })
 })

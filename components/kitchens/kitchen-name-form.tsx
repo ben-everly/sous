@@ -11,7 +11,6 @@ export function KitchenNameForm({
   inputLabel,
   submitLabel,
   placeholder,
-  optional = false,
   onSubmit,
   onCancel,
 }: {
@@ -19,7 +18,6 @@ export function KitchenNameForm({
   inputLabel: string
   submitLabel: string
   placeholder?: string
-  optional?: boolean
   onSubmit: (name: string) => Promise<boolean>
   onCancel: () => void
 }) {
@@ -29,7 +27,7 @@ export function KitchenNameForm({
 
   const submit = () => {
     const name = value.trim()
-    if ((name === '' && !optional) || pending) return
+    if (name === '' || pending) return
     setPending(true)
     onSubmit(name)
       .then((ok) => ok || inputRef.current?.focus())
@@ -54,12 +52,7 @@ export function KitchenNameForm({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Escape' && onCancel()}
       />
-      <Button
-        type="submit"
-        size="sm"
-        disabled={(value.trim() === '' && !optional) || pending}
-        aria-busy={pending}
-      >
+      <Button type="submit" size="sm" disabled={value.trim() === '' || pending} aria-busy={pending}>
         {submitLabel}
       </Button>
       <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

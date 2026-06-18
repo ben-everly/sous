@@ -42,19 +42,6 @@ describe('KitchenNameForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('Lake House'))
   })
 
-  it('allows an empty submit when optional, previewing the default via placeholder', async () => {
-    const { onSubmit } = renderForm({
-      submitLabel: 'Add',
-      optional: true,
-      placeholder: "Ada's Kitchen",
-    })
-    const add = screen.getByRole('button', { name: 'Add' })
-    expect(screen.getByLabelText('Kitchen name')).toHaveAttribute('placeholder', "Ada's Kitchen")
-    expect(add).toBeEnabled()
-    fireEvent.click(add)
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(''))
-  })
-
   it('cancels on Escape and via the Cancel button', () => {
     const { onCancel } = renderForm({ initialValue: 'x' })
     fireEvent.keyDown(screen.getByLabelText('Kitchen name'), { key: 'Escape' })

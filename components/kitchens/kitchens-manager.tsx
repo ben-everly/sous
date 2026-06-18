@@ -80,8 +80,6 @@ export function KitchensManager() {
     )
   }
 
-  const hasDefault = kitchens.some((k) => k.name === null)
-
   const create = async (name: string) => {
     const result = await createKitchen(supabase, name)
     if (result.ok) {
@@ -89,12 +87,7 @@ export function KitchensManager() {
       setDraftOpen(false)
       return true
     }
-    if (result.reason === 'duplicate-default') {
-      toast.error('You already have a default kitchen. Give this one a name.')
-      load()
-    } else {
-      toast.error("Couldn't create the kitchen. Try again.")
-    }
+    toast.error("Couldn't create the kitchen. Try again.")
     return false
   }
 
@@ -154,8 +147,7 @@ export function KitchensManager() {
                   initialValue=""
                   inputLabel="New kitchen name"
                   submitLabel="Add"
-                  optional={!hasDefault}
-                  placeholder={hasDefault ? 'Name your kitchen' : kitchenLabel(null)}
+                  placeholder="Name your kitchen"
                   onSubmit={create}
                   onCancel={() => setDraftOpen(false)}
                 />

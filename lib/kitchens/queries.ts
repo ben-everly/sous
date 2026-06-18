@@ -4,38 +4,34 @@ import type { Kitchen } from './types'
 
 type Client = SupabaseClient<Database>
 
-export type CreateResult =
-  | { ok: true; kitchen: Kitchen }
-  | { ok: false; reason: 'duplicate-default' | 'unknown' }
+export type CreateResult = { ok: true; kitchen: Kitchen } | { ok: false }
 
 // null = read failed; an empty array is a real empty account.
+// Tiebreak on id so the order is total: the nameless kitchen, always the oldest row, stays first.
 export async function listKitchens(supabase: Client): Promise<Kitchen[] | null> {
   const { data, error } = await supabase
     .from('kitchens')
     .select('id, name, created_at')
     .order('created_at')
+    .order('id')
   return error ? null : data
 }
 
-// A blank name stores the nameless default kitchen
+// The UI only ever creates named kitchens; the lone nameless kitchen is bootstrapped at signup.
 export async function createKitchen(supabase: Client, name: string): Promise<CreateResult> {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('kitchens')
-    .insert({ name: name === '' ? null : name })
+    .insert({ name })
     .select('id, name, created_at')
     .single()
-  if (data) return { ok: true, kitchen: data }
-  // 23505 = the one-default-kitchen unique index
-  if (error?.code === '23505') return { ok: false, reason: 'duplicate-default' }
-  return { ok: false, reason: 'unknown' }
+  return data ? { ok: true, kitchen: data } : { ok: false }
 }
 
-// A blank name resets to the nameless default
 // .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
 export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('kitchens')
-    .update({ name: name === '' ? null : name })
+    .update({ name })
     .eq('id', id)
     .select('id')
     .maybeSingle()
