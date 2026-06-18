@@ -17,10 +17,11 @@ common_git_dir() {
   esac
 }
 
-# The common git dir lives in the primary checkout by construction, so its parent is
-# the primary's root.
+# The main worktree is always git's first --porcelain entry, whatever the layout
+# (--separate-git-dir, bare repo) — ask git rather than do path math on the common dir.
+# sub() strips the prefix in place, so paths containing spaces survive intact.
 primary_worktree() {
-  dirname "$(common_git_dir)"
+  git worktree list --porcelain | awk 'sub(/^worktree /, "") { print; exit }'
 }
 
 this_worktree() {
