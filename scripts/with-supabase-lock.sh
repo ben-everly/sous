@@ -4,15 +4,13 @@
 # (db:start/db:stop/db:reset/test:db/test:e2e) from different checkouts corrupt each other;
 # a second run waits instead.
 set -euo pipefail
+# Run from this worktree's cwd (don't cd to the primary): the wrapped command operates here.
+# shellcheck source=scripts/worktree.sh
+. "$(dirname "$0")/worktree.sh"
 
-# One lock every worktree shares, in the common git dir. --path-format=absolute (git 2.31+):
-# a relative path would be cwd-keyed, so worktrees wouldn't share it.
-common="$(git rev-parse --path-format=absolute --git-common-dir)"
-case "$common" in
-/*) ;;
-*) echo "error: this repo's worktree tooling needs git 2.31+ (--path-format=absolute)" >&2; exit 1 ;;
-esac
-lock="$common/.supabase-shared.lock"
+# One lock every worktree shares, in the common git dir — a relative path would be
+# cwd-keyed, so worktrees wouldn't share it.
+lock="$(common_git_dir)/.supabase-shared.lock"
 
 # flock (util-linux) is absent on stock macOS. Refuse rather than silently run unserialized:
 # the failure mode is two worktrees corrupting the one shared stack, so make the gap opt-in.
