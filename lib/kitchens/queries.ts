@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import type { Kitchen } from './types'
 
-// Take the Supabase client as a param (not the browser client) so a mobile client can reuse these.
 type Client = SupabaseClient<Database>
 
 export type CreateResult =
