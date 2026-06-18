@@ -17,7 +17,7 @@ Refusing '${1:-this command}': it affects the shared local Supabase stack that e
   primary:       $(primary_worktree)
 EOF
 if [ "${1:-}" = "db:keys" ]; then
-  echo "Run 'npm run worktree:init' to link the primary's signing key into this worktree." >&2
+  echo "Run 'npm run worktree:init' to link (or relink) the primary's signing key into this worktree." >&2
 else
   echo "Run it from the primary checkout, or set FORCE_SHARED_SUPABASE=1 to override." >&2
 fi
