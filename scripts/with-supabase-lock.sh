@@ -33,13 +33,13 @@ if command -v flock >/dev/null 2>&1; then
         done
       ) &
       spinner=$!
-      flock 9
+      flock 9 || { kill "$spinner" 2>/dev/null || true; echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
       kill "$spinner" 2>/dev/null || true
       wait "$spinner" 2>/dev/null || true
       printf '\r\033[K' >&2 # erase the spinner line before the command's own output
     else
       echo "$msg" >&2
-      flock 9
+      flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
     fi
   fi
   # Record who holds it so the next waiter can name us. Written only while we hold the
