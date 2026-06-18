@@ -28,31 +28,8 @@ if command -v flock >/dev/null 2>&1; then
   # Probe first so a contended lock announces the wait instead of looking like a hang.
   if ! flock -n 9; then
     held_by=$(cat "$holder_file" 2>/dev/null) || true
-    msg="waiting: shared Supabase stack in use${held_by:+ by $held_by}"
-    if [ -t 2 ]; then
-      # Spin only on a terminal — a redraw loop would spam \r into CI logs and pipes.
-      # 9>&- keeps the decorative subshell off fd 9 so it can't hold the lock open; the
-      # real flock stays in the foreground so fd 9's lock survives into exec.
-      (
-        frames='/-\|'
-        i=0
-        while :; do
-          printf '\r%s %s' "$msg" "${frames:i++%4:1}" >&2
-          sleep 0.1
-        done
-      ) 9>&- &
-      spinner=$!
-      # Without this, an interrupt mid-wait orphans the spinner and leaves its line on screen.
-      trap 'kill "$spinner" 2>/dev/null || true; printf "\r\033[K" >&2; exit 130' INT TERM
-      flock 9 || { kill "$spinner" 2>/dev/null || true; echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
-      trap - INT TERM
-      kill "$spinner" 2>/dev/null || true
-      wait "$spinner" 2>/dev/null || true
-      printf '\r\033[K' >&2 # erase the spinner line before the command's own output
-    else
-      echo "$msg" >&2
-      flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
-    fi
+    echo "waiting: shared Supabase stack in use${held_by:+ by $held_by}" >&2
+    flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
   fi
   # Record who holds the lock so the next waiter can name us — best-effort, diagnostic only.
   # Never cleared, so a waiter may see a holder that has already finished, or (after a crash
