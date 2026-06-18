@@ -35,6 +35,16 @@ teardown() {
   [ -L supabase/signing_keys.json ]
 }
 
+@test "relinks a stale symlink left by a relocated primary" {
+  ln -s /nonexistent/old-primary/.env "$wt/.env"
+  cd "$wt"
+  run bash scripts/worktree-init.sh
+  [ "$status" -eq 0 ]
+  [ -L .env ]
+  [ "$(readlink .env)" = "$primary/.env" ]
+  [ "$(cat .env)" = "ENV=primary" ]
+}
+
 @test "warns but never overwrites a real file already in the worktree" {
   printf 'ENV=local\n' >"$wt/.env"
   cd "$wt"
