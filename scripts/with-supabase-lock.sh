@@ -16,8 +16,36 @@ lock="$(common_git_dir)/.supabase-shared.lock"
 # the failure mode is two worktrees corrupting the one shared stack, so make the gap opt-in.
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$lock"
+  holder_file="$lock.holder"
   # Probe first so a contended lock announces the wait instead of looking like a hang.
-  flock -n 9 || { echo "waiting: another worktree is using the shared Supabase stack…" >&2; flock 9; }
+  if ! flock -n 9; then
+    held_by=$(cat "$holder_file" 2>/dev/null) || true
+    msg="waiting: shared Supabase stack in use${held_by:+ by $held_by}"
+    if [ -t 2 ]; then
+      # Spin only on a terminal — a redraw loop would spam \r into CI logs and pipes.
+      # The real flock stays in the foreground so fd 9's lock survives into exec.
+      (
+        frames='/-\|'
+        i=0
+        while :; do
+          printf '\r%s %s' "$msg" "${frames:i++%4:1}" >&2
+          sleep 0.1
+        done
+      ) &
+      spinner=$!
+      flock 9
+      kill "$spinner" 2>/dev/null || true
+      wait "$spinner" 2>/dev/null || true
+      printf '\r\033[K' >&2 # erase the spinner line before the command's own output
+    else
+      echo "$msg" >&2
+      flock 9
+    fi
+  fi
+  # Record who holds it so the next waiter can name us. Written only while we hold the
+  # lock (single writer); left stale between runs, which is harmless — reads happen only
+  # under contention, when a real holder has just overwritten it.
+  printf '%s (%s)\n' "$(this_worktree)" "$*" >"$holder_file"
 elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
   echo "WARNING: flock unavailable — running UNSERIALIZED; a concurrent worktree can corrupt the shared stack." >&2
 else
