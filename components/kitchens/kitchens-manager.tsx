@@ -171,8 +171,8 @@ export function KitchensManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete kitchen?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes {pendingDelete && kitchenLabel(pendingDelete.name)} and
-              everything in it. This cannot be undone.
+              This permanently deletes {pendingDelete && kitchenLabel(pendingDelete.name)}. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
