@@ -1,7 +1,7 @@
 -- Locks the handle_new_user bootstrap contract.
 begin;
 
-select plan(34);
+select plan(36);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -105,6 +105,18 @@ select is(
   (select name from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
   null,
   'The bootstrapped kitchen is nameless'
+);
+-- Proves the security-invoker timestamp trigger fires on the security-definer bootstrap insert:
+-- now() is the constant transaction time, so a stored value equal to it must be server-stamped.
+select is(
+  (select created_at from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  now(),
+  'The bootstrapped kitchen has a server-set created_at'
+);
+select is(
+  (select updated_at from public.kitchens where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  now(),
+  'The bootstrapped kitchen has a server-set updated_at'
 );
 
 delete from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000001';
