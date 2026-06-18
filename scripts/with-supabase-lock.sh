@@ -19,6 +19,7 @@ fi
 # One lock every worktree shares, in the common git dir — a relative path would be
 # cwd-keyed, so worktrees wouldn't share it.
 lock="$(common_git_dir)/.supabase-shared.lock"
+holder_file="" # set only on the locked path; gates the cleanup trap below
 
 # flock (util-linux) is absent on stock macOS. Refuse rather than silently run unserialized:
 # the failure mode is two worktrees corrupting the one shared stack, so make the gap opt-in.
@@ -32,8 +33,8 @@ if command -v flock >/dev/null 2>&1; then
     flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
   fi
   # Record who holds the lock so the next waiter can name us — best-effort, diagnostic only.
-  # Never cleared, so a waiter may see a holder that has already finished, or (after a crash
-  # mid-write) a partial line. The wait is correct regardless; this label is only a hint.
+  # Cleared on release (the EXIT trap below); only a hard crash leaves a stale or partial
+  # line. The wait is correct regardless; this label is only a hint.
   printf '%s (%s)\n' "$(this_worktree)" "$*" >"$holder_file"
 elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
   echo "WARNING: flock unavailable — running UNSERIALIZED; a concurrent worktree can corrupt the shared stack." >&2
@@ -49,4 +50,13 @@ fi
 # Signal to wrapped commands that they're already serialized, so a self-locking script
 # (db-start.sh) re-execs through us exactly once instead of looping.
 export WITH_SUPABASE_LOCK=1
-exec "$@"
+
+# Clear the holder label on release so the next waiter never names a holder that already
+# finished. This needs the command as a child (not exec) so the trap can fire; fd 9 stays
+# open in this shell, so the lock is held for the command's whole run regardless.
+if [ -n "$holder_file" ]; then
+  trap 'rm -f "$holder_file"' EXIT
+  "$@"
+else
+  exec "$@"
+fi

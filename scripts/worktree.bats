@@ -10,7 +10,8 @@ setup() {
   mkdir -p "$primary/scripts"
   # Commit the working-tree scripts (not whatever HEAD holds) into a throwaway repo, so the
   # test never registers a worktree against — or reads — the developer's real checkout.
-  cp "$scripts/worktree.sh" "$scripts/guard-shared-supabase.sh" "$primary/scripts/"
+  cp "$scripts/worktree.sh" "$scripts/guard-shared-supabase.sh" \
+    "$scripts/with-supabase-lock.sh" "$primary/scripts/"
   git -C "$primary" init -q
   git -C "$primary" add -A
   git -C "$primary" -c user.email=t@example.com -c user.name=test commit -q -m init
@@ -39,6 +40,20 @@ teardown() {
   [ "$status" -ne 0 ]
   run has_signing_key absent.json
   [ "$status" -ne 0 ]
+}
+
+@test "with-supabase-lock clears the holder file after the command finishes" {
+  cd "$wt"
+  run bash scripts/with-supabase-lock.sh true
+  [ "$status" -eq 0 ]
+  common=$(git rev-parse --path-format=absolute --git-common-dir)
+  [ ! -e "$common/.supabase-shared.lock.holder" ]
+}
+
+@test "with-supabase-lock preserves the wrapped command's exit code" {
+  cd "$wt"
+  run bash scripts/with-supabase-lock.sh bash -c 'exit 3'
+  [ "$status" -eq 3 ]
 }
 
 @test "guard allows a destructive command in the primary checkout" {
