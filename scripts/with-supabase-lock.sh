@@ -14,13 +14,21 @@ case "$common" in
 esac
 lock="$common/.supabase-shared.lock"
 
-# flock (util-linux) is absent on stock macOS; degrade rather than block work.
+# flock (util-linux) is absent on stock macOS. Refuse rather than silently run unserialized:
+# the failure mode is two worktrees corrupting the one shared stack, so make the gap opt-in.
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$lock"
   # Probe first so a contended lock announces the wait instead of looking like a hang.
   flock -n 9 || { echo "waiting: another worktree is using the shared Supabase stack…" >&2; flock 9; }
+elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
+  echo "WARNING: flock unavailable — running UNSERIALIZED; a concurrent worktree can corrupt the shared stack." >&2
 else
-  echo "note: flock unavailable — not serializing shared-Supabase access across worktrees" >&2
+  cat >&2 <<'EOF'
+error: flock not found, so runs against the shared Supabase stack can't be serialized.
+  Without it, two worktrees touching the stack at once can corrupt it.
+  Fix: brew install flock (macOS), or set ALLOW_UNSERIALIZED_SUPABASE=1 to run anyway.
+EOF
+  exit 1
 fi
 
 exec "$@"
