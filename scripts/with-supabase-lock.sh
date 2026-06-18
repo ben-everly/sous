@@ -8,6 +8,14 @@ set -euo pipefail
 # shellcheck source=scripts/worktree.sh
 . "$(dirname "$0")/worktree.sh"
 
+# A lone worktree can't contend with another checkout, so there's nothing to serialize:
+# skip the lock (and its flock requirement) entirely. The shared-stack hazard is strictly
+# cross-worktree — within one checkout this is just a plain single-repo project.
+if [ "$(worktree_count)" -eq 1 ]; then
+  export WITH_SUPABASE_LOCK=1
+  exec "$@"
+fi
+
 # One lock every worktree shares, in the common git dir — a relative path would be
 # cwd-keyed, so worktrees wouldn't share it.
 lock="$(common_git_dir)/.supabase-shared.lock"
