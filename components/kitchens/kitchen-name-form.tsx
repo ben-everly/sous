@@ -18,6 +18,7 @@ export function KitchenNameForm({
   inputLabel: string
   submitLabel: string
   placeholder?: string
+  // Resolves false when the submit is rejected; the form stays open and refocuses the input.
   onSubmit: (name: string) => Promise<boolean>
   onCancel: () => void
 }) {
