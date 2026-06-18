@@ -57,4 +57,7 @@ EOF
   exit 1
 fi
 
+# Signal to wrapped commands that they're already serialized, so a self-locking script
+# (db-start.sh) re-execs through us exactly once instead of looping.
+export WITH_SUPABASE_LOCK=1
 exec "$@"
