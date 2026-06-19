@@ -41,3 +41,12 @@ Set on the host:
 
 - [ ] Build and deploy the Next.js app with the §6 env vars set.
 - [ ] Point the domain at it; confirm `/login` loads and Google sign-in round-trips.
+
+## 8. Auth hardening
+
+- [ ] **Supabase → Authentication → Rate Limits**: set production limits — the local
+      `config.toml` values (`sign_in_sign_ups = 30`, `email_sent = 30`, `max_frequency = "1s"`)
+      are loosened for dev and must not be shipped as-is.
+- [ ] **Supabase → Authentication → Attack Protection**: enable CAPTCHA (hCaptcha or
+      Turnstile) to protect the sign-in, sign-up, and password-reset endpoints.
+- [ ] Transactional email (password reset) requires production SMTP — tracked in **SIDE-135**.
