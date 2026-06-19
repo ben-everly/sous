@@ -47,10 +47,12 @@ This document serves as the core set of instructions and architectural rules for
 - **Strict Typing**: You must _always_ use the generated Supabase types from `types/database.types.ts` when interacting with the database.
 - **Regenerate Types**: Run `npm run db:types` after any schema change to keep `types/database.types.ts` in sync, and commit the result alongside the migration.
 - **Table Naming**: The schema uses `snake_case` lowercase identifiers (Postgres convention). Do not hallucinate PascalCase or quoted variants.
+- **Plan schema changes as their own branch**: All worktrees share one local Supabase stack, so do them first on a dedicated branch (migration + `npm run db:types` + RLS/pgTAP tests), separate from feature-code branches. Don't start a feature-code branch until the schema branch has landed in `main`.
 
 ## 4. Specs & Planning
 
 - **Specs live in Linear**: Save every design spec as a Linear issue in the **Sous** project on the **Side Work (SIDE)** team — not as a file in the repo. The issue is the source of truth; reference it by its `SIDE-###` identifier in plans, branches, and PRs.
+- **Worktree location**: Create git worktrees as siblings of the repo at `../sous-<ticket_id>-<description>` (e.g. `../sous-SIDE-127-kitchens`).
 
 ## 5. The "No-Breakage Guarantee", Testing & Verification Protocol
 
