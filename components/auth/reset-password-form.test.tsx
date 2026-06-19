@@ -41,5 +41,6 @@ describe('ResetPasswordForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
     await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith({ password: 'password1' }))
     expect(push).toHaveBeenCalledWith('/')
+    expect(refresh).toHaveBeenCalled()
   })
 })
