@@ -47,7 +47,7 @@ export function UserMenu({ user }: { user: AuthedUser }) {
           disabled={pending}
           aria-busy={pending}
           onSelect={(e) => {
-            // Keep the menu logic running instead of letting the select close + unmount it.
+            // Stop the select from closing the menu, which would unmount the spinner mid-sign-out.
             e.preventDefault()
             signOut()
           }}
