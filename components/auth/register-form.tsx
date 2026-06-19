@@ -111,10 +111,10 @@ export function RegisterForm({ next }: { next?: string }) {
           type="password"
           autoComplete="new-password"
           aria-invalid={!!fieldErrors.confirmPassword}
-          aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
+          aria-describedby={fieldErrors.confirmPassword ? 'confirm-password-error' : undefined}
         />
         {fieldErrors.confirmPassword && (
-          <p id="confirmPassword-error" className="text-destructive text-sm">
+          <p id="confirm-password-error" className="text-destructive text-sm">
             {fieldErrors.confirmPassword}
           </p>
         )}

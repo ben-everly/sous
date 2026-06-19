@@ -38,8 +38,9 @@ describe('RegisterForm', () => {
     })
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
-    expect(signUp).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password1' })
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/'))
+    expect(signUp).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password1' })
+    expect(refresh).toHaveBeenCalled()
   })
 
   it('shows a neutral message when no session is returned (existing email)', async () => {
