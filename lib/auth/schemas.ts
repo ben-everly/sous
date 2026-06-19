@@ -5,7 +5,7 @@ const password = z.string().min(8, 'Password must be at least 8 characters.')
 
 const passwordsMatch = (data: { password: string; confirmPassword: string }) =>
   data.password === data.confirmPassword
-const matchError = { message: 'Passwords do not match.', path: ['confirmPassword'] as const }
+const matchError = { message: 'Passwords do not match.', path: ['confirmPassword'] }
 
 export const signInSchema = z.object({
   email,
