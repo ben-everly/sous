@@ -37,6 +37,7 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
       setPending(false)
       return
     }
+    // Leave pending set — push/refresh navigates away, so the spinner persists through it.
     router.push(sameOriginPath(next))
     router.refresh()
   }
