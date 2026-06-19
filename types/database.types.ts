@@ -37,6 +37,7 @@ export type Database = {
       kitchens: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           name: string | null
           owner_id: string
@@ -44,6 +45,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string | null
           owner_id?: string
@@ -51,6 +53,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string | null
           owner_id?: string
@@ -87,7 +90,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      restore_kitchen: {
+        Args: { kitchen_id: string }
+        Returns: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kitchens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      soft_delete_kitchen: {
+        Args: { kitchen_id: string }
+        Returns: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kitchens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
