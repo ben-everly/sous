@@ -7,7 +7,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(9);
+select plan(10);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
@@ -39,6 +39,16 @@ select is(
   (select display_name from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
   'Alice Updated',
   'Alice can update her own profile'
+);
+
+-- created_at is server-maintained: a client-supplied value on update is frozen to now()
+-- (the constant transaction time here), so the forged past value never lands.
+update public.profiles set created_at = '2000-01-01T00:00:00Z'
+  where id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (select created_at from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  now(),
+  'created_at on a profile is frozen on update; a client-supplied value is ignored'
 );
 
 -- No INSERT policy: denied even for her own id (RLS fires before the PK conflict would).

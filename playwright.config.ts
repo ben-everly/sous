@@ -10,6 +10,10 @@ try {
 
 const authFile = 'e2e/.auth/user.json'
 
+// Default to 3000; override with PORT when it's taken by another local service.
+const port = process.env.PORT ?? '3000'
+const baseURL = `http://localhost:${port}`
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -18,7 +22,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -33,8 +37,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
-    url: 'http://localhost:3000',
+    command: process.env.CI
+      ? `npm run build && npm run start -- -p ${port}`
+      : `npm run dev -- -p ${port}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
 })

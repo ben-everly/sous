@@ -48,7 +48,11 @@ This document serves as the core set of instructions and architectural rules for
 - **Regenerate Types**: Run `npm run db:types` after any schema change to keep `types/database.types.ts` in sync, and commit the result alongside the migration.
 - **Table Naming**: The schema uses `snake_case` lowercase identifiers (Postgres convention). Do not hallucinate PascalCase or quoted variants.
 
-## 4. The "No-Breakage Guarantee", Testing & Verification Protocol
+## 4. Specs & Planning
+
+- **Specs live in Linear**: Save every design spec as a Linear issue in the **Sous** project on the **Side Work (SIDE)** team — not as a file in the repo. The issue is the source of truth; reference it by its `SIDE-###` identifier in plans, branches, and PRs.
+
+## 5. The "No-Breakage Guarantee", Testing & Verification Protocol
 
 - **Self-Verification**: After completing any significant feature, modification, or milestone, you **must** autonomously run the following commands to verify the build is not broken and tests pass:
   1. `npm run lint`
