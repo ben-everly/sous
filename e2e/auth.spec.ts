@@ -21,7 +21,8 @@ test.describe('authenticated', () => {
 
   test('sign-out returns to /login and re-protects /', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /sign out/i }).click()
+    await page.getByText(TEST_USER.fullName).click()
+    await page.getByRole('menuitem', { name: /sign out/i }).click()
     await expect(page).toHaveURL(/\/login$/)
 
     await page.goto('/')
