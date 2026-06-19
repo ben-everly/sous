@@ -86,6 +86,8 @@ export function useKitchens() {
 
   // Declared before softDelete so the undo toast's onClick references an initialized binding.
   const restore = async (kitchen: Kitchen) => {
+    // Snapshot-by-value rollback (here and in softDelete/purge) is deliberate: a functional updater
+    // can't rebuild the prior array on failure. Safe for the single-user UI, where mutations don't overlap.
     const prevDeleted = deleted
     setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
     setKitchens((ks) =>
