@@ -57,7 +57,7 @@ describe('KitchenNameForm', () => {
     const save = screen.getByRole('button', { name: 'Save' })
     fireEvent.click(save)
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
-    expect(save).toBeEnabled()
+    await waitFor(() => expect(save).toBeEnabled())
     const input = screen.getByLabelText('Kitchen name')
     expect(input).toHaveValue('Lake')
     await waitFor(() => expect(input).toHaveFocus())
