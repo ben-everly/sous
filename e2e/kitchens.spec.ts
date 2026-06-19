@@ -42,7 +42,9 @@ test.describe('kitchens', () => {
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
     // The trash is already open (from Path 2) so "Lake House" text remains visible there.
     // exact: true avoids matching "Delete Lake House permanently" in the open trash.
-    await expect(page.getByRole('button', { name: 'Delete Lake House', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Delete Lake House', exact: true })).toHaveCount(
+      0,
+    )
     // Trash disclosure stays open from Path 2; deleting a live kitchen while trash is open
     // optimistically prepends it — no toggle needed.
     await expect(page.getByRole('button', { name: 'Restore Lake House' })).toBeVisible()
