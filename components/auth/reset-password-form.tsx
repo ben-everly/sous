@@ -18,8 +18,9 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  // The recovery code was already exchanged into a session by /auth/callback.
-  // No session here means a direct hit or an expired/used link — send them back.
+  // This gate is UX only — updateUser below is authorized by the recovery session at
+  // GoTrue, which is the real boundary. The recovery code was already exchanged into a
+  // session by /auth/callback; no session here means a direct hit or an expired/used link.
   useEffect(() => {
     createClient()
       .auth.getSession()
