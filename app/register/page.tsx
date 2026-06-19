@@ -20,12 +20,19 @@ export default async function RegisterPage({
           <p className="text-muted-foreground text-sm">Start managing your kitchen with Sous.</p>
         </div>
         <RegisterForm next={next} />
-        <p className="text-center text-sm">
-          Already have an account?{' '}
-          <Link href={loginHref} className="underline underline-offset-4">
-            Sign in
-          </Link>
-        </p>
+        <div className="text-muted-foreground space-y-1 text-center text-sm">
+          <p>
+            Already have an account?{' '}
+            <Link href={loginHref} className="text-foreground underline underline-offset-4">
+              Sign in
+            </Link>
+          </p>
+          <p>
+            <Link href="/forgot-password" className="text-foreground underline underline-offset-4">
+              Forgot password?
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   )
