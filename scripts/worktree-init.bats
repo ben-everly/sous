@@ -1,7 +1,6 @@
 #!/usr/bin/env bats
-# Behavioral tests for worktree-init.sh's link logic, the most-churned of the worktree scripts.
-# Runs against a throwaway git repo — never the real checkout — so it can't read or touch the
-# developer's actual .env / signing key.
+# Behavioral tests for worktree-init.sh's link logic. Runs against a throwaway git repo — never
+# the real checkout — so it can't read or touch the developer's actual .env / signing key.
 
 setup() {
   scripts="$BATS_TEST_DIRNAME"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
-# Behavioral tests for the shared-Supabase worktree guard — the logic that decides whether a
-# destructive db:reset/db:stop may run. A guard that wrongly allows would let a linked worktree
-# nuke the stack every checkout shares, so pin the invariant against the regression-prone scripts.
+# Behavioral tests for worktree.sh and with-supabase-lock.sh: the destructive-command guard,
+# signing-key detection, and the shared-stack lock. If any regresses, a linked worktree can
+# corrupt the Supabase stack every checkout shares — so pin them.
 
 setup() {
   scripts="$BATS_TEST_DIRNAME"

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# All git worktrees of this repo share ONE local Supabase stack — the CLI keys its
-# Docker containers by `project_id`. Destructive commands (db:reset/db:stop) from any
-# worktree therefore hit every worktree, so they are guarded; test:db/e2e are not
-# destructive but do contend on the shared DB, so run them serially across worktrees.
-# These helpers locate the primary checkout so callers can link shared dev files or
-# refuse the destructive commands from a linked worktree.
+# All git worktrees of this repo share ONE local Supabase stack — the CLI keys its Docker
+# containers by `project_id`. So a destructive command (db:reset/db:stop) from any worktree
+# hits every checkout (hence the guard), and concurrent stack operations must serialize (hence
+# the lock). These helpers resolve the primary checkout and shared git dir the worktree scripts need.
 
 # Resolve the shared common git dir, asserting git 2.31+. --path-format=absolute is
 # required: from the primary, --git-common-dir alone returns a relative `.git`.

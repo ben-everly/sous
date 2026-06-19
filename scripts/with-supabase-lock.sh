@@ -12,11 +12,10 @@ set -euo pipefail
 lock="$(common_git_dir)/.supabase-shared.lock"
 holder_file="" # set only on the locked path; gates the cleanup trap below
 
-# Always take the lock when flock is present — no worktree-count shortcut, so there's no window
-# where a worktree added mid-run races an in-flight command, and concurrent runs in one checkout
-# serialize too. flock (util-linux) is absent on stock macOS; without it we can't serialize, so
-# refuse unless the caller opts into an unserialized (single-worktree-only) run. The flock is
-# held via fd 9 and auto-released when this process dies, so a crash can't wedge it.
+# Always lock when flock is present — no worktree-count shortcut, so a worktree added mid-run
+# can't race an in-flight command. flock (util-linux) is absent on stock macOS; without it we
+# can't serialize, so refuse unless the caller opts into an unserialized (single-worktree) run.
+# The lock lives on fd 9 and auto-releases when this process dies, so a crash can't wedge it.
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$lock"
   holder_file="$lock.holder"
@@ -26,9 +25,8 @@ if command -v flock >/dev/null 2>&1; then
     echo "waiting: shared Supabase stack in use${held_by:+ by $held_by}" >&2
     flock 9 || { echo "error: failed to acquire shared Supabase lock" >&2; exit 1; }
   fi
-  # Record who holds the lock so the next waiter can name us — best-effort, diagnostic only.
-  # Cleared on release (the EXIT trap below); only a hard crash leaves a stale or partial
-  # line. The wait is correct regardless; this label is only a hint.
+  # Record who holds the lock so the next waiter can name us — best-effort, diagnostic only,
+  # cleared on release by the EXIT trap. Only a hard crash leaves a stale or partial line.
   printf '%s (%s)\n' "$(this_worktree)" "$*" >"$holder_file"
 elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
   echo "WARNING: flock unavailable — running UNSERIALIZED. Safe only with a single worktree; a second concurrent worktree can corrupt the shared stack." >&2
