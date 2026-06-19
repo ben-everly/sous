@@ -58,8 +58,13 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           type="email"
           autoComplete="email"
           aria-invalid={!!fieldErrors.email}
+          aria-describedby={fieldErrors.email ? 'email-error' : undefined}
         />
-        {fieldErrors.email && <p className="text-destructive text-sm">{fieldErrors.email}</p>}
+        {fieldErrors.email && (
+          <p id="email-error" className="text-destructive text-sm">
+            {fieldErrors.email}
+          </p>
+        )}
       </div>
       <div className="space-y-1">
         <label htmlFor="password" className="text-sm font-medium">
@@ -71,8 +76,13 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           type="password"
           autoComplete="current-password"
           aria-invalid={!!fieldErrors.password}
+          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
         />
-        {fieldErrors.password && <p className="text-destructive text-sm">{fieldErrors.password}</p>}
+        {fieldErrors.password && (
+          <p id="password-error" className="text-destructive text-sm">
+            {fieldErrors.password}
+          </p>
+        )}
       </div>
       <Button type="submit" disabled={pending} aria-busy={pending} className="w-full">
         {pending && <LoaderCircle className="animate-spin" />}
