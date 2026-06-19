@@ -28,12 +28,6 @@ this_worktree() {
   git rev-parse --show-toplevel
 }
 
-# How many worktrees share this repo. One means no other checkout can contend for the
-# shared stack, so callers can skip serialization (and its flock requirement) entirely.
-worktree_count() {
-  git worktree list --porcelain | grep -c '^worktree '
-}
-
 in_primary_worktree() {
   [ "$(primary_worktree)" = "$(this_worktree)" ]
 }

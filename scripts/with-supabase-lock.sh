@@ -1,28 +1,22 @@
 #!/usr/bin/env bash
 # Hold a lock on the shared local Supabase stack while running a command. All worktrees
 # share one stack (CLI keys containers by project_id), so concurrent stack operations
-# (db:start/db:stop/db:reset/test:db/test:e2e) from different checkouts corrupt each other;
-# a second run waits instead.
+# (db:start/db:stop/db:reset/test:db/test:e2e) corrupt each other; a second run waits instead.
 set -euo pipefail
 # Run from this worktree's cwd (don't cd to the primary): the wrapped command operates here.
 # shellcheck source=scripts/worktree.sh
 . "$(dirname "$0")/worktree.sh"
-
-# A lone worktree can't contend with another checkout, so there's nothing to serialize:
-# skip the lock (and its flock requirement) entirely. The shared-stack hazard is strictly
-# cross-worktree — within one checkout this is just a plain single-repo project.
-if [ "$(worktree_count)" -eq 1 ]; then
-  export WITH_SUPABASE_LOCK=1
-  exec "$@"
-fi
 
 # One lock every worktree shares, in the common git dir — a relative path would be
 # cwd-keyed, so worktrees wouldn't share it.
 lock="$(common_git_dir)/.supabase-shared.lock"
 holder_file="" # set only on the locked path; gates the cleanup trap below
 
-# flock (util-linux) is absent on stock macOS. Refuse rather than silently run unserialized:
-# the failure mode is two worktrees corrupting the one shared stack, so make the gap opt-in.
+# Always take the lock when flock is present — no worktree-count shortcut, so there's no window
+# where a worktree added mid-run races an in-flight command, and concurrent runs in one checkout
+# serialize too. flock (util-linux) is absent on stock macOS; without it we can't serialize, so
+# refuse unless the caller opts into an unserialized (single-worktree-only) run. The flock is
+# held via fd 9 and auto-released when this process dies, so a crash can't wedge it.
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$lock"
   holder_file="$lock.holder"
@@ -37,12 +31,13 @@ if command -v flock >/dev/null 2>&1; then
   # line. The wait is correct regardless; this label is only a hint.
   printf '%s (%s)\n' "$(this_worktree)" "$*" >"$holder_file"
 elif [ "${ALLOW_UNSERIALIZED_SUPABASE:-}" = "1" ]; then
-  echo "WARNING: flock unavailable — running UNSERIALIZED; a concurrent worktree can corrupt the shared stack." >&2
+  echo "WARNING: flock unavailable — running UNSERIALIZED. Safe only with a single worktree; a second concurrent worktree can corrupt the shared stack." >&2
 else
   cat >&2 <<'EOF'
 error: flock not found, so runs against the shared Supabase stack can't be serialized.
-  Without it, two worktrees touching the stack at once can corrupt it.
-  Fix: brew install flock (macOS), or set ALLOW_UNSERIALIZED_SUPABASE=1 to run anyway.
+  Install it to run multiple worktrees safely: brew install flock (macOS).
+  Or, if you use only a single worktree: export ALLOW_UNSERIALIZED_SUPABASE=1 to run without
+  locking — but a second concurrent worktree can then corrupt the shared stack.
 EOF
   exit 1
 fi

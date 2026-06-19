@@ -56,6 +56,46 @@ teardown() {
   [ "$status" -eq 3 ]
 }
 
+@test "a lone checkout still takes the lock (no worktree-count skip)" {
+  lone="$tmp/lone"
+  mkdir -p "$lone/scripts"
+  cp "$scripts/worktree.sh" "$scripts/with-supabase-lock.sh" "$lone/scripts/"
+  git -C "$lone" init -q
+  git -C "$lone" add -A
+  git -C "$lone" -c user.email=t@example.com -c user.name=test commit -q -m init
+  cd "$lone"
+  run bash scripts/with-supabase-lock.sh true
+  [ "$status" -eq 0 ]
+  [ -e "$lone/.git/.supabase-shared.lock" ]
+}
+
+# flock is installed in CI/dev, so stub a PATH without it to exercise the no-flock branches.
+nobin_path() {
+  local bin="$tmp/$1"
+  mkdir -p "$bin"
+  local t
+  for t in dirname git cat grep; do ln -s "$(command -v "$t")" "$bin/$t"; done
+  printf '%s\n' "$bin"
+}
+
+@test "refuses without flock, pointing at install or the single-worktree bypass" {
+  bin=$(nobin_path nobin-refuse)
+  cd "$primary"
+  run env PATH="$bin" "$(command -v bash)" scripts/with-supabase-lock.sh true
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"flock"* ]]
+  [[ "$output" == *"ALLOW_UNSERIALIZED_SUPABASE=1"* ]]
+  [[ "$output" == *"single worktree"* ]]
+}
+
+@test "runs unserialized without flock when ALLOW_UNSERIALIZED_SUPABASE=1" {
+  bin=$(nobin_path nobin-bypass)
+  cd "$primary"
+  run env PATH="$bin" ALLOW_UNSERIALIZED_SUPABASE=1 "$(command -v bash)" scripts/with-supabase-lock.sh cat /dev/null
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"UNSERIALIZED"* ]]
+}
+
 @test "guard allows a destructive command in the primary checkout" {
   cd "$primary"
   run bash scripts/guard-shared-supabase.sh db:reset
