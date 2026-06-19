@@ -27,6 +27,7 @@ export function ResetPasswordForm() {
         if (!data.session) router.replace('/forgot-password?error=recovery_invalid')
         else setReady(true)
       })
+      .catch(() => router.replace('/forgot-password?error=recovery_invalid'))
   }, [router])
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

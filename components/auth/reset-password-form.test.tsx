@@ -31,6 +31,14 @@ describe('ResetPasswordForm', () => {
     )
   })
 
+  it('redirects to forgot-password when the session check rejects', async () => {
+    getSession.mockRejectedValue(new Error('network'))
+    render(<ResetPasswordForm />)
+    await vi.waitFor(() =>
+      expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
+    )
+  })
+
   it('updates the password and goes home on success', async () => {
     getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
     updateUser.mockResolvedValue({ error: null })

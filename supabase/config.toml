@@ -186,7 +186,7 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
-# Mirror lib/auth/schemas.ts passwordSchema; GoTrue is the real enforcement boundary.
+# Mirror the password rule in lib/auth/schemas.ts; GoTrue is the real enforcement boundary.
 minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
