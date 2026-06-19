@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { redirectIfAuthed } from '@/lib/auth/gate'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
+import { EmailPasswordSignInForm } from '@/components/auth/email-password-sign-in-form'
 import { LoginNotice } from '@/components/auth/login-notice'
 import { isLoginError } from '@/lib/auth/login-errors'
 
@@ -10,6 +12,8 @@ export default async function LoginPage({
 }) {
   const { error, next } = await searchParams
   await redirectIfAuthed(next)
+
+  const registerHref = next ? `/register?next=${encodeURIComponent(next)}` : '/register'
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -22,6 +26,20 @@ export default async function LoginPage({
         </div>
         {isLoginError(error) && <LoginNotice error={error} />}
         <GoogleSignInButton next={next} />
+        <div className="text-muted-foreground flex items-center gap-3 text-xs">
+          <span className="bg-border h-px flex-1" />
+          OR
+          <span className="bg-border h-px flex-1" />
+        </div>
+        <EmailPasswordSignInForm next={next} />
+        <div className="flex items-center justify-between text-sm">
+          <Link href="/forgot-password" className="underline underline-offset-4">
+            Forgot password?
+          </Link>
+          <Link href={registerHref} className="underline underline-offset-4">
+            Create account
+          </Link>
+        </div>
       </div>
     </main>
   )
