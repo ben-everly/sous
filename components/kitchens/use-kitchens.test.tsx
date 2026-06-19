@@ -135,4 +135,49 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     expect(result.current.deleted).toEqual([trashed])
   })
+
+  it('softDelete prepends a deleted_at-stamped copy when trash is loaded', async () => {
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    mocks.results.rpc = { data: beach, error: null }
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+
+    expect(result.current.deleted).toHaveLength(1)
+    expect(result.current.deleted![0].id).toBe('k1')
+    expect(result.current.deleted![0].deleted_at).not.toBeNull()
+    expect(typeof result.current.deleted![0].deleted_at).toBe('string')
+    expect(result.current.kitchens).toEqual([])
+  })
+
+  it('restore failure rolls back and toasts an error', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [trashed], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    mocks.results.rpc = { data: null, error: { message: 'boom' } }
+    await act(async () => {
+      await result.current.restore(trashed)
+    })
+
+    expect(result.current.kitchens.some((k) => k.id === 'k1')).toBe(false)
+    expect(result.current.deleted!.some((k) => k.id === 'k1')).toBe(true)
+    expect(mocks.toast.error).toHaveBeenCalledWith('Couldn\'t restore "Beach House". Try again.')
+    spy.mockRestore()
+  })
 })
