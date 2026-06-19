@@ -21,7 +21,9 @@ export async function getRecoveryLink(messageId: string): Promise<string> {
   const res = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`)
   const body = (await res.json()) as { HTML?: string; Text?: string }
   const source = body.HTML || body.Text || ''
-  const link = source.match(/https?:\/\/[^\s"'<>]+/g)?.find((url) => url.includes('/auth/v1/verify'))
+  const link = source
+    .match(/https?:\/\/[^\s"'<>]+/g)
+    ?.find((url) => url.includes('/auth/v1/verify'))
   if (!link) throw new Error('No recovery link found in the email')
   return link.replace(/&amp;/g, '&')
 }

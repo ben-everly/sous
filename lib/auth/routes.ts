@@ -1,9 +1,4 @@
-const PUBLIC_PATHS = new Set([
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-])
+const PUBLIC_PATHS = new Set(['/login', '/register', '/forgot-password', '/reset-password'])
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/auth/')
