@@ -53,11 +53,18 @@ describe('forgotPasswordSchema', () => {
 })
 
 describe('resetPasswordSchema', () => {
-  it('requires matching 8+ char passwords', () => {
+  it('accepts matching 8+ char passwords', () => {
     expect(
       resetPasswordSchema.safeParse({ password: 'password1', confirmPassword: 'password1' })
         .success,
     ).toBe(true)
+  })
+  it('rejects a password shorter than 8', () => {
+    expect(
+      resetPasswordSchema.safeParse({ password: 'short', confirmPassword: 'short' }).success,
+    ).toBe(false)
+  })
+  it('rejects mismatched passwords', () => {
     expect(
       resetPasswordSchema.safeParse({ password: 'password1', confirmPassword: 'nope' }).success,
     ).toBe(false)
