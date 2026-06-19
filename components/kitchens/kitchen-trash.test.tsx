@@ -28,8 +28,11 @@ function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash
 describe('KitchenTrash', () => {
   it('is collapsed by default and lazy-loads on first expand', () => {
     const { onLoad } = renderTrash({ status: 'idle', deleted: null })
+    const btn = screen.getByRole('button', { name: 'Recently deleted' })
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('Beach House')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
+    fireEvent.click(btn)
+    expect(btn).toHaveAttribute('aria-expanded', 'true')
     expect(onLoad).toHaveBeenCalledTimes(1)
   })
 
@@ -51,8 +54,18 @@ describe('KitchenTrash', () => {
     const { onPurge } = renderTrash()
     fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House permanently' }))
+    expect(onPurge).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }))
     expect(onPurge).toHaveBeenCalledWith(trashed)
+  })
+
+  it('does not call onLoad when status is already ready (re-expand)', () => {
+    const { onLoad } = renderTrash({ status: 'ready', deleted: [trashed] })
+    const btn = screen.getByRole('button', { name: 'Recently deleted' })
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    expect(onLoad).not.toHaveBeenCalled()
   })
 
   it('shows an empty message when the trash is loaded but empty', () => {
