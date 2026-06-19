@@ -29,6 +29,28 @@ test.describe('email/password auth', () => {
     }
   })
 
+  // Pins GoTrue's confirmations-off behavior: a duplicate signup must surface the
+  // non-enumerating copy and must NOT create a session. A CLI bump that changed this
+  // (e.g. returning a live session for a duplicate) would fail here loudly.
+  test('registering an existing email stays non-enumerating', async ({ page }) => {
+    const email = `dupe-${Date.now()}@example.com`
+    await deleteUser(email)
+    await adminClient().auth.admin.createUser({ email, password: PASSWORD, email_confirm: true })
+    try {
+      await page.goto('/register')
+      await page.getByLabel('Email').fill(email)
+      await page.getByLabel('Password', { exact: true }).fill('different-pw-123')
+      await page.getByLabel('Confirm password').fill('different-pw-123')
+      await page.getByRole('button', { name: /create account/i }).click()
+      await expect(
+        page.getByRole('alert').filter({ hasText: /already have an account/i }),
+      ).toBeVisible()
+      await expect(page).toHaveURL(/\/register$/)
+    } finally {
+      await deleteUser(email)
+    }
+  })
+
   test('sign-in: bad password rejected, good password lands home', async ({ page }) => {
     const email = `signin-${Date.now()}@example.com`
     await deleteUser(email)

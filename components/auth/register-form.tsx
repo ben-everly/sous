@@ -47,8 +47,10 @@ export function RegisterForm({ next }: { next?: string }) {
       setPending(false)
       return
     }
-    // Confirmations are off, so a real new signup returns a live session. No session
-    // means GoTrue obfuscated an existing email — stay non-enumerating.
+    // With confirmations off, a duplicate email comes back as user_already_exists (handled
+    // above), so this null-session branch is really GoTrue's confirmations-on obfuscation path.
+    // Footgun: once confirmations are on, a genuine new signup also returns a null session —
+    // tell them apart via result.user.identities (empty ⇒ existing email) before trusting this.
     if (!result.session) {
       setError('If you already have an account, try signing in or resetting your password.')
       setPending(false)
