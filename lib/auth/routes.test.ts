@@ -18,6 +18,16 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/')).toBe(false)
     expect(isPublicPath('/dashboard')).toBe(false)
   })
+
+  it('treats the email/password auth routes as public', () => {
+    expect(isPublicPath('/register')).toBe(true)
+    expect(isPublicPath('/forgot-password')).toBe(true)
+    expect(isPublicPath('/reset-password')).toBe(true)
+  })
+
+  it('still gates a protected route', () => {
+    expect(isPublicPath('/kitchen')).toBe(false)
+  })
 })
 
 describe('loginRedirectPath', () => {

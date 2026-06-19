@@ -1,5 +1,12 @@
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+])
+
 export function isPublicPath(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/auth/')
+  return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/auth/')
 }
 
 export function loginRedirectPath(pathname: string, search: string): string {
