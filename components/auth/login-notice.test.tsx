@@ -16,4 +16,10 @@ describe('LoginNotice', () => {
     const notice = screen.getByRole('status')
     expect(notice).toHaveTextContent(/cancelled/i)
   })
+
+  it('renders an expired recovery link assertively (role=alert)', () => {
+    render(<LoginNotice error="recovery_invalid" />)
+    const notice = screen.getByRole('alert')
+    expect(notice).toHaveTextContent(/reset link/i)
+  })
 })

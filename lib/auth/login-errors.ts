@@ -1,4 +1,4 @@
-export const LOGIN_ERRORS = ['auth', 'cancelled'] as const
+export const LOGIN_ERRORS = ['auth', 'cancelled', 'recovery_invalid'] as const
 
 export type LoginError = (typeof LOGIN_ERRORS)[number]
 

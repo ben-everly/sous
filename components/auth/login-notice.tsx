@@ -12,6 +12,10 @@ const NOTICES: Record<LoginError, { message: string; tone: Tone }> = {
     message: 'Sign-in was cancelled. Try again, or use a different Google account.',
     tone: 'info',
   },
+  recovery_invalid: {
+    message: 'That password-reset link has expired or was already used. Request a new one below.',
+    tone: 'error',
+  },
 }
 
 export function LoginNotice({ error }: { error: LoginError }) {
