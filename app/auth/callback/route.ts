@@ -13,6 +13,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const next = sameOriginPath(searchParams.get('next'))
   const providerError = searchParams.get('error')
+  // Recovery links route through here via next=/reset-password; their failures
+  // belong on /forgot-password, not the generic login error.
+  const recoveryFlow = next.startsWith('/reset-password')
 
   // Treat any access_denied as a cancellation, including the rare org-policy block.
   if (providerError === 'access_denied') {
@@ -34,5 +37,8 @@ export async function GET(request: Request) {
   }
 
   // failed exchange, provider error, or a bare/replayed hit.
+  if (recoveryFlow) {
+    return NextResponse.redirect(`${origin}/forgot-password?error=recovery_invalid`)
+  }
   return NextResponse.redirect(loginErrorUrl(origin, 'auth', next))
 }

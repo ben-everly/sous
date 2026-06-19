@@ -98,6 +98,21 @@ describe('OAuth callback (GET)', () => {
     consoleError.mockRestore()
   })
 
+  it('sends a failed recovery exchange to /forgot-password?error=recovery_invalid', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    exchangeCodeForSession.mockResolvedValue({ error: { message: 'expired' } })
+    await GET(
+      new Request(
+        'http://localhost:3000/auth/callback?code=abc&next=' +
+          encodeURIComponent('/reset-password'),
+      ),
+    )
+    expect(mockedRedirect).toHaveBeenCalledWith(
+      'http://localhost:3000/forgot-password?error=recovery_invalid',
+    )
+    consoleError.mockRestore()
+  })
+
   it('lands a successful exchange on / when no next is present', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
 
