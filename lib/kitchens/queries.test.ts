@@ -61,7 +61,9 @@ describe('listKitchens', () => {
 
 describe('listDeletedKitchens', () => {
   it('returns the trashed rows on success', async () => {
-    const rows = [{ id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: '2026-02-01' }]
+    const rows = [
+      { id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: '2026-02-01' },
+    ]
     const { supabase } = clientReturning({ data: rows, error: null })
     expect(await listDeletedKitchens(supabase)).toEqual(rows)
   })

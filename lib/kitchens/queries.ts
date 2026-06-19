@@ -32,11 +32,7 @@ export async function listDeletedKitchens(supabase: Client): Promise<Kitchen[] |
 
 // The UI only ever creates named kitchens; the lone nameless kitchen is bootstrapped at signup.
 export async function createKitchen(supabase: Client, name: string): Promise<CreateResult> {
-  const { data, error } = await supabase
-    .from('kitchens')
-    .insert({ name })
-    .select(COLUMNS)
-    .single()
+  const { data, error } = await supabase.from('kitchens').insert({ name }).select(COLUMNS).single()
   if (error) console.error('createKitchen failed:', error.message)
   return data ? { ok: true, kitchen: data } : { ok: false }
 }
