@@ -51,4 +51,39 @@ describe('ResetPasswordForm', () => {
     expect(push).toHaveBeenCalledWith('/')
     expect(refresh).toHaveBeenCalled()
   })
+
+  it('bounces to forgot-password when the session is dead at submit time', async () => {
+    getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
+    updateUser.mockResolvedValue({
+      error: {
+        __isAuthError: true,
+        name: 'AuthApiError',
+        code: 'refresh_token_not_found',
+        status: 400,
+      },
+    })
+    render(<ResetPasswordForm />)
+    const password = await screen.findByLabelText('New password', { exact: true })
+    fireEvent.change(password, { target: { value: 'password1' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+    await vi.waitFor(() =>
+      expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
+    )
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('shows an inline error for a non-session failure', async () => {
+    getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
+    updateUser.mockResolvedValue({
+      error: { __isAuthError: true, name: 'AuthApiError', code: 'weak_password', status: 422 },
+    })
+    render(<ResetPasswordForm />)
+    const password = await screen.findByLabelText('New password', { exact: true })
+    fireEvent.change(password, { target: { value: 'password1' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/8 characters/i)
+    expect(replace).not.toHaveBeenCalled()
+  })
 })

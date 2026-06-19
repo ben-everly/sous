@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoaderCircle } from 'lucide-react'
+import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
@@ -10,6 +11,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type FieldErrors = { password?: string; confirmPassword?: string }
+
+// A recovery session can die between page load and submit (revoked/reused refresh token,
+// or an already-consumed link). Treat those like a missing session: bounce to request a new one.
+const DEAD_SESSION_CODES = new Set([
+  'session_expired',
+  'session_not_found',
+  'refresh_token_not_found',
+  'refresh_token_already_used',
+])
 
 export function ResetPasswordForm() {
   const router = useRouter()
@@ -48,6 +58,13 @@ export function ResetPasswordForm() {
     setPending(true)
     const { error } = await createClient().auth.updateUser({ password: parsed.data.password })
     if (error) {
+      if (
+        isAuthSessionMissingError(error) ||
+        (isAuthApiError(error) && DEAD_SESSION_CODES.has(error.code ?? ''))
+      ) {
+        router.replace('/forgot-password?error=recovery_invalid')
+        return
+      }
       setError(authErrorMessage(error))
       setPending(false)
       return
