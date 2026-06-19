@@ -6,7 +6,7 @@ import { KitchenRow } from './kitchen-row'
 afterEach(cleanup)
 
 type Props = ComponentProps<typeof KitchenRow>
-const kitchen = { id: 'k1', name: 'Beach House', created_at: '2026-01-01T00:00:00Z' }
+const kitchen = { id: 'k1', name: 'Beach House', created_at: '2026-01-01T00:00:00Z', deleted_at: null }
 
 function renderRow(overrides: Partial<Props> = {}) {
   const props: Props = {
