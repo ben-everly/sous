@@ -16,7 +16,33 @@ describe('GoogleSignInButton', () => {
     signInWithOAuth.mockReset()
   })
 
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('warns and skips OAuth when the dev server port is outside the allowlist', async () => {
+    signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
+    vi.stubGlobal('location', new URL('http://localhost:3010/login'))
+    render(<GoogleSignInButton />)
+
+    clickSignIn()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/3010/)
+    expect(signInWithOAuth).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled()
+  })
+
+  it('proceeds with OAuth at the top of the allowlisted range', async () => {
+    signInWithOAuth.mockResolvedValue({ data: { url: 'https://accounts.google.com' }, error: null })
+    vi.stubGlobal('location', new URL('http://localhost:3009/login'))
+    render(<GoogleSignInButton />)
+
+    clickSignIn()
+
+    await waitFor(() => expect(signInWithOAuth).toHaveBeenCalled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 
   it('shows an error and re-enables the button when signInWithOAuth returns an error', async () => {
     signInWithOAuth.mockResolvedValue({ data: null, error: { message: 'boom' } })

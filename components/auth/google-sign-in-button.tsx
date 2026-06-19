@@ -30,7 +30,7 @@ function GoogleIcon() {
 
 export function GoogleSignInButton({ next }: { next?: string }) {
   const [pending, setPending] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // WebKit bfcaches this page despite no-store (reproduced in WebKitGTK), so Back
   // from Google's consent screen revives it with `pending` still set — re-enable.
@@ -43,7 +43,18 @@ export function GoogleSignInButton({ next }: { next?: string }) {
   }, [])
 
   const signIn = async () => {
-    setFailed(false)
+    setError(null)
+    // Local Supabase only allowlists OAuth redirect URLs on ports 3000–3009 (see
+    // supabase/config.toml). A dev server bumped past that range gets a redirect GoTrue
+    // silently drops to site_url, so sign-in would spin forever with no error — fail loud here.
+    const { hostname, port } = window.location
+    const onLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+    if (onLocalhost && port && (Number(port) < 3000 || Number(port) > 3009)) {
+      setError(
+        `This dev server is on port ${port}, which isn't allowlisted for local Google sign-in. Restart on a port in 3000–3009.`,
+      )
+      return
+    }
     setPending(true)
     const supabase = createClient()
     const redirectTo = new URL('/auth/callback', window.location.origin)
@@ -57,16 +68,16 @@ export function GoogleSignInButton({ next }: { next?: string }) {
       // signInWithOAuth resolves when the redirect is *initiated*, before the
       // browser leaves the page — so the success path deliberately leaves `pending` set.
     } catch {
-      setFailed(true)
+      setError('Something went wrong starting sign-in. Please try again.')
       setPending(false)
     }
   }
 
   return (
     <div className="space-y-2">
-      {failed && (
+      {error && (
         <p role="alert" className="text-destructive text-center text-sm">
-          Something went wrong starting sign-in. Please try again.
+          {error}
         </p>
       )}
       <Button onClick={signIn} disabled={pending} aria-busy={pending} className="w-full">
