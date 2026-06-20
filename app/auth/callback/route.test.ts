@@ -114,7 +114,9 @@ describe('OAuth callback (GET)', () => {
   })
 
   it('sends an expired recovery link (access_denied) to /forgot-password, not the cancelled notice', async () => {
-    await get(`?error=access_denied&error_code=otp_expired&next=${encodeURIComponent('/reset-password')}`)
+    await get(
+      `?error=access_denied&error_code=otp_expired&next=${encodeURIComponent('/reset-password')}`,
+    )
 
     expect(mockedRedirect).toHaveBeenCalledWith(
       'http://localhost:3000/forgot-password?error=recovery_invalid',
