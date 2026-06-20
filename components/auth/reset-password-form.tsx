@@ -22,6 +22,9 @@ const DEAD_SESSION_CODES = new Set([
   'refresh_token_already_used',
 ])
 
+// getSession can stall on an under-the-hood token refresh; don't trap the user on a spinner.
+const SESSION_CHECK_TIMEOUT_MS = 10_000
+
 export function ResetPasswordForm() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
@@ -35,10 +38,9 @@ export function ResetPasswordForm() {
   // session by /auth/callback; no session here means a direct hit or an expired/used link.
   useEffect(() => {
     let settled = false
-    // getSession can stall on an under-the-hood token refresh; don't trap the user on a spinner.
     const timer = setTimeout(() => {
       if (!settled) setTimedOut(true)
-    }, 10_000)
+    }, SESSION_CHECK_TIMEOUT_MS)
     createClient()
       .auth.getSession()
       .then(({ data }) => {
@@ -92,7 +94,7 @@ export function ResetPasswordForm() {
       return (
         <div className="space-y-3 text-center text-sm">
           <p role="alert" className="text-destructive">
-            This is taking longer than expected — your reset link may have expired.
+            This is taking longer than expected. You can keep waiting, or request a new link.
           </p>
           <Link href="/forgot-password" className="underline underline-offset-4">
             Request a new link
