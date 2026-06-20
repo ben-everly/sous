@@ -24,7 +24,7 @@ describe('EmailPasswordSignInForm', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'whatever' } })
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
-    expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/valid email/i)
     expect(signInWithPassword).not.toHaveBeenCalled()
   })
 

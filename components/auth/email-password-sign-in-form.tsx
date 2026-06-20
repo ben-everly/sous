@@ -62,7 +62,7 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           aria-describedby={fieldErrors.email ? 'email-error' : undefined}
         />
         {fieldErrors.email && (
-          <p id="email-error" className="text-destructive text-sm">
+          <p id="email-error" role="alert" className="text-destructive text-sm">
             {fieldErrors.email}
           </p>
         )}
@@ -80,7 +80,7 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           aria-describedby={fieldErrors.password ? 'password-error' : undefined}
         />
         {fieldErrors.password && (
-          <p id="password-error" className="text-destructive text-sm">
+          <p id="password-error" role="alert" className="text-destructive text-sm">
             {fieldErrors.password}
           </p>
         )}

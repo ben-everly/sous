@@ -68,7 +68,7 @@ export function ForgotPasswordForm() {
           aria-describedby={fieldError ? 'email-error' : undefined}
         />
         {fieldError && (
-          <p id="email-error" className="text-destructive text-sm">
+          <p id="email-error" role="alert" className="text-destructive text-sm">
             {fieldError}
           </p>
         )}
