@@ -26,6 +26,16 @@ describe('ForgotPasswordForm', () => {
     )
   })
 
+  it('shows the entered email and offers a way back to the form', async () => {
+    resetPasswordForEmail.mockResolvedValue({ error: null })
+    render(<ForgotPasswordForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'typo@b.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /send reset link/i }))
+    expect(await screen.findByRole('status')).toHaveTextContent(/typo@b\.com/)
+    fireEvent.click(screen.getByRole('button', { name: /different email/i }))
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+  })
+
   it('surfaces a rate-limit error', async () => {
     resetPasswordForEmail.mockResolvedValue({ error: { code: 'over_email_send_rate_limit' } })
     render(<ForgotPasswordForm />)

@@ -12,7 +12,7 @@ export function ForgotPasswordForm() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -36,15 +36,24 @@ export function ForgotPasswordForm() {
       setError(authErrorMessage(error))
       return
     }
-    setSent(true)
+    setSentTo(parsed.data.email)
   }
 
-  if (sent) {
+  if (sentTo) {
     return (
-      <p role="status" className="text-muted-foreground text-center text-sm">
-        If an account exists for that email, we&apos;ve sent a password-reset link. Check your
-        inbox.
-      </p>
+      <div className="space-y-3 text-center text-sm">
+        <p role="status" className="text-muted-foreground">
+          If an account exists for <span className="text-foreground font-medium">{sentTo}</span>,
+          we&apos;ve sent a password-reset link. Check your inbox.
+        </p>
+        <button
+          type="button"
+          onClick={() => setSentTo(null)}
+          className="underline underline-offset-4"
+        >
+          Use a different email
+        </button>
+      </div>
     )
   }
 
