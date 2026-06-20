@@ -5,6 +5,7 @@ import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { forgotPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -27,7 +28,7 @@ export function ForgotPasswordForm() {
     setPending(true)
     // Reuses the existing /auth/callback route to exchange the recovery code,
     // which then redirects to /reset-password.
-    const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`
+    const redirectTo = `${window.location.origin}/auth/callback?next=${AUTH_PATHS.resetPassword}`
     const { error } = await createClient().auth.resetPasswordForEmail(parsed.data.email, {
       redirectTo,
     })

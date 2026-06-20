@@ -124,6 +124,16 @@ describe('OAuth callback (GET)', () => {
     expect(exchangeCodeForSession).not.toHaveBeenCalled()
   })
 
+  it('treats only an exact /reset-password next as recovery, not a prefix match', async () => {
+    await get(
+      `?error=access_denied&next=${encodeURIComponent('/reset-password-evil')}`,
+    )
+
+    expect(mockedRedirect).toHaveBeenCalledWith(
+      `http://localhost:3000/login?${new URLSearchParams({ error: 'cancelled', next: '/reset-password-evil' })}`,
+    )
+  })
+
   it('lands a successful exchange on / when no next is present', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
 
