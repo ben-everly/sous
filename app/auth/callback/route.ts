@@ -17,9 +17,15 @@ export async function GET(request: Request) {
   // belong on /forgot-password, not the generic login error.
   const recoveryFlow = next.startsWith('/reset-password')
 
-  // Treat any access_denied as a cancellation, including the rare org-policy block.
+  // GoTrue redirects an expired/used recovery link here as error=access_denied; route
+  // it to /forgot-password, not the OAuth "cancelled" notice. Other access_denied (denied
+  // consent, the rare org-policy block) is a genuine cancellation.
   if (providerError === 'access_denied') {
-    return NextResponse.redirect(loginErrorUrl(origin, 'cancelled', next))
+    return NextResponse.redirect(
+      recoveryFlow
+        ? `${origin}/forgot-password?error=recovery_invalid`
+        : loginErrorUrl(origin, 'cancelled', next),
+    )
   }
 
   if (providerError) {

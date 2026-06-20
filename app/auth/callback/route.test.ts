@@ -113,6 +113,15 @@ describe('OAuth callback (GET)', () => {
     consoleError.mockRestore()
   })
 
+  it('sends an expired recovery link (access_denied) to /forgot-password, not the cancelled notice', async () => {
+    await get(`?error=access_denied&error_code=otp_expired&next=${encodeURIComponent('/reset-password')}`)
+
+    expect(mockedRedirect).toHaveBeenCalledWith(
+      'http://localhost:3000/forgot-password?error=recovery_invalid',
+    )
+    expect(exchangeCodeForSession).not.toHaveBeenCalled()
+  })
+
   it('lands a successful exchange on / when no next is present', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
 
