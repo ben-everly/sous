@@ -44,7 +44,15 @@ Set on the host:
 
 ## 8. Auth hardening
 
+> **Gate — do not expose email/password sign-in until both are done.** The local
+> `config.toml` loosens the email send rate limits purely to make reset testable against
+> Mailpit. Shipping those limits without production SMTP turns `/forgot-password` into an
+> email-bomb and timing-enumeration surface — the non-enumerating copy buys nothing if an
+> attacker can hammer the endpoint. Tighten limits and configure SMTP together, not as
+> independent follow-ups.
+
+- [ ] **Production SMTP** for transactional email (password reset) — tracked in **SIDE-135**.
+      Without it the reset link never sends in production.
 - [ ] **Supabase → Authentication → Rate Limits**: set production limits — the local
       `config.toml` values (`sign_in_sign_ups = 30`, `email_sent = 30`, `max_frequency = "1s"`)
       are loosened for dev and must not be shipped as-is.
-- [ ] Transactional email (password reset) requires production SMTP — tracked in **SIDE-135**.
