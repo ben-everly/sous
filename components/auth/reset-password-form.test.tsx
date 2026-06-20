@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResetPasswordForm } from './reset-password-form'
 
@@ -13,7 +13,10 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ auth: { getSession, updateUser } }),
 }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 beforeEach(() => {
   push.mockReset()
   refresh.mockReset()
@@ -71,6 +74,20 @@ describe('ResetPasswordForm', () => {
       expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
     )
     expect(push).not.toHaveBeenCalled()
+  })
+
+  it('surfaces a recovery link if the session check stalls', async () => {
+    vi.useFakeTimers()
+    getSession.mockReturnValue(new Promise(() => {})) // never settles
+    render(<ResetPasswordForm />)
+    await act(async () => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(screen.getByRole('link', { name: /request a new link/i })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    )
+    expect(replace).not.toHaveBeenCalled()
   })
 
   it('shows an inline error for a non-session failure', async () => {

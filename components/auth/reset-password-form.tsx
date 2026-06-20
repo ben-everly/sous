@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +25,7 @@ const DEAD_SESSION_CODES = new Set([
 export function ResetPasswordForm() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
+  const [timedOut, setTimedOut] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -32,13 +34,25 @@ export function ResetPasswordForm() {
   // GoTrue, which is the real boundary. The recovery code was already exchanged into a
   // session by /auth/callback; no session here means a direct hit or an expired/used link.
   useEffect(() => {
+    let settled = false
+    // getSession can stall on an under-the-hood token refresh; don't trap the user on a spinner.
+    const timer = setTimeout(() => {
+      if (!settled) setTimedOut(true)
+    }, 10_000)
     createClient()
       .auth.getSession()
       .then(({ data }) => {
+        settled = true
+        clearTimeout(timer)
         if (!data.session) router.replace('/forgot-password?error=recovery_invalid')
         else setReady(true)
       })
-      .catch(() => router.replace('/forgot-password?error=recovery_invalid'))
+      .catch(() => {
+        settled = true
+        clearTimeout(timer)
+        router.replace('/forgot-password?error=recovery_invalid')
+      })
+    return () => clearTimeout(timer)
   }, [router])
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -74,6 +88,18 @@ export function ResetPasswordForm() {
   }
 
   if (!ready) {
+    if (timedOut) {
+      return (
+        <div className="space-y-3 text-center text-sm">
+          <p role="alert" className="text-destructive">
+            This is taking longer than expected — your reset link may have expired.
+          </p>
+          <Link href="/forgot-password" className="underline underline-offset-4">
+            Request a new link
+          </Link>
+        </div>
+      )
+    }
     return (
       <p role="status" className="text-muted-foreground flex justify-center">
         <LoaderCircle className="animate-spin" />
