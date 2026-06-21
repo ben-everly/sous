@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isPublicPath, loginRedirectPath } from './routes'
+import { isPublicPath, loginRedirectPath, withNext } from './routes'
 
 describe('isPublicPath', () => {
   it('treats /login as public (exact match)', () => {
@@ -44,6 +44,20 @@ describe('loginRedirectPath', () => {
   it('preserves the attempted path and query as next', () => {
     expect(loginRedirectPath('/recipes/1', '?sort=new')).toBe(
       `/login?${new URLSearchParams({ next: '/recipes/1?sort=new' })}`,
+    )
+  })
+})
+
+describe('withNext', () => {
+  it('returns the bare path when next is absent', () => {
+    expect(withNext('/register', undefined)).toBe('/register')
+    expect(withNext('/register', null)).toBe('/register')
+    expect(withNext('/register', '')).toBe('/register')
+  })
+
+  it('appends an encoded next when present', () => {
+    expect(withNext('/login', '/recipes/1?sort=new')).toBe(
+      '/login?next=%2Frecipes%2F1%3Fsort%3Dnew',
     )
   })
 })

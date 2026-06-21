@@ -11,6 +11,10 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/auth/')
 }
 
+export function withNext(path: string, next: string | null | undefined): string {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path
+}
+
 export function loginRedirectPath(pathname: string, search: string): string {
   const dest = pathname + search
   const params = new URLSearchParams()

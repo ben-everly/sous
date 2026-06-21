@@ -4,6 +4,7 @@ import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { EmailPasswordSignInForm } from '@/components/auth/email-password-sign-in-form'
 import { LoginNotice } from '@/components/auth/login-notice'
 import { isLoginError } from '@/lib/auth/login-errors'
+import { AUTH_PATHS, withNext } from '@/lib/auth/routes'
 
 export default async function LoginPage({
   searchParams,
@@ -13,7 +14,7 @@ export default async function LoginPage({
   const { error, next } = await searchParams
   await redirectIfAuthed(next)
 
-  const registerHref = next ? `/register?next=${encodeURIComponent(next)}` : '/register'
+  const registerHref = withNext(AUTH_PATHS.register, next)
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
