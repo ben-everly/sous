@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type LoginError } from '@/lib/auth/login-errors'
+import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
 
@@ -23,9 +24,7 @@ export async function GET(request: Request) {
   // consent, the rare org-policy block) is a genuine cancellation.
   if (providerError === 'access_denied') {
     return NextResponse.redirect(
-      recoveryFlow
-        ? `${origin}/forgot-password?error=recovery_invalid`
-        : loginErrorUrl(origin, 'cancelled', next),
+      recoveryFlow ? `${origin}${RECOVERY_INVALID_URL}` : loginErrorUrl(origin, 'cancelled', next),
     )
   }
 
@@ -45,7 +44,7 @@ export async function GET(request: Request) {
 
   // failed exchange, provider error, or a bare/replayed hit.
   if (recoveryFlow) {
-    return NextResponse.redirect(`${origin}/forgot-password?error=recovery_invalid`)
+    return NextResponse.redirect(`${origin}${RECOVERY_INVALID_URL}`)
   }
   return NextResponse.redirect(loginErrorUrl(origin, 'auth', next))
 }

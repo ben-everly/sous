@@ -8,6 +8,7 @@ import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js
 import { createClient } from '@/lib/supabase/client'
 import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
+import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -46,13 +47,13 @@ export function ResetPasswordForm() {
       .then(({ data }) => {
         settled = true
         clearTimeout(timer)
-        if (!data.session) router.replace('/forgot-password?error=recovery_invalid')
+        if (!data.session) router.replace(RECOVERY_INVALID_URL)
         else setReady(true)
       })
       .catch(() => {
         settled = true
         clearTimeout(timer)
-        router.replace('/forgot-password?error=recovery_invalid')
+        router.replace(RECOVERY_INVALID_URL)
       })
     return () => clearTimeout(timer)
   }, [router])
@@ -78,7 +79,7 @@ export function ResetPasswordForm() {
         isAuthSessionMissingError(error) ||
         (isAuthApiError(error) && DEAD_SESSION_CODES.has(error.code ?? ''))
       ) {
-        router.replace('/forgot-password?error=recovery_invalid')
+        router.replace(RECOVERY_INVALID_URL)
         return
       }
       setError(authErrorMessage(error))

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirectIfAuthed } from '@/lib/auth/gate'
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form'
 import { LoginNotice } from '@/components/auth/login-notice'
-import { isLoginError } from '@/lib/auth/login-errors'
+import { isForgotPasswordError } from '@/lib/auth/forgot-password-errors'
 
 export default async function ForgotPasswordPage({
   searchParams,
@@ -21,7 +21,7 @@ export default async function ForgotPasswordPage({
             Enter your email and we&apos;ll send a reset link.
           </p>
         </div>
-        {isLoginError(error) && <LoginNotice error={error} />}
+        {isForgotPasswordError(error) && <LoginNotice error={error} />}
         <ForgotPasswordForm />
         <p className="text-center text-sm">
           <Link href="/login" className="underline underline-offset-4">
