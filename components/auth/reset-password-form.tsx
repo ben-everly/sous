@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type FieldErrors = { password?: string; confirmPassword?: string }
-type Status = 'verifying' | 'ready' | 'invalid'
+type Status = 'verifying' | 'ready'
 
 // A recovery session can die between verify and submit (revoked/reused refresh
 // token, or an already-consumed link). Treat those like a missing session.
@@ -38,42 +38,27 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  // The single-use token from the recovery email — not mere session presence — is
-  // what authorizes the reset. A normal logged-in session with no token never
-  // reaches the form. verifyOtp consumes the token into a recovery session.
+  const verifyStarted = useRef(false)
+
+  // The single-use token from the recovery email — not session presence — authorizes
+  // the reset. verifyOtp consumes it into a recovery session. The ref guard keeps the
+  // consuming call to once even under StrictMode's double-invoked effects (dev).
   useEffect(() => {
+    if (verifyStarted.current) return
+    verifyStarted.current = true
     const tokenHash = searchParams.get('token_hash')
     const type = searchParams.get('type')
-    let active = true
     if (!tokenHash || type !== 'recovery') {
       router.replace(RECOVERY_INVALID_URL)
-      // Defer to avoid synchronous setState inside the effect body.
-      queueMicrotask(() => {
-        if (active) setStatus('invalid')
-      })
-      return () => {
-        active = false
-      }
+      return
     }
     createClient()
       .auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
       .then(({ error }) => {
-        if (!active) return
-        if (error) {
-          setStatus('invalid')
-          router.replace(RECOVERY_INVALID_URL)
-        } else {
-          setStatus('ready')
-        }
+        if (error) router.replace(RECOVERY_INVALID_URL)
+        else setStatus('ready')
       })
-      .catch(() => {
-        if (!active) return
-        setStatus('invalid')
-        router.replace(RECOVERY_INVALID_URL)
-      })
-    return () => {
-      active = false
-    }
+      .catch(() => router.replace(RECOVERY_INVALID_URL))
   }, [router, searchParams])
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
