@@ -28,7 +28,7 @@ export function ForgotPasswordForm() {
     setPending(true)
     // Reuses the existing /auth/callback route to exchange the recovery code,
     // which then redirects to /reset-password.
-    const redirectTo = `${window.location.origin}/auth/callback?next=${AUTH_PATHS.resetPassword}`
+    const redirectTo = `${window.location.origin}${AUTH_PATHS.callback}?next=${AUTH_PATHS.resetPassword}`
     const { error } = await createClient().auth.resetPasswordForEmail(parsed.data.email, {
       redirectTo,
     })

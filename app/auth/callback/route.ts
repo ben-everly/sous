@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   const next = sameOriginPath(searchParams.get('next'))
   const providerError = searchParams.get('error')
   // Recovery links route through here via next=/reset-password; their failures
-  // belong on /forgot-password, not the generic login error.
+  // belong on /forgot-password, not the generic login error. Match must stay exact
+  // (===): a prefix check would let next=/reset-password-evil hijack the recovery branch.
   const recoveryFlow = next === AUTH_PATHS.resetPassword
 
   // GoTrue redirects an expired/used recovery link here as error=access_denied; route

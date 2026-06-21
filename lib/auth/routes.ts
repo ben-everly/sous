@@ -3,6 +3,7 @@ export const AUTH_PATHS = {
   register: '/register',
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
+  callback: '/auth/callback',
 } as const
 
 const PUBLIC_PATHS = new Set<string>(Object.values(AUTH_PATHS))
