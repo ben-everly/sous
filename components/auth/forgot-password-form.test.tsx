@@ -21,9 +21,11 @@ describe('ForgotPasswordForm', () => {
     expect(resetPasswordForEmail).toHaveBeenCalledWith(
       'a@b.com',
       expect.objectContaining({
-        redirectTo: expect.stringContaining('/auth/callback?next=/reset-password'),
+        redirectTo: expect.stringContaining('/reset-password'),
       }),
     )
+    const call = resetPasswordForEmail.mock.calls[0]
+    expect(call[1].redirectTo).not.toContain('/auth/callback')
   })
 
   it('shows the entered email and offers a way back to the form', async () => {
