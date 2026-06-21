@@ -23,7 +23,7 @@ export async function getRecoveryLink(messageId: string): Promise<string> {
   const source = body.HTML || body.Text || ''
   const link = source
     .match(/https?:\/\/[^\s"'<>]+/g)
-    ?.find((url) => url.includes('/auth/v1/verify'))
+    ?.find((url) => url.includes('/reset-password') && url.includes('token_hash'))
   if (!link) throw new Error('No recovery link found in the email')
   return link.replace(/&amp;/g, '&')
 }
