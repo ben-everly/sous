@@ -1,49 +1,61 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResetPasswordForm } from './reset-password-form'
 
 const push = vi.fn()
 const refresh = vi.fn()
 const replace = vi.fn()
-const getSession = vi.fn()
+const verifyOtp = vi.fn()
 const updateUser = vi.fn()
+let search = new URLSearchParams()
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, replace }) }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push, refresh, replace }),
+  useSearchParams: () => search,
+}))
 vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({ auth: { getSession, updateUser } }),
+  createClient: () => ({ auth: { verifyOtp, updateUser } }),
 }))
 
-afterEach(() => {
-  cleanup()
-  vi.useRealTimers()
-})
+afterEach(cleanup)
 beforeEach(() => {
   push.mockReset()
   refresh.mockReset()
   replace.mockReset()
-  getSession.mockReset()
+  verifyOtp.mockReset()
   updateUser.mockReset()
+  search = new URLSearchParams('token_hash=abc&type=recovery')
 })
 
 describe('ResetPasswordForm', () => {
-  it('redirects to forgot-password when there is no recovery session', async () => {
-    getSession.mockResolvedValue({ data: { session: null } })
+  // The P2 fix: a normal logged-in session with no recovery token in the URL must
+  // never reach the form — token presence + verifyOtp is the gate, not session presence.
+  it('redirects to forgot-password when there is no recovery token in the URL', async () => {
+    search = new URLSearchParams()
+    render(<ResetPasswordForm />)
+    await vi.waitFor(() =>
+      expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
+    )
+    expect(verifyOtp).not.toHaveBeenCalled()
+  })
+
+  it('redirects when the recovery token is invalid or expired', async () => {
+    verifyOtp.mockResolvedValue({ error: { message: 'expired' } })
     render(<ResetPasswordForm />)
     await vi.waitFor(() =>
       expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
     )
   })
 
-  it('redirects to forgot-password when the session check rejects', async () => {
-    getSession.mockRejectedValue(new Error('network'))
+  it('verifies the token and shows the form on success', async () => {
+    verifyOtp.mockResolvedValue({ error: null })
     render(<ResetPasswordForm />)
-    await vi.waitFor(() =>
-      expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
-    )
+    expect(await screen.findByLabelText('New password', { exact: true })).toBeInTheDocument()
+    expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'abc', type: 'recovery' })
   })
 
   it('updates the password and goes home on success', async () => {
-    getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
+    verifyOtp.mockResolvedValue({ error: null })
     updateUser.mockResolvedValue({ error: null })
     render(<ResetPasswordForm />)
     const password = await screen.findByLabelText('New password', { exact: true })
@@ -56,7 +68,7 @@ describe('ResetPasswordForm', () => {
   })
 
   it('bounces to forgot-password when the session is dead at submit time', async () => {
-    getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
+    verifyOtp.mockResolvedValue({ error: null })
     updateUser.mockResolvedValue({
       error: {
         __isAuthError: true,
@@ -76,22 +88,8 @@ describe('ResetPasswordForm', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
-  it('surfaces a recovery link if the session check stalls', async () => {
-    vi.useFakeTimers()
-    getSession.mockReturnValue(new Promise(() => {})) // never settles
-    render(<ResetPasswordForm />)
-    await act(async () => {
-      vi.advanceTimersByTime(10_000)
-    })
-    expect(screen.getByRole('link', { name: /request a new link/i })).toHaveAttribute(
-      'href',
-      '/forgot-password',
-    )
-    expect(replace).not.toHaveBeenCalled()
-  })
-
   it('shows an inline error for a non-session failure', async () => {
-    getSession.mockResolvedValue({ data: { session: { access_token: 't' } } })
+    verifyOtp.mockResolvedValue({ error: null })
     updateUser.mockResolvedValue({
       error: { __isAuthError: true, name: 'AuthApiError', code: 'weak_password', status: 422 },
     })

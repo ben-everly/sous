@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
@@ -13,9 +12,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type FieldErrors = { password?: string; confirmPassword?: string }
+type Status = 'verifying' | 'ready' | 'invalid'
 
-// A recovery session can die between page load and submit (revoked/reused refresh token,
-// or an already-consumed link). Treat those like a missing session: bounce to request a new one.
+// A recovery session can die between verify and submit (revoked/reused refresh
+// token, or an already-consumed link). Treat those like a missing session.
 const DEAD_SESSION_CODES = new Set([
   'session_expired',
   'session_not_found',
@@ -23,40 +23,53 @@ const DEAD_SESSION_CODES = new Set([
   'refresh_token_already_used',
 ])
 
-// getSession can stall on an under-the-hood token refresh; don't trap the user on a spinner.
-const SESSION_CHECK_TIMEOUT_MS = 10_000
+function isDeadSessionError(error: unknown): boolean {
+  return (
+    isAuthSessionMissingError(error) ||
+    (isAuthApiError(error) && DEAD_SESSION_CODES.has(error.code ?? ''))
+  )
+}
 
 export function ResetPasswordForm() {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
-  const [timedOut, setTimedOut] = useState(false)
+  const searchParams = useSearchParams()
+  const [status, setStatus] = useState<Status>('verifying')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  // This gate is UX only — updateUser below is authorized by the recovery session at
-  // GoTrue, which is the real boundary. The recovery code was already exchanged into a
-  // session by /auth/callback; no session here means a direct hit or an expired/used link.
+  // The single-use token from the recovery email — not mere session presence — is
+  // what authorizes the reset. A normal logged-in session with no token never
+  // reaches the form. verifyOtp consumes the token into a recovery session.
   useEffect(() => {
-    let settled = false
-    const timer = setTimeout(() => {
-      if (!settled) setTimedOut(true)
-    }, SESSION_CHECK_TIMEOUT_MS)
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    if (!tokenHash || type !== 'recovery') {
+      setStatus('invalid')
+      router.replace(RECOVERY_INVALID_URL)
+      return
+    }
+    let active = true
     createClient()
-      .auth.getSession()
-      .then(({ data }) => {
-        settled = true
-        clearTimeout(timer)
-        if (!data.session) router.replace(RECOVERY_INVALID_URL)
-        else setReady(true)
+      .auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+      .then(({ error }) => {
+        if (!active) return
+        if (error) {
+          setStatus('invalid')
+          router.replace(RECOVERY_INVALID_URL)
+        } else {
+          setStatus('ready')
+        }
       })
       .catch(() => {
-        settled = true
-        clearTimeout(timer)
+        if (!active) return
+        setStatus('invalid')
         router.replace(RECOVERY_INVALID_URL)
       })
-    return () => clearTimeout(timer)
-  }, [router])
+    return () => {
+      active = false
+    }
+  }, [router, searchParams])
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -75,10 +88,7 @@ export function ResetPasswordForm() {
     setPending(true)
     const { error } = await createClient().auth.updateUser({ password: parsed.data.password })
     if (error) {
-      if (
-        isAuthSessionMissingError(error) ||
-        (isAuthApiError(error) && DEAD_SESSION_CODES.has(error.code ?? ''))
-      ) {
+      if (isDeadSessionError(error)) {
         router.replace(RECOVERY_INVALID_URL)
         return
       }
@@ -90,19 +100,7 @@ export function ResetPasswordForm() {
     router.refresh()
   }
 
-  if (!ready) {
-    if (timedOut) {
-      return (
-        <div className="space-y-3 text-center text-sm">
-          <p role="alert" className="text-destructive">
-            This is taking longer than expected. You can keep waiting, or request a new link.
-          </p>
-          <Link href="/forgot-password" className="underline underline-offset-4">
-            Request a new link
-          </Link>
-        </div>
-      )
-    }
+  if (status !== 'ready') {
     return (
       <p role="status" className="text-muted-foreground flex justify-center">
         <LoaderCircle className="animate-spin" />

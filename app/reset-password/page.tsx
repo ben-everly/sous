@@ -1,7 +1,10 @@
+import { Suspense } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 
-// No redirectIfAuthed: the recovery session is authed, and bouncing it would
-// break the reset. ResetPasswordForm handles the no-session case itself.
+// No redirectIfAuthed: a recovery visit is (or becomes) authed, and bouncing it
+// would break the reset. ResetPasswordForm verifies the single-use recovery token
+// from the URL and bounces anything without one.
 export default function ResetPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -10,7 +13,15 @@ export default function ResetPasswordPage() {
           <h1 className="text-2xl font-bold tracking-tight">Set a new password</h1>
           <p className="text-muted-foreground text-sm">Choose a new password for your account.</p>
         </div>
-        <ResetPasswordForm />
+        <Suspense
+          fallback={
+            <p role="status" className="text-muted-foreground flex justify-center">
+              <LoaderCircle className="animate-spin" />
+            </p>
+          }
+        >
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </main>
   )
