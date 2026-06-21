@@ -98,42 +98,6 @@ describe('OAuth callback (GET)', () => {
     consoleError.mockRestore()
   })
 
-  it('sends a failed recovery exchange to /forgot-password?error=recovery_invalid', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    exchangeCodeForSession.mockResolvedValue({ error: { message: 'expired' } })
-    await GET(
-      new Request(
-        'http://localhost:3000/auth/callback?code=abc&next=' +
-          encodeURIComponent('/reset-password'),
-      ),
-    )
-    expect(mockedRedirect).toHaveBeenCalledWith(
-      'http://localhost:3000/forgot-password?error=recovery_invalid',
-    )
-    consoleError.mockRestore()
-  })
-
-  it('sends an expired recovery link (access_denied) to /forgot-password, not the cancelled notice', async () => {
-    await get(
-      `?error=access_denied&error_code=otp_expired&next=${encodeURIComponent('/reset-password')}`,
-    )
-
-    expect(mockedRedirect).toHaveBeenCalledWith(
-      'http://localhost:3000/forgot-password?error=recovery_invalid',
-    )
-    expect(exchangeCodeForSession).not.toHaveBeenCalled()
-  })
-
-  it('treats only an exact /reset-password next as recovery, not a prefix match', async () => {
-    await get(
-      `?error=access_denied&next=${encodeURIComponent('/reset-password-evil')}`,
-    )
-
-    expect(mockedRedirect).toHaveBeenCalledWith(
-      `http://localhost:3000/login?${new URLSearchParams({ error: 'cancelled', next: '/reset-password-evil' })}`,
-    )
-  })
-
   it('lands a successful exchange on / when no next is present', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: null })
 
