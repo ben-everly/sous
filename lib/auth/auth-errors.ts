@@ -15,8 +15,6 @@ const BY_CODE: Record<string, string> = {
   over_request_rate_limit: 'Too many requests. Please wait a few minutes and try again.',
   weak_password: `Please choose a password with at least ${MIN_PASSWORD_LENGTH} characters.`,
   same_password: 'Your new password must be different from your current one.',
-  session_expired: 'Your reset link has expired. Request a new one.',
-  otp_expired: 'Your reset link has expired. Request a new one.',
 }
 
 export function authErrorMessage(error: AuthErrorLike): string {
