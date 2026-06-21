@@ -1,3 +1,5 @@
+import { MIN_PASSWORD_LENGTH } from './schemas'
+
 export type AuthErrorLike = { code?: string | null; message?: string | null } | null | undefined
 
 const GENERIC = 'Something went wrong. Please try again.'
@@ -11,7 +13,7 @@ const BY_CODE: Record<string, string> = {
   email_exists: 'If you already have an account, try signing in or resetting your password.',
   over_email_send_rate_limit: 'Too many requests. Please wait a few minutes and try again.',
   over_request_rate_limit: 'Too many requests. Please wait a few minutes and try again.',
-  weak_password: 'Please choose a password with at least 8 characters.',
+  weak_password: `Please choose a password with at least ${MIN_PASSWORD_LENGTH} characters.`,
   same_password: 'Your new password must be different from your current one.',
   session_expired: 'Your reset link has expired. Request a new one.',
   otp_expired: 'Your reset link has expired. Request a new one.',

@@ -1,7 +1,12 @@
 import { z } from 'zod'
 
+// GoTrue is the real boundary; mirror this in supabase/config.toml's minimum_password_length.
+export const MIN_PASSWORD_LENGTH = 8
+
 const email = z.email('Enter a valid email address.')
-const password = z.string().min(8, 'Password must be at least 8 characters.')
+const password = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
 
 const passwordsMatch = (data: { password: string; confirmPassword: string }) =>
   data.password === data.confirmPassword
