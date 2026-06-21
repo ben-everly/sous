@@ -44,12 +44,17 @@ export function ResetPasswordForm() {
   useEffect(() => {
     const tokenHash = searchParams.get('token_hash')
     const type = searchParams.get('type')
-    if (!tokenHash || type !== 'recovery') {
-      setStatus('invalid')
-      router.replace(RECOVERY_INVALID_URL)
-      return
-    }
     let active = true
+    if (!tokenHash || type !== 'recovery') {
+      router.replace(RECOVERY_INVALID_URL)
+      // Defer to avoid synchronous setState inside the effect body.
+      queueMicrotask(() => {
+        if (active) setStatus('invalid')
+      })
+      return () => {
+        active = false
+      }
+    }
     createClient()
       .auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
       .then(({ error }) => {
