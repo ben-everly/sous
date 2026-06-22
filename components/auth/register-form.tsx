@@ -51,7 +51,8 @@ export function RegisterForm({ next }: { next?: string }) {
     // confirmations setting. Don't key off the null session alone: with confirmations on a
     // genuine new signup is also sessionless (its "check your inbox" UX is SIDE-135's job).
     if (result.user?.identities?.length === 0) {
-      setError('If you already have an account, try signing in or resetting your password.')
+      // Surface the same non-enumerating copy GoTrue's user_already_exists code maps to.
+      setError(authErrorMessage({ code: 'user_already_exists' }))
       setPending(false)
       return
     }
