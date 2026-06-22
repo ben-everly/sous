@@ -17,7 +17,7 @@ type Status = 'verifying' | 'ready'
 
 // A recovery session can die between verify and submit (revoked/reused refresh
 // token, or an already-consumed link). Treat those like a missing session.
-const DEAD_SESSION_CODES = new Set([
+export const DEAD_SESSION_CODES = new Set([
   'session_expired',
   'session_not_found',
   'refresh_token_not_found',

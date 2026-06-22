@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ResetPasswordForm } from './reset-password-form'
+import { ResetPasswordForm, DEAD_SESSION_CODES } from './reset-password-form'
 
 const push = vi.fn()
 const refresh = vi.fn()
@@ -69,26 +69,28 @@ describe('ResetPasswordForm', () => {
     expect(refresh).toHaveBeenCalled()
   })
 
-  it('bounces to forgot-password when the session is dead at submit time', async () => {
-    verifyOtp.mockResolvedValue({ error: null })
-    updateUser.mockResolvedValue({
-      error: {
-        __isAuthError: true,
-        name: 'AuthApiError',
-        code: 'refresh_token_not_found',
-        status: 400,
-      },
-    })
-    render(<ResetPasswordForm />)
-    const password = await screen.findByLabelText('New password', { exact: true })
-    fireEvent.change(password, { target: { value: 'password1' } })
-    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
-    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
-    await vi.waitFor(() =>
-      expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
-    )
-    expect(push).not.toHaveBeenCalled()
-  })
+  // Drive every dead-session code off the exported set so a vendor rename (or dropping a
+  // code) fails loudly instead of silently skipping the recovery_invalid bounce.
+  it.each([...DEAD_SESSION_CODES])(
+    'bounces to forgot-password when the session is dead at submit time (%s)',
+    async (code) => {
+      verifyOtp.mockResolvedValue({ error: null })
+      updateUser.mockResolvedValue({
+        error: { __isAuthError: true, name: 'AuthApiError', code, status: 400 },
+      })
+      render(<ResetPasswordForm />)
+      const password = await screen.findByLabelText('New password', { exact: true })
+      fireEvent.change(password, { target: { value: 'password1' } })
+      fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: 'password1' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+      await vi.waitFor(() =>
+        expect(replace).toHaveBeenCalledWith('/forgot-password?error=recovery_invalid'),
+      )
+      expect(push).not.toHaveBeenCalled()
+    },
+  )
 
   it('shows an inline error for a non-session failure', async () => {
     verifyOtp.mockResolvedValue({ error: null })
