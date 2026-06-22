@@ -29,7 +29,10 @@ export default async function RegisterPage({
             </Link>
           </p>
           <p>
-            <Link href="/forgot-password" className="text-foreground underline underline-offset-4">
+            <Link
+              href={AUTH_PATHS.forgotPassword}
+              className="text-foreground underline underline-offset-4"
+            >
               Forgot password?
             </Link>
           </p>

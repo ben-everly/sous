@@ -34,7 +34,7 @@ export default async function LoginPage({
         </div>
         <EmailPasswordSignInForm next={next} />
         <div className="flex items-center justify-between text-sm">
-          <Link href="/forgot-password" className="underline underline-offset-4">
+          <Link href={AUTH_PATHS.forgotPassword} className="underline underline-offset-4">
             Forgot password?
           </Link>
           <Link href={registerHref} className="underline underline-offset-4">
