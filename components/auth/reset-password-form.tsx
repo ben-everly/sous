@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -56,7 +57,11 @@ export function ResetPasswordForm() {
       .auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
       .then(({ error }) => {
         if (error) router.replace(RECOVERY_INVALID_URL)
-        else setStatus('ready')
+        else {
+          // Drop the now-spent token from the URL so it doesn't linger in history.
+          router.replace(AUTH_PATHS.resetPassword)
+          setStatus('ready')
+        }
       })
       .catch(() => router.replace(RECOVERY_INVALID_URL))
   }, [router, searchParams])
