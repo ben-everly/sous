@@ -186,7 +186,8 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
-# Mirror MIN_PASSWORD_LENGTH in lib/auth/schemas.ts; GoTrue is the real enforcement boundary.
+# Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
+# Mirror MIN_PASSWORD_LENGTH in lib/auth/schemas.ts
 minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
@@ -203,9 +204,9 @@ password_requirements = ""
 # rp_origins = ["http://127.0.0.1:3000"]
 
 [auth.rate_limit]
-# Dev parity: 2/hour is too low to even test reset twice. Production limits are
-# revisited with the SMTP follow-up card (SIDE-135).
-email_sent = 30
+# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
+# 10 is ample for CI; production value set separately to 2
+email_sent = 10
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -237,7 +238,7 @@ enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
