@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { backfillEmailIdentity } from '@/lib/actions/auth'
 import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
@@ -91,8 +92,12 @@ export function ResetPasswordForm() {
       setPending(false)
       return
     }
-    router.push('/')
-    router.refresh()
+    // Backfill the email identity for first-password users (e.g. Google-only; see
+    // backfillEmailIdentity), then go home. A full navigation, not router.push: a Server
+    // Action refreshes its caller route and would clobber a soft client navigation. The
+    // backfill is best-effort and the password is already set, so never block the redirect.
+    await backfillEmailIdentity().catch(() => {})
+    window.location.assign('/')
   }
 
   if (status !== 'ready') {

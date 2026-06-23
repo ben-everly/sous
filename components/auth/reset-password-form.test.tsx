@@ -7,6 +7,8 @@ const refresh = vi.fn()
 const replace = vi.fn()
 const verifyOtp = vi.fn()
 const updateUser = vi.fn()
+const backfillEmailIdentity = vi.fn()
+const assign = vi.fn()
 let search = new URLSearchParams()
 
 vi.mock('next/navigation', () => ({
@@ -16,6 +18,9 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ auth: { verifyOtp, updateUser } }),
 }))
+vi.mock('@/lib/actions/auth', () => ({
+  backfillEmailIdentity: () => backfillEmailIdentity(),
+}))
 
 afterEach(cleanup)
 beforeEach(() => {
@@ -24,6 +29,10 @@ beforeEach(() => {
   replace.mockReset()
   verifyOtp.mockReset()
   updateUser.mockReset()
+  backfillEmailIdentity.mockReset().mockResolvedValue(undefined)
+  assign.mockReset()
+  // jsdom doesn't implement navigation; stand in so the success path can hard-redirect.
+  Object.defineProperty(window, 'location', { configurable: true, value: { assign } })
   search = new URLSearchParams('token_hash=abc&type=recovery')
 })
 
@@ -56,7 +65,7 @@ describe('ResetPasswordForm', () => {
     expect(replace).toHaveBeenCalledWith('/reset-password')
   })
 
-  it('updates the password and goes home on success', async () => {
+  it('backfills the identity then redirects home on success', async () => {
     verifyOtp.mockResolvedValue({ error: null })
     updateUser.mockResolvedValue({ error: null })
     render(<ResetPasswordForm />)
@@ -65,8 +74,22 @@ describe('ResetPasswordForm', () => {
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
     await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith({ password: 'password1' }))
-    expect(push).toHaveBeenCalledWith('/')
-    expect(refresh).toHaveBeenCalled()
+    expect(backfillEmailIdentity).toHaveBeenCalled()
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
+  })
+
+  // The password is already changed before the best-effort backfill runs, so a failed
+  // backfill must still land the user home, not leave a stuck spinner.
+  it('still redirects home when the backfill fails', async () => {
+    verifyOtp.mockResolvedValue({ error: null })
+    updateUser.mockResolvedValue({ error: null })
+    backfillEmailIdentity.mockReset().mockRejectedValue(new Error('network'))
+    render(<ResetPasswordForm />)
+    const password = await screen.findByLabelText('New password', { exact: true })
+    fireEvent.change(password, { target: { value: 'password1' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }))
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
   })
 
   // Drive every dead-session code off the exported set so a vendor rename (or dropping a

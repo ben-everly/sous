@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 import { adminClient } from './admin-client'
+import { makeGoogleOnly, identityProviders } from './db'
 import { clearMailpit, waitForEmail, getRecoveryLink } from './mailpit'
 
 test.use({ storageState: { cookies: [], origins: [] } })
@@ -90,6 +92,50 @@ test.describe('email/password auth', () => {
       await page.getByLabel('Confirm password').fill(newPassword)
       await page.getByRole('button', { name: /update password/i }).click()
       await expect(page).toHaveURL(/\/$/)
+    } finally {
+      await deleteUser(email)
+    }
+  })
+
+  // A Google-only user can set their first password via the recovery flow. GoTrue gives
+  // them a working password but no email identity, so the reset form backfills it — this
+  // pins both that the password works and that the identity is materialized.
+  test('Google-only user sets a first password via reset and can sign in', async ({ page }) => {
+    const email = `oauth-${Date.now()}@example.com`
+    await deleteUser(email)
+    const { data: created, error } = await adminClient().auth.admin.createUser({
+      email,
+      email_confirm: true,
+    })
+    if (error || !created.user) throw new Error(`seed failed: ${error?.message}`)
+    makeGoogleOnly(created.user.id, email)
+    expect(identityProviders(created.user.id)).toEqual(['google'])
+    await clearMailpit()
+    try {
+      await page.goto('/forgot-password')
+      await page.getByLabel('Email').fill(email)
+      await page.getByRole('button', { name: /send reset link/i }).click()
+      await expect(page.getByRole('status')).toBeVisible()
+
+      const messageId = await waitForEmail(email)
+      await page.goto(await getRecoveryLink(messageId))
+      await expect(page).toHaveURL(/\/reset-password/)
+
+      const password = 'first-password-123'
+      await page.getByLabel('New password', { exact: true }).fill(password)
+      await page.getByLabel('Confirm password').fill(password)
+      await page.getByRole('button', { name: /update password/i }).click()
+      await expect(page).toHaveURL(/\/$/)
+
+      // The backfill action added the email identity alongside the existing google one.
+      await expect.poll(() => identityProviders(created.user.id)).toEqual(['email', 'google'])
+
+      // The newly set password works for email/password sign-in.
+      const { data: signIn } = await createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      ).auth.signInWithPassword({ email, password })
+      expect(signIn.session).not.toBeNull()
     } finally {
       await deleteUser(email)
     }
