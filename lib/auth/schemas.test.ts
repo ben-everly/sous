@@ -39,6 +39,13 @@ describe('signUpSchema', () => {
     expect(r.success).toBe(false)
     if (!r.success) expect(r.error.flatten().fieldErrors.confirmPassword?.[0]).toMatch(/match/i)
   })
+  // bcrypt silently truncates past 72 bytes, so cap input rather than let a long
+  // passphrase's tail be ignored.
+  it('rejects a password longer than 72 characters', () => {
+    const long = 'a'.repeat(73)
+    const r = signUpSchema.safeParse({ email: 'a@b.com', password: long, confirmPassword: long })
+    expect(r.success).toBe(false)
+  })
 })
 
 describe('forgotPasswordSchema', () => {
