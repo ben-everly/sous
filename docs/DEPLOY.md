@@ -28,7 +28,12 @@ runs on any App Router–capable host.
 
 - [ ] **Supabase → Authentication → URL Configuration**:
   - **Site URL** — the app's origin, e.g. `https://app.example.com`
-  - **Additional Redirect URLs** — `https://app.example.com/auth/callback`
+  - **Additional Redirect URLs** — list each path explicitly; GoTrue rejects
+    any target not on this list and silently falls back to the Site URL, which
+    breaks email confirmation and password reset:
+    - `https://app.example.com/auth/callback`
+    - `https://app.example.com/auth/confirm`
+    - `https://app.example.com/reset-password`
 
 ## 6. App environment variables
 
