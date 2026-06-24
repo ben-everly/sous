@@ -24,12 +24,4 @@ describe('verifyEmailToken', () => {
       verifyEmailToken(supabase, { tokenHash: 't', type: OTP_TYPES.recovery }),
     ).resolves.toEqual({ ok: false, error })
   })
-
-  it('rejects a type outside the allowlist without calling verifyOtp', async () => {
-    await expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      verifyEmailToken(supabase, { tokenHash: 't', type: 'magiclink' as any }),
-    ).resolves.toEqual({ ok: false, error: null })
-    expect(verifyOtp).not.toHaveBeenCalled()
-  })
 })

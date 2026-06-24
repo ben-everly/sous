@@ -1,19 +1,18 @@
 import type { AuthError, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
-import { OTP_TYPES, type OtpType } from './otp-types'
+import type { OtpType } from './otp-types'
 
 type VerifyResult = { ok: true } | { ok: false; error: AuthError | null }
 
-// Allowlist derived from OTP_TYPES (the PUBLIC_PATHS pattern in routes.ts). Callers pass a
-// literal member, so `type` is never attacker-controlled; the runtime guard is defense for
-// any future dynamic caller and keeps the recovery-only invariant structural.
-const ALLOWED_TYPES = new Set<string>(Object.values(OTP_TYPES))
-
+// Callers pass a literal OtpType, never the URL's `type` param — so verifyOtp's type is the one
+// the type system already pins, and no runtime allowlist is needed. The two paths differ by
+// design: confirm-email pins `signup` (ignoring the URL type); reset-password-form gates on the
+// URL type being `recovery` before passing the `recovery` constant. That keeps a link redeemable
+// only on its own path — a recovery token can't be spent as a signup, or vice versa.
 export async function verifyEmailToken(
   supabase: SupabaseClient<Database>,
   { tokenHash, type }: { tokenHash: string; type: OtpType },
 ): Promise<VerifyResult> {
-  if (!ALLOWED_TYPES.has(type)) return { ok: false, error: null }
   const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
   return error ? { ok: false, error } : { ok: true }
 }
