@@ -39,11 +39,18 @@ describe('signUpSchema', () => {
     expect(r.success).toBe(false)
     if (!r.success) expect(r.error.flatten().fieldErrors.confirmPassword?.[0]).toMatch(/match/i)
   })
-  // bcrypt silently truncates past 72 bytes, so cap input rather than let a long
-  // passphrase's tail be ignored.
-  it('rejects a password longer than 72 characters', () => {
+  // bcrypt (GoTrue's hasher, no pre-hash) silently truncates past 72 bytes, so cap input
+  // rather than let a long passphrase's tail be ignored.
+  it('rejects a password longer than 72 bytes', () => {
     const long = 'a'.repeat(73)
     const r = signUpSchema.safeParse({ email: 'a@b.com', password: long, confirmPassword: long })
+    expect(r.success).toBe(false)
+  })
+  // The cap is bytes, not characters: 25 emoji = 50 UTF-16 units (under 72) but 100 UTF-8
+  // bytes (over 72), so a char/length cap would wrongly accept it and bcrypt would truncate.
+  it('rejects a multibyte password that exceeds 72 bytes despite few characters', () => {
+    const emoji = '🔒'.repeat(25)
+    const r = signUpSchema.safeParse({ email: 'a@b.com', password: emoji, confirmPassword: emoji })
     expect(r.success).toBe(false)
   })
 })

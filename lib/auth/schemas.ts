@@ -2,15 +2,16 @@ import { z } from 'zod'
 
 // GoTrue is the real boundary; mirror this in supabase/config.toml's minimum_password_length.
 export const MIN_PASSWORD_LENGTH = 8
-// bcrypt (GoTrue's hasher) silently truncates past 72 bytes — cap input so a long
-// passphrase's tail can't be ignored. Chars approximate bytes; close enough as a UX guard.
-export const MAX_PASSWORD_LENGTH = 72
+// bcrypt (GoTrue's hasher) passes the raw password straight in and silently truncates past
+// 72 bytes, so the limit is bytes, not characters — a multibyte passphrase can sit under 72
+// chars yet lose its tail. Measure UTF-8 bytes so the cap matches what bcrypt actually sees.
+export const MAX_PASSWORD_BYTES = 72
 
 const email = z.email('Enter a valid email address.')
 const password = z
   .string()
   .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
-  .max(MAX_PASSWORD_LENGTH, `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`)
+  .refine((p) => new TextEncoder().encode(p).length <= MAX_PASSWORD_BYTES, 'Password is too long.')
 
 const passwordsMatch = (data: { password: string; confirmPassword: string }) =>
   data.password === data.confirmPassword
