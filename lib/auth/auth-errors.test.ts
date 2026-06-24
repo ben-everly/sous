@@ -21,4 +21,12 @@ describe('authErrorMessage', () => {
   it('falls back to generic when no code is present', () => {
     expect(authErrorMessage(null)).toMatch(/something went wrong/i)
   })
+  it('keeps email_not_confirmed mapped to the generic, non-enumerating copy', () => {
+    expect(authErrorMessage({ code: 'email_not_confirmed' })).toBe(
+      authErrorMessage({ code: 'invalid_credentials' }),
+    )
+  })
+  it('softens over_email_send_rate_limit to a give-it-a-moment message', () => {
+    expect(authErrorMessage({ code: 'over_email_send_rate_limit' })).toMatch(/moment|try again/i)
+  })
 })

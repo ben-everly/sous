@@ -11,7 +11,7 @@ const BY_CODE: Record<string, string> = {
   email_not_confirmed: 'That email or password is incorrect.',
   user_already_exists: 'If you already have an account, try signing in or resetting your password.',
   email_exists: 'If you already have an account, try signing in or resetting your password.',
-  over_email_send_rate_limit: 'Too many requests. Please wait a few minutes and try again.',
+  over_email_send_rate_limit: 'You requested that recently — wait a moment, then try again.',
   over_request_rate_limit: 'Too many requests. Please wait a few minutes and try again.',
   weak_password: `Please choose a password with at least ${MIN_PASSWORD_LENGTH} characters.`,
   same_password: 'Your new password must be different from your current one.',
