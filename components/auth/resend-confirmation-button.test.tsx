@@ -27,6 +27,14 @@ describe('ResendConfirmationButton', () => {
     render(<ResendConfirmationButton email="a@b.com" seedCooldown={false} />)
     fireEvent.click(screen.getByRole('button', { name: /resend/i }))
     expect(await screen.findByText(/sent/i)).toBeInTheDocument()
-    expect(resend).toHaveBeenCalledWith({ type: 'signup', email: 'a@b.com' })
+    expect(resend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'signup',
+        email: 'a@b.com',
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringContaining('/auth/confirm'),
+        }),
+      }),
+    )
   })
 })

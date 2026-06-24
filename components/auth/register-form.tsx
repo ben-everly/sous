@@ -62,6 +62,7 @@ export function RegisterForm({ next }: { next?: string }) {
     // Defensive: confirmations are always on so a new signup has no session, but if one is
     // ever present, the user is already authenticated — go home.
     if (result.session) {
+      // Leave pending set — push/refresh navigates away, so the spinner persists through it.
       router.push(sameOriginPath(next))
       router.refresh()
       return

@@ -5,6 +5,7 @@ import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { Button } from '@/components/ui/button'
 
 // Mirrors supabase/config.toml max_frequency = "60s". The cooldown is seeded from the last
@@ -33,7 +34,11 @@ export function ResendConfirmationButton({
   const onResend = async () => {
     setMessage(null)
     setPending(true)
-    const { error } = await createClient().auth.resend({ type: OTP_TYPES.signup, email })
+    const { error } = await createClient().auth.resend({
+      type: OTP_TYPES.signup,
+      email,
+      options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
+    })
     setPending(false)
     if (error) {
       setMessage(authErrorMessage(error))
