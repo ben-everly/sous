@@ -19,6 +19,10 @@ const NOTICES: Record<AuthNoticeError, { message: string; tone: Tone }> = {
     message: 'That password-reset link has expired or was already used. Request a new one below.',
     tone: 'error',
   },
+  confirmation_invalid: {
+    message: 'That confirmation link has expired or was already used. Request a new one below.',
+    tone: 'error',
+  },
 }
 
 export function LoginNotice({ error }: { error: AuthNoticeError }) {
