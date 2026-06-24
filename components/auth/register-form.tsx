@@ -6,7 +6,7 @@ import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
-import { isExistingAccountSignup } from '@/lib/auth/signup'
+import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { CheckInbox } from '@/components/auth/check-inbox'
 import { Button } from '@/components/ui/button'
@@ -51,25 +51,22 @@ export function RegisterForm() {
       setPending(false)
       return
     }
-    // GoTrue obfuscates an already-registered email as a user with no identities. Check that
-    // before the null session: with confirmations on, a genuine new signup is ALSO sessionless.
-    if (isExistingAccountSignup(result)) {
-      setError(authErrorMessage({ code: 'user_already_exists' }))
-      setPending(false)
-      return
+    switch (classifySignupResult(result)) {
+      case 'existing':
+        setError(authErrorMessage({ code: 'user_already_exists' }))
+        setPending(false)
+        return
+      case 'authed':
+        // Confirmation lands the user home too, so signup carries no post-auth `next`
+        // (see /reset-password). Leave pending set — push/refresh navigates away.
+        router.push('/')
+        router.refresh()
+        return
+      case 'awaiting_confirmation':
+        setPending(false)
+        setSentTo(parsed.data.email)
+        return
     }
-    // Defensive: confirmations are always on so a new signup has no session, but if one is
-    // ever present, the user is already authenticated — go home. (Confirmation lands the user
-    // home too, so the signup flow deliberately carries no post-auth `next`; see /reset-password.)
-    if (result.session) {
-      // Leave pending set — push/refresh navigates away, so the spinner persists through it.
-      router.push('/')
-      router.refresh()
-      return
-    }
-    // Genuine new signup, awaiting email confirmation.
-    setPending(false)
-    setSentTo(parsed.data.email)
   }
 
   if (sentTo) {
