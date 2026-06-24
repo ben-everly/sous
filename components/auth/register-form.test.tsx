@@ -7,7 +7,9 @@ const refresh = vi.fn()
 const signUp = vi.fn()
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, replace: vi.fn() }) }))
-vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ auth: { signUp } }) }))
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: () => ({ auth: { signUp, resend: vi.fn() } }),
+}))
 
 afterEach(cleanup)
 beforeEach(() => {
@@ -39,7 +41,9 @@ describe('RegisterForm', () => {
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/'))
-    expect(signUp).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password1' })
+    expect(signUp).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'a@b.com', password: 'password1' }),
+    )
     expect(refresh).toHaveBeenCalled()
   })
 
@@ -56,10 +60,9 @@ describe('RegisterForm', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
-  // Confirmations-on shape: a genuine new signup is sessionless but has a populated identities
-  // array. Keying off the null session alone (instead of identities) would mislabel it as a
-  // duplicate — the regression this guards against once SIDE-135 enables confirmations.
-  it('does not warn a brand-new signup that is awaiting confirmation', async () => {
+  // Confirmations-on: a genuine new signup is sessionless but has identities — it must
+  // render the check-inbox screen, not navigate home (which the auth gate would bounce).
+  it('shows the check-inbox screen for a brand-new signup awaiting confirmation', async () => {
     signUp.mockResolvedValue({
       data: { user: { identities: [{ id: '1' }] }, session: null },
       error: null,
@@ -69,9 +72,12 @@ describe('RegisterForm', () => {
     fireEvent.change(screen.getByLabelText('Password', { exact: true }), {
       target: { value: 'password1' },
     })
-    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+      target: { value: 'password1' },
+    })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
-    await vi.waitFor(() => expect(push).toHaveBeenCalled())
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(await screen.findByText('a@b.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
+    expect(push).not.toHaveBeenCalled()
   })
 })

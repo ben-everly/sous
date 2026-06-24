@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
+import { isExistingAccountSignup } from '@/lib/auth/signup'
+import { AUTH_PATHS } from '@/lib/auth/routes'
+import { CheckInbox } from '@/components/auth/check-inbox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -17,6 +20,7 @@ export function RegisterForm({ next }: { next?: string }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [sentTo, setSentTo] = useState<string | null>(null)
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -41,24 +45,42 @@ export function RegisterForm({ next }: { next?: string }) {
     const { data: result, error } = await createClient().auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
+      options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
     })
     if (error) {
       setError(authErrorMessage(error))
       setPending(false)
       return
     }
-    // GoTrue obfuscates an existing email as a user with no identities, independent of the
-    // confirmations setting. Don't key off the null session alone: with confirmations on a
-    // genuine new signup is also sessionless (its "check your inbox" UX is SIDE-135's job).
-    if (result.user?.identities?.length === 0) {
-      // Surface the same non-enumerating copy GoTrue's user_already_exists code maps to.
+    // GoTrue obfuscates an already-registered email as a user with no identities. Check that
+    // before the null session: with confirmations on, a genuine new signup is ALSO sessionless.
+    if (isExistingAccountSignup(result)) {
       setError(authErrorMessage({ code: 'user_already_exists' }))
       setPending(false)
       return
     }
-    // Leave pending set — push/refresh navigates away, so the spinner persists through it.
-    router.push(sameOriginPath(next))
-    router.refresh()
+    // Defensive: confirmations are always on so a new signup has no session, but if one is
+    // ever present, the user is already authenticated — go home.
+    if (result.session) {
+      router.push(sameOriginPath(next))
+      router.refresh()
+      return
+    }
+    // Genuine new signup, awaiting email confirmation.
+    setPending(false)
+    setSentTo(parsed.data.email)
+  }
+
+  if (sentTo) {
+    return (
+      <CheckInbox
+        email={sentTo}
+        onUseDifferentEmail={() => {
+          setSentTo(null)
+          setError(null)
+        }}
+      />
+    )
   }
 
   return (
