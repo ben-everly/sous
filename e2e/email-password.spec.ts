@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import { adminClient } from './admin-client'
 import { makeGoogleOnly, identityProviders } from './db'
-import { clearMailpit, waitForEmail, getRecoveryLink } from './mailpit'
+import { clearMailpit, waitForEmail, getRecoveryLink, getConfirmationLink } from './mailpit'
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
@@ -16,15 +16,23 @@ async function deleteUser(email: string) {
 }
 
 test.describe('email/password auth', () => {
-  test('sign-up signs the user in', async ({ page }) => {
+  test('sign-up sends a confirmation link that signs the user in', async ({ page }) => {
     const email = `signup-${Date.now()}@example.com`
     await deleteUser(email)
+    await clearMailpit()
     try {
       await page.goto('/register')
       await page.getByLabel('Email').fill(email)
       await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
       await page.getByLabel('Confirm password').fill(PASSWORD)
       await page.getByRole('button', { name: /create account/i }).click()
+
+      // Check-inbox screen, not an immediate session.
+      await expect(page.getByText(email)).toBeVisible()
+      await expect(page.getByRole('button', { name: /resend/i })).toBeVisible()
+
+      const messageId = await waitForEmail(email)
+      await page.goto(await getConfirmationLink(messageId))
       await expect(page).toHaveURL(/\/$/)
     } finally {
       await deleteUser(email)
