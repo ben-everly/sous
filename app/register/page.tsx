@@ -20,7 +20,7 @@ export default async function RegisterPage({
           <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
           <p className="text-muted-foreground text-sm">Start managing your kitchen with Sous.</p>
         </div>
-        <RegisterForm next={next} />
+        <RegisterForm />
         <div className="text-muted-foreground space-y-1 text-center text-sm">
           <p>
             Already have an account?{' '}

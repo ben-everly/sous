@@ -6,7 +6,6 @@ import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
-import { sameOriginPath } from '@/lib/auth/same-origin-path'
 import { isExistingAccountSignup } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { CheckInbox } from '@/components/auth/check-inbox'
@@ -15,7 +14,7 @@ import { Input } from '@/components/ui/input'
 
 type FieldErrors = { email?: string; password?: string; confirmPassword?: string }
 
-export function RegisterForm({ next }: { next?: string }) {
+export function RegisterForm() {
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,10 +59,11 @@ export function RegisterForm({ next }: { next?: string }) {
       return
     }
     // Defensive: confirmations are always on so a new signup has no session, but if one is
-    // ever present, the user is already authenticated — go home.
+    // ever present, the user is already authenticated — go home. (Confirmation lands the user
+    // home too, so the signup flow deliberately carries no post-auth `next`; see /reset-password.)
     if (result.session) {
       // Leave pending set — push/refresh navigates away, so the spinner persists through it.
-      router.push(sameOriginPath(next))
+      router.push('/')
       router.refresh()
       return
     }
