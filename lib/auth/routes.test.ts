@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { isPublicPath, loginRedirectPath, withNext } from './routes'
+import { AUTH_PATHS, isPublicPath, loginRedirectPath, withNext } from './routes'
+
+describe('routes', () => {
+  it('exposes the confirm and resend-confirmation paths', () => {
+    expect(AUTH_PATHS.confirm).toBe('/auth/confirm')
+    expect(AUTH_PATHS.resendConfirmation).toBe('/resend-confirmation')
+  })
+
+  it('treats /resend-confirmation as public', () => {
+    expect(isPublicPath('/resend-confirmation')).toBe(true)
+  })
+})
 
 describe('isPublicPath', () => {
   it('treats /login as public (exact match)', () => {
