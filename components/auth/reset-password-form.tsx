@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { verifyEmailToken } from '@/lib/auth/verify-email-token'
+import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { backfillEmailIdentity } from '@/lib/actions/auth'
 import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
@@ -50,14 +52,13 @@ export function ResetPasswordForm() {
     verifyStarted.current = true
     const tokenHash = searchParams.get('token_hash')
     const type = searchParams.get('type')
-    if (!tokenHash || type !== 'recovery') {
+    if (!tokenHash || type !== OTP_TYPES.recovery) {
       router.replace(RECOVERY_INVALID_URL)
       return
     }
-    createClient()
-      .auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
-      .then(({ error }) => {
-        if (error) router.replace(RECOVERY_INVALID_URL)
+    verifyEmailToken(createClient(), { tokenHash, type: OTP_TYPES.recovery })
+      .then((result) => {
+        if (!result.ok) router.replace(RECOVERY_INVALID_URL)
         else {
           // Drop the now-spent token from the URL so it doesn't linger in history.
           router.replace(AUTH_PATHS.resetPassword)
