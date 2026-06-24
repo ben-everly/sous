@@ -33,13 +33,20 @@ export default async function LoginPage({
           <span className="bg-border h-px flex-1" />
         </div>
         <EmailPasswordSignInForm next={next} />
-        <div className="flex items-center justify-between text-sm">
-          <Link href={AUTH_PATHS.forgotPassword} className="underline underline-offset-4">
-            Forgot password?
-          </Link>
-          <Link href={registerHref} className="underline underline-offset-4">
-            Create account
-          </Link>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <Link href={AUTH_PATHS.forgotPassword} className="underline underline-offset-4">
+              Forgot password?
+            </Link>
+            <Link href={registerHref} className="underline underline-offset-4">
+              Create account
+            </Link>
+          </div>
+          <p className="text-muted-foreground text-center">
+            <Link href={AUTH_PATHS.resendConfirmation} className="underline underline-offset-4">
+              Didn&apos;t get a confirmation email?
+            </Link>
+          </p>
         </div>
       </div>
     </main>
