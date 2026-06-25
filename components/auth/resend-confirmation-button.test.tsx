@@ -17,7 +17,7 @@ describe('ResendConfirmationButton', () => {
     render(<ResendConfirmationButton email="a@b.com" seedCooldown />)
     const button = screen.getByRole('button', { name: /resend/i })
     expect(button).toBeDisabled()
-    expect(screen.getByText(/resend in a moment/i)).toBeInTheDocument()
+    expect(screen.getByText(/resend in about a minute/i)).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(60_000))
     expect(button).not.toBeDisabled()
   })

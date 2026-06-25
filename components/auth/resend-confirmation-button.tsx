@@ -68,7 +68,7 @@ export function ResendConfirmationButton({
       ) : (
         cooling && (
           <p role="status" className="text-muted-foreground text-xs">
-            You can resend in a moment.
+            You can resend in about a minute.
           </p>
         )
       )}
