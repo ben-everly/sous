@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { classifySignupResult } from './signup'
 
@@ -28,5 +30,13 @@ describe('classifySignupResult', () => {
   // the duplicate check must win over the session check.
   it("prefers 'existing' over 'authed' when identities is empty", () => {
     expect(result({ user: { identities: [] }, session: { access_token: 't' } })).toBe('existing')
+  })
+
+  // The 'authed' branch's safety rests on confirmations being on: with them off, a brand-new
+  // unconfirmed signup returns a session and gets logged straight in. Fail loudly if the
+  // config ever drifts, so that change can't ship without revisiting register-form.
+  it('keeps email confirmations enabled in config.toml', () => {
+    const config = readFileSync(resolve(process.cwd(), 'supabase/config.toml'), 'utf8')
+    expect(config).toMatch(/^enable_confirmations = true$/m)
   })
 })

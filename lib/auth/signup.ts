@@ -12,8 +12,10 @@ export function classifySignupResult(data: {
   // non-enumerating obfuscation of a duplicate. This holds regardless of the confirmations
   // setting, so it must be checked off identities, not the null session, and before it.
   if (data.user?.identities?.length === 0) return 'existing'
-  // Confirmations are always on, so a genuine new signup is sessionless; a session present
-  // means the user is already authenticated.
+  // Confirmations are on (config.toml enable_confirmations = true, pinned by a test), so a
+  // genuine new signup is sessionless; a session here means an already-authenticated user.
+  // Flipping confirmations off would route unconfirmed signups through this branch and log
+  // them straight in — hence the test guarding that setting.
   if (data.session) return 'authed'
   return 'awaiting_confirmation'
 }
