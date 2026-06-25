@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { signInSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FormField } from '@/components/ui/form-field'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function EmailPasswordSignInForm({ next }: { next?: string }) {
   const router = useRouter()
@@ -49,46 +48,21 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           {error}
         </p>
       )}
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!fieldErrors.email}
-          aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-        />
-        {fieldErrors.email && (
-          <p id="email-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.email}
-          </p>
-        )}
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={!!fieldErrors.password}
-          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-        />
-        {fieldErrors.password && (
-          <p id="password-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.password}
-          </p>
-        )}
-      </div>
-      <Button type="submit" disabled={pending} aria-busy={pending} className="w-full">
-        {pending && <LoaderCircle className="animate-spin" />}
-        Sign in
-      </Button>
+      <FormField
+        name="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={fieldErrors.email}
+      />
+      <FormField
+        name="password"
+        label="Password"
+        type="password"
+        autoComplete="current-password"
+        error={fieldErrors.password}
+      />
+      <SubmitButton pending={pending}>Sign in</SubmitButton>
     </form>
   )
 }

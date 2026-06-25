@@ -2,15 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { signUpSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { CheckInbox } from '@/components/auth/check-inbox'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FormField } from '@/components/ui/form-field'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 type FieldErrors = { email?: string; password?: string; confirmPassword?: string }
 
@@ -88,64 +87,28 @@ export function RegisterForm() {
           {error}
         </p>
       )}
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!fieldErrors.email}
-          aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-        />
-        {fieldErrors.email && (
-          <p id="email-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.email}
-          </p>
-        )}
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!fieldErrors.password}
-          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-        />
-        {fieldErrors.password && (
-          <p id="password-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.password}
-          </p>
-        )}
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="text-sm font-medium">
-          Confirm password
-        </label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!fieldErrors.confirmPassword}
-          aria-describedby={fieldErrors.confirmPassword ? 'confirm-password-error' : undefined}
-        />
-        {fieldErrors.confirmPassword && (
-          <p id="confirm-password-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.confirmPassword}
-          </p>
-        )}
-      </div>
-      <Button type="submit" disabled={pending} aria-busy={pending} className="w-full">
-        {pending && <LoaderCircle className="animate-spin" />}
-        Create account
-      </Button>
+      <FormField
+        name="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={fieldErrors.email}
+      />
+      <FormField
+        name="password"
+        label="Password"
+        type="password"
+        autoComplete="new-password"
+        error={fieldErrors.password}
+      />
+      <FormField
+        name="confirmPassword"
+        label="Confirm password"
+        type="password"
+        autoComplete="new-password"
+        error={fieldErrors.confirmPassword}
+      />
+      <SubmitButton pending={pending}>Create account</SubmitButton>
     </form>
   )
 }

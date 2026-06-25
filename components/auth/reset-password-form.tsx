@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { LoaderCircle } from 'lucide-react'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { verifyEmailToken } from '@/lib/auth/verify-email-token'
@@ -12,8 +11,8 @@ import { resetPasswordSchema } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FormField } from '@/components/ui/form-field'
+import { SubmitButton } from '@/components/ui/submit-button'
 import { Spinner } from '@/components/ui/spinner'
 
 type FieldErrors = { password?: string; confirmPassword?: string }
@@ -113,46 +112,21 @@ export function ResetPasswordForm() {
           {error}
         </p>
       )}
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium">
-          New password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!fieldErrors.password}
-          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-        />
-        {fieldErrors.password && (
-          <p id="password-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.password}
-          </p>
-        )}
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="text-sm font-medium">
-          Confirm password
-        </label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!fieldErrors.confirmPassword}
-          aria-describedby={fieldErrors.confirmPassword ? 'confirm-password-error' : undefined}
-        />
-        {fieldErrors.confirmPassword && (
-          <p id="confirm-password-error" role="alert" className="text-destructive text-sm">
-            {fieldErrors.confirmPassword}
-          </p>
-        )}
-      </div>
-      <Button type="submit" disabled={pending} aria-busy={pending} className="w-full">
-        {pending && <LoaderCircle className="animate-spin" />}
-        Update password
-      </Button>
+      <FormField
+        name="password"
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        error={fieldErrors.password}
+      />
+      <FormField
+        name="confirmPassword"
+        label="Confirm password"
+        type="password"
+        autoComplete="new-password"
+        error={fieldErrors.confirmPassword}
+      />
+      <SubmitButton pending={pending}>Update password</SubmitButton>
     </form>
   )
 }

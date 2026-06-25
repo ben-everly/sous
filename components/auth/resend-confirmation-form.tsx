@@ -1,14 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { forgotPasswordSchema } from '@/lib/auth/schemas'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { ResendConfirmationButton } from './resend-confirmation-button'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FormField } from '@/components/ui/form-field'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function ResendConfirmationForm() {
   const [pending, setPending] = useState(false)
@@ -59,28 +58,14 @@ export function ResendConfirmationForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-3" noValidate>
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!fieldError}
-          aria-describedby={fieldError ? 'email-error' : undefined}
-        />
-        {fieldError && (
-          <p id="email-error" role="alert" className="text-destructive text-sm">
-            {fieldError}
-          </p>
-        )}
-      </div>
-      <Button type="submit" disabled={pending} aria-busy={pending} className="w-full">
-        {pending && <LoaderCircle className="animate-spin" />}
-        Resend confirmation email
-      </Button>
+      <FormField
+        name="email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        error={fieldError ?? undefined}
+      />
+      <SubmitButton pending={pending}>Resend confirmation email</SubmitButton>
     </form>
   )
 }
