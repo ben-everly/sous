@@ -17,24 +17,17 @@ export async function waitForEmail(recipient: string, timeoutMs = 15000): Promis
   throw new Error(`No email for ${recipient} within ${timeoutMs}ms`)
 }
 
-export async function getRecoveryLink(messageId: string): Promise<string> {
+// Pull the first token_hash link whose path matches `pathFragment` out of the email body.
+async function getEmailLink(messageId: string, pathFragment: string): Promise<string> {
   const res = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`)
   const body = (await res.json()) as { HTML?: string; Text?: string }
   const source = body.HTML || body.Text || ''
   const link = source
     .match(/https?:\/\/[^\s"'<>]+/g)
-    ?.find((url) => url.includes('/reset-password') && url.includes('token_hash'))
-  if (!link) throw new Error('No recovery link found in the email')
+    ?.find((url) => url.includes(pathFragment) && url.includes('token_hash'))
+  if (!link) throw new Error(`No ${pathFragment} link found in the email`)
   return link.replace(/&amp;/g, '&')
 }
 
-export async function getConfirmationLink(messageId: string): Promise<string> {
-  const res = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`)
-  const body = (await res.json()) as { HTML?: string; Text?: string }
-  const source = body.HTML || body.Text || ''
-  const link = source
-    .match(/https?:\/\/[^\s"'<>]+/g)
-    ?.find((url) => url.includes('/auth/confirm') && url.includes('token_hash'))
-  if (!link) throw new Error('No confirmation link found in the email')
-  return link.replace(/&amp;/g, '&')
-}
+export const getRecoveryLink = (messageId: string) => getEmailLink(messageId, '/reset-password')
+export const getConfirmationLink = (messageId: string) => getEmailLink(messageId, '/auth/confirm')
