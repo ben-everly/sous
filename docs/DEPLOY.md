@@ -59,5 +59,6 @@ Set on the host:
 - [ ] **Production SMTP** for transactional email (password reset) — tracked in **SIDE-135**.
       Without it the reset link never sends in production.
 - [ ] **Supabase → Authentication → Rate Limits**: set production limits — the local
-      `config.toml` values (`sign_in_sign_ups = 30`, `email_sent = 30`, `max_frequency = "1s"`)
-      are loosened for dev and must not be shipped as-is.
+      `config.toml` loosens the email limits (`email_sent` under `[auth.rate_limit]`,
+      `max_frequency` under `[auth.email]`) for dev/Mailpit testing; tighten them in the
+      dashboard rather than shipping the dev values. See `config.toml` for the current values.
