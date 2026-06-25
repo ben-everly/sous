@@ -13,6 +13,7 @@ describe('CheckInbox', () => {
     expect(screen.getByText('a@b.com')).toBeInTheDocument()
     expect(screen.getByText(/spam/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
+    expect(screen.getByText(/close this tab/i)).toBeInTheDocument()
   })
 
   it('invokes onUseDifferentEmail', () => {

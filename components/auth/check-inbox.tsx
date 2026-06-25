@@ -18,6 +18,9 @@ export function CheckInbox({
         it.
       </p>
       <ResendConfirmationButton email={email} seedCooldown />
+      <p className="text-muted-foreground text-xs">
+        Opening the link on another device signs you in there — you can safely close this tab.
+      </p>
       <button type="button" onClick={onUseDifferentEmail} className="underline underline-offset-4">
         Use a different email
       </button>
