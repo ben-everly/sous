@@ -14,6 +14,7 @@ import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 
 type FieldErrors = { password?: string; confirmPassword?: string }
 type Status = 'verifying' | 'ready'
@@ -102,11 +103,7 @@ export function ResetPasswordForm() {
   }
 
   if (status !== 'ready') {
-    return (
-      <p role="status" className="text-muted-foreground flex justify-center">
-        <LoaderCircle className="animate-spin" />
-      </p>
-    )
+    return <Spinner label="Verifying your reset link…" />
   }
 
   return (

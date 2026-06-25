@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { verifyEmailToken } from '@/lib/auth/verify-email-token'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { CONFIRMATION_INVALID_URL } from '@/lib/auth/login-errors'
+import { Spinner } from '@/components/ui/spinner'
 
 // The single-use confirmation token is consumed on the CLIENT after mount, not in a GET
 // route: email-security scanners (Safe Links, Proofpoint) fire prefetch GETs that would burn
@@ -37,9 +37,5 @@ export function ConfirmEmail() {
       .catch(() => router.replace(CONFIRMATION_INVALID_URL))
   }, [router, searchParams])
 
-  return (
-    <p role="status" className="text-muted-foreground flex justify-center">
-      <LoaderCircle className="animate-spin" />
-    </p>
-  )
+  return <Spinner />
 }

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
-import { LoaderCircle } from 'lucide-react'
 import { ConfirmEmail } from '@/components/auth/confirm-email'
+import { Spinner } from '@/components/ui/spinner'
 
 // A page, not a route handler: ConfirmEmail consumes the single-use token client-side so a
 // mail scanner's prefetch GET can't burn it before the user clicks (see ConfirmEmail).
@@ -14,13 +14,7 @@ export default function ConfirmEmailPage() {
             Just a moment while we finish setting up your account.
           </p>
         </div>
-        <Suspense
-          fallback={
-            <p role="status" className="text-muted-foreground flex justify-center">
-              <LoaderCircle className="animate-spin" />
-            </p>
-          }
-        >
+        <Suspense fallback={<Spinner />}>
           <ConfirmEmail />
         </Suspense>
       </div>
