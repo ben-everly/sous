@@ -1,7 +1,5 @@
 import { LoaderCircle } from 'lucide-react'
 
-// Centered status spinner with optional copy. `role="status"` announces the wait to
-// assistive tech. Used for Suspense fallbacks and in-flight verification states.
 export function Spinner({ label }: { label?: string }) {
   return (
     <p
