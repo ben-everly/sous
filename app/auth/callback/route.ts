@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type LoginError } from '@/lib/auth/login-errors'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
 
 const loginErrorUrl = (origin: string, error: LoginError, next: string) => {
   const params = new URLSearchParams({ error })
   if (next !== '/') params.set('next', next)
-  return `${origin}/login?${params}`
+  return `${origin}${AUTH_PATHS.login}?${params}`
 }
 
 export async function GET(request: Request) {

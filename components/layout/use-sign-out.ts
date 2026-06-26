@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 
 export function useSignOut() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export function useSignOut() {
     }
     // signOut clears the auth cookies; replace + refresh re-run the server tree (and proxy) with no session.
     // pending is deliberately left set: router.replace unmounts the caller, so there's nothing to reset.
-    router.replace('/login')
+    router.replace(AUTH_PATHS.login)
     router.refresh()
   }
 

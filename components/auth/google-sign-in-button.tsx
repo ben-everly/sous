@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { Button } from '@/components/ui/button'
 
 function GoogleIcon() {
@@ -57,7 +58,7 @@ export function GoogleSignInButton({ next }: { next?: string }) {
     }
     setPending(true)
     const supabase = createClient()
-    const redirectTo = new URL('/auth/callback', window.location.origin)
+    const redirectTo = new URL(AUTH_PATHS.callback, window.location.origin)
     if (next) redirectTo.searchParams.set('next', next)
     try {
       const { error } = await supabase.auth.signInWithOAuth({
