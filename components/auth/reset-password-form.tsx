@@ -9,7 +9,11 @@ import { createClient } from '@/lib/supabase/client'
 import { verifyEmailToken } from '@/lib/auth/verify-email-token'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { backfillEmailIdentity } from '@/lib/actions/auth'
-import { resetPasswordSchema, type ResetPasswordValues } from '@/lib/auth/schemas'
+import {
+  resetPasswordSchema,
+  MIN_PASSWORD_LENGTH,
+  type ResetPasswordValues,
+} from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
@@ -20,6 +24,7 @@ import { Spinner } from '@/components/ui/spinner'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -115,12 +120,17 @@ export function ResetPasswordForm() {
         <FormField
           control={form.control}
           name="password"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>New password</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
+              {/* the error restates the rule, so keep the hint only for screen
+                readers (still in aria-describedby) */}
+              <FormDescription className={fieldState.error ? 'sr-only' : undefined}>
+                Must be at least {MIN_PASSWORD_LENGTH} characters.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

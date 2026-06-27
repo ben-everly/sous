@@ -65,6 +65,14 @@ describe('ResetPasswordForm', () => {
     expect(replace).toHaveBeenCalledWith('/reset-password')
   })
 
+  it('describes the new-password rule and wires it to the field', async () => {
+    verifyOtp.mockResolvedValue({ error: null })
+    render(<ResetPasswordForm />)
+    expect(
+      await screen.findByLabelText('New password', { exact: true }),
+    ).toHaveAccessibleDescription('Must be at least 8 characters.')
+  })
+
   it('backfills the identity then redirects home on success', async () => {
     verifyOtp.mockResolvedValue({ error: null })
     updateUser.mockResolvedValue({ error: null })

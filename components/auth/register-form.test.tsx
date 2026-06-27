@@ -60,6 +60,31 @@ describe('RegisterForm', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
+  it('describes the password rule and leaves description-free fields without a dangling aria-describedby', () => {
+    render(<RegisterForm />)
+    expect(screen.getByLabelText('Password', { exact: true })).toHaveAccessibleDescription(
+      'Must be at least 8 characters.',
+    )
+    // Email has no description and no error, so it must not reference a non-existent element.
+    expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-describedby')
+  })
+
+  it('keeps the password hint for screen readers but hides it visually once the rule is violated', async () => {
+    render(<RegisterForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password', { exact: true }), {
+      target: { value: 'short' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'short' } })
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }))
+    expect(await screen.findByText('Password must be at least 8 characters.')).toBeInTheDocument()
+    // The hint is visually hidden but stays in the accessible description alongside the error.
+    expect(screen.getByText('Must be at least 8 characters.')).toHaveClass('sr-only')
+    expect(screen.getByLabelText('Password', { exact: true })).toHaveAccessibleDescription(
+      /Must be at least 8 characters\./,
+    )
+  })
+
   // Confirmations-on: a genuine new signup is sessionless but has identities — it must
   // render the check-inbox screen, not navigate home (which the auth gate would bounce).
   it('shows the check-inbox screen for a brand-new signup awaiting confirmation', async () => {

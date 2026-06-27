@@ -50,7 +50,7 @@ const useFormField = () => {
 
   const formState = useFormState({ name: fieldContext.name })
   const fieldState = getFieldState(fieldContext.name, formState)
-  const { id } = itemContext
+  const { id, hasDescription } = itemContext
 
   return {
     id,
@@ -58,22 +58,32 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
+    hasDescription,
     ...fieldState,
   }
 }
 
 type FormItemContextValue = {
   id: string
+  hasDescription: boolean
 }
 
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue)
 
-function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
+function FormItem({ className, children, ...props }: React.ComponentProps<'div'>) {
   const id = React.useId()
+  // Detect the description at render time so FormControl wires aria-describedby to it on the
+  // first paint; only a direct FormDescription child counts.
+  const hasDescription = React.Children.toArray(children).some(
+    (child) => React.isValidElement(child) && child.type === FormDescription,
+  )
+  const value = React.useMemo(() => ({ id, hasDescription }), [id, hasDescription])
 
   return (
-    <FormItemContext.Provider value={{ id }}>
-      <div data-slot="form-item" className={cn('grid gap-2', className)} {...props} />
+    <FormItemContext.Provider value={value}>
+      <div data-slot="form-item" className={cn('grid gap-2', className)} {...props}>
+        {children}
+      </div>
     </FormItemContext.Provider>
   )
 }
@@ -93,13 +103,17 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPri
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { error, formItemId, formDescriptionId, formMessageId, hasDescription } = useFormField()
+  const describedBy =
+    [hasDescription ? formDescriptionId : null, error ? formMessageId : null]
+      .filter(Boolean)
+      .join(' ') || undefined
 
   return (
     <Slot.Root
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
+      aria-describedby={describedBy}
       aria-invalid={!!error}
       {...props}
     />

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { signUpSchema, type SignUpValues } from '@/lib/auth/schemas'
+import { signUpSchema, MIN_PASSWORD_LENGTH, type SignUpValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
@@ -16,6 +16,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -94,12 +95,17 @@ export function RegisterForm() {
         <FormField
           control={form.control}
           name="password"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
+              {/* the error restates the rule, so keep the hint only for screen
+                readers (still in aria-describedby) */}
+              <FormDescription className={fieldState.error ? 'sr-only' : undefined}>
+                Must be at least {MIN_PASSWORD_LENGTH} characters.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
