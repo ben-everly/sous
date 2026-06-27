@@ -47,4 +47,40 @@ describe('EmailPasswordSignInForm', () => {
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/kitchen'))
     expect(signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password1' })
   })
+
+  it('submits the trimmed email (handler consumes resolver values, not getValues)', async () => {
+    signInWithPassword.mockResolvedValue({ error: null })
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: '  a@b.com  ' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await vi.waitFor(() =>
+      expect(signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.com', password: 'password1' }),
+    )
+  })
+
+  it('wires aria-invalid and aria-describedby on an invalid field', async () => {
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'whatever' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    const message = await screen.findByRole('alert')
+    const input = screen.getByLabelText('Email')
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input.getAttribute('aria-describedby')).toContain(message.id)
+  })
+
+  it('clears the server-error banner on a successful resubmit', async () => {
+    signInWithPassword
+      .mockResolvedValueOnce({ error: { code: 'invalid_credentials' } })
+      .mockResolvedValueOnce({ error: null })
+    render(<EmailPasswordSignInForm next="/kitchen" />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/incorrect/i)
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/kitchen'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })
