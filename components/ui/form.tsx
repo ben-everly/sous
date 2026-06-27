@@ -132,7 +132,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
       data-slot="form-message"
       id={formMessageId}
       // The one deviation from vanilla shadcn: field errors must announce via a live region
-      // (matches the deleted form-field.tsx; the form tests query them with findByRole('alert')).
+      // so the form tests can query them with findByRole('alert').
       role="alert"
       className={cn('text-destructive text-sm', className)}
       {...props}
