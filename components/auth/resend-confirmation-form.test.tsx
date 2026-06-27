@@ -20,6 +20,16 @@ describe('ResendConfirmationForm', () => {
     )
   })
 
+  // Non-enumeration: the result is ignored, so an error response (e.g. rate limit) renders the
+  // identical confirmation — a failing send can't be told apart from a successful one.
+  it('shows the same confirmation when resend returns an error', async () => {
+    resend.mockResolvedValue({ error: { code: 'over_email_send_rate_limit' } })
+    render(<ResendConfirmationForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /resend confirmation/i }))
+    expect(await screen.findByText(/if an account/i)).toBeInTheDocument()
+  })
+
   it('blocks an invalid email without calling resend', async () => {
     render(<ResendConfirmationForm />)
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
