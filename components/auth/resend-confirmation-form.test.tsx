@@ -20,10 +20,13 @@ describe('ResendConfirmationForm', () => {
     )
   })
 
-  it('blocks an invalid email without calling resend', () => {
+  it('blocks an invalid email without calling resend', async () => {
     render(<ResendConfirmationForm />)
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
     fireEvent.click(screen.getByRole('button', { name: /resend confirmation/i }))
+    // zodResolver validates asynchronously — await the rendered field error before asserting,
+    // or this passes even if validation never blocked (resend just hasn't run yet).
+    expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
     expect(resend).not.toHaveBeenCalled()
   })
 })

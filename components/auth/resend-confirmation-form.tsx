@@ -1,40 +1,42 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
-import { forgotPasswordSchema } from '@/lib/auth/schemas'
+import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/auth/schemas'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { ResendConfirmationButton } from './resend-confirmation-button'
-import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 
 export function ResendConfirmationForm() {
-  const [pending, setPending] = useState(false)
-  const [fieldError, setFieldError] = useState<string | null>(null)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  })
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setFieldError(null)
-    const email = String(new FormData(event.currentTarget).get('email') ?? '').trim()
-    const parsed = forgotPasswordSchema.safeParse({ email })
-    if (!parsed.success) {
-      setFieldError(parsed.error.flatten().fieldErrors.email?.[0] ?? null)
-      return
-    }
-    setPending(true)
+  const onValid = async (values: ForgotPasswordValues) => {
     // Fire and ignore the result: a non-enumerating affordance must respond identically
     // whether or not the address has an unconfirmed account (GoTrue's resend is built for this).
     await createClient()
       .auth.resend({
         type: OTP_TYPES.signup,
-        email: parsed.data.email,
+        email: values.email,
         options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
       })
       .catch(() => {})
-    setPending(false)
-    setSentTo(parsed.data.email)
+    setSentTo(values.email)
   }
 
   if (sentTo) {
@@ -57,15 +59,23 @@ export function ResendConfirmationForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3" noValidate>
-      <FormField
-        name="email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        error={fieldError ?? undefined}
-      />
-      <SubmitButton pending={pending}>Resend confirmation email</SubmitButton>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" autoComplete="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <SubmitButton pending={form.formState.isSubmitting}>Resend confirmation email</SubmitButton>
+      </form>
+    </Form>
   )
 }
