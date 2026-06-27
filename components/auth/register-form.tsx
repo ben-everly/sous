@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { FormRootError } from '@/components/ui/form-root-error'
 
 export function RegisterForm() {
   const router = useRouter()
@@ -74,11 +75,7 @@ export function RegisterForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
-        {form.formState.errors.root && (
-          <p role="alert" className="text-destructive text-center text-sm">
-            {form.formState.errors.root.message}
-          </p>
-        )}
+        <FormRootError />
         <FormField
           control={form.control}
           name="email"
