@@ -1,42 +1,41 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
-import { forgotPasswordSchema } from '@/lib/auth/schemas'
+import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
-import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 
 export function ForgotPasswordForm() {
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [fieldError, setFieldError] = useState<string | null>(null)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  })
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
-    setFieldError(null)
-    const email = String(new FormData(event.currentTarget).get('email') ?? '').trim()
-    const parsed = forgotPasswordSchema.safeParse({ email })
-    if (!parsed.success) {
-      setFieldError(parsed.error.flatten().fieldErrors.email?.[0] ?? null)
-      return
-    }
-    setPending(true)
+  const onValid = async (values: ForgotPasswordValues) => {
+    form.clearErrors('root')
     // Recovery links land directly on /reset-password, which verifies the
     // single-use token from the URL (see the recovery email template).
     const redirectTo = `${window.location.origin}${AUTH_PATHS.resetPassword}`
-    const { error } = await createClient().auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo,
-    })
-    setPending(false)
+    const { error } = await createClient().auth.resetPasswordForEmail(values.email, { redirectTo })
     if (error) {
-      setError(authErrorMessage(error))
+      form.setError('root', { message: authErrorMessage(error) })
       return
     }
-    setSentTo(parsed.data.email)
+    setSentTo(values.email)
   }
 
   if (sentTo) {
@@ -58,20 +57,28 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3" noValidate>
-      {error && (
-        <p role="alert" className="text-destructive text-center text-sm">
-          {error}
-        </p>
-      )}
-      <FormField
-        name="email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        error={fieldError ?? undefined}
-      />
-      <SubmitButton pending={pending}>Send reset link</SubmitButton>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
+        {form.formState.errors.root && (
+          <p role="alert" className="text-destructive text-center text-sm">
+            {form.formState.errors.root.message}
+          </p>
+        )}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" autoComplete="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <SubmitButton pending={form.formState.isSubmitting}>Send reset link</SubmitButton>
+      </form>
+    </Form>
   )
 }
