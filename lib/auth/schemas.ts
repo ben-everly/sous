@@ -7,7 +7,9 @@ export const MIN_PASSWORD_LENGTH = 8
 // chars yet lose its tail. Measure UTF-8 bytes so the cap matches what bcrypt actually sees.
 export const MAX_PASSWORD_BYTES = 72
 
-const email = z.email('Enter a valid email address.')
+// Trim before validating so a stray leading/trailing space neither fails validation nor
+// reaches Supabase; handlers consume the parsed (trimmed) value, not the raw field text.
+const email = z.string().trim().pipe(z.email('Enter a valid email address.'))
 const password = z
   .string()
   .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)

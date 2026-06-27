@@ -11,6 +11,11 @@ describe('signInSchema', () => {
   it('rejects an empty password', () => {
     expect(signInSchema.safeParse({ email: 'a@b.com', password: '' }).success).toBe(false)
   })
+  it('trims surrounding whitespace from the email', () => {
+    const r = signInSchema.safeParse({ email: '  a@b.com  ', password: 'x' })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.email).toBe('a@b.com')
+  })
 })
 
 describe('signUpSchema', () => {
