@@ -33,6 +33,9 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
     const { error } = await createClient().auth.signInWithPassword(values)
     if (error) {
       form.setError('root', { message: authErrorMessage(error) })
+      // Land on the field so a correction is one keystroke away. The root banner is role="alert",
+      // announced regardless of focus.
+      form.setFocus('email')
       return
     }
     // signInWithPassword resolves before the browser leaves the page — startNavigating holds
@@ -53,7 +56,7 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
+                <Input type="email" autoComplete="email" autoFocus {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

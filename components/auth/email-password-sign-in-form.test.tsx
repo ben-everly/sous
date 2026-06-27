@@ -38,6 +38,25 @@ describe('EmailPasswordSignInForm', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
+  it('autofocuses the email field on mount', () => {
+    render(<EmailPasswordSignInForm />)
+    expect(screen.getByLabelText('Email')).toHaveFocus()
+  })
+
+  it('returns focus to the email field after a failed sign-in', async () => {
+    signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    const password = screen.getByLabelText('Password')
+    fireEvent.change(password, { target: { value: 'password1' } })
+    // Move focus off the autofocused email field, so passing proves setFocus, not the mount autoFocus.
+    password.focus()
+    expect(password).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/incorrect/i)
+    expect(screen.getByLabelText('Email')).toHaveFocus()
+  })
+
   it('navigates to next on success', async () => {
     signInWithPassword.mockResolvedValue({ error: null })
     render(<EmailPasswordSignInForm next="/kitchen" />)
