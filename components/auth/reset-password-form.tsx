@@ -1,21 +1,31 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { verifyEmailToken } from '@/lib/auth/verify-email-token'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { backfillEmailIdentity } from '@/lib/actions/auth'
-import { resetPasswordSchema } from '@/lib/auth/schemas'
+import { resetPasswordSchema, type ResetPasswordValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { RECOVERY_INVALID_URL } from '@/lib/auth/forgot-password-errors'
 import { AUTH_PATHS } from '@/lib/auth/routes'
-import { FormField } from '@/components/ui/form-field'
+import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
+import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 
-type FieldErrors = { password?: string; confirmPassword?: string }
 type Status = 'verifying' | 'ready'
 
 // A recovery session can die between verify and submit (revoked/reused refresh
@@ -38,9 +48,11 @@ export function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('verifying')
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: '', confirmPassword: '' },
+  })
+  const { pending, startNavigating } = useNavigatingSubmit(form.formState.isSubmitting)
 
   const verifyStarted = useRef(false)
 
@@ -68,29 +80,15 @@ export function ResetPasswordForm() {
       .catch(() => router.replace(RECOVERY_INVALID_URL))
   }, [router, searchParams])
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
-    setFieldErrors({})
-    const data = new FormData(event.currentTarget)
-    const parsed = resetPasswordSchema.safeParse({
-      password: String(data.get('password') ?? ''),
-      confirmPassword: String(data.get('confirmPassword') ?? ''),
-    })
-    if (!parsed.success) {
-      const fe = parsed.error.flatten().fieldErrors
-      setFieldErrors({ password: fe.password?.[0], confirmPassword: fe.confirmPassword?.[0] })
-      return
-    }
-    setPending(true)
-    const { error } = await createClient().auth.updateUser({ password: parsed.data.password })
+  const onValid = async (values: ResetPasswordValues) => {
+    form.clearErrors('root')
+    const { error } = await createClient().auth.updateUser({ password: values.password })
     if (error) {
       if (isDeadSessionError(error)) {
         router.replace(RECOVERY_INVALID_URL)
         return
       }
-      setError(authErrorMessage(error))
-      setPending(false)
+      form.setError('root', { message: authErrorMessage(error) })
       return
     }
     // Backfill the email identity for first-password users (e.g. Google-only; see
@@ -98,6 +96,7 @@ export function ResetPasswordForm() {
     // Action refreshes its caller route and would clobber a soft client navigation. The
     // backfill is best-effort and the password is already set, so never block the redirect.
     await backfillEmailIdentity().catch(() => {})
+    startNavigating()
     window.location.assign('/')
   }
 
@@ -106,27 +105,41 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3" noValidate>
-      {error && (
-        <p role="alert" className="text-destructive text-center text-sm">
-          {error}
-        </p>
-      )}
-      <FormField
-        name="password"
-        label="New password"
-        type="password"
-        autoComplete="new-password"
-        error={fieldErrors.password}
-      />
-      <FormField
-        name="confirmPassword"
-        label="Confirm password"
-        type="password"
-        autoComplete="new-password"
-        error={fieldErrors.confirmPassword}
-      />
-      <SubmitButton pending={pending}>Update password</SubmitButton>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
+        {form.formState.errors.root && (
+          <p role="alert" className="text-destructive text-center text-sm">
+            {form.formState.errors.root.message}
+          </p>
+        )}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>New password</FormLabel>
+              <FormControl>
+                <Input type="password" autoComplete="new-password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm password</FormLabel>
+              <FormControl>
+                <Input type="password" autoComplete="new-password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <SubmitButton pending={pending}>Update password</SubmitButton>
+      </form>
+    </Form>
   )
 }
