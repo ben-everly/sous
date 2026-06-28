@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ResendConfirmationButton } from './resend-confirmation-button'
+import { COOLDOWN_MS, ResendConfirmationButton } from './resend-confirmation-button'
 
 const resend = vi.fn()
 vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ auth: { resend } }) }))
@@ -20,6 +22,19 @@ describe('ResendConfirmationButton', () => {
     expect(screen.getByText(/resend in about a minute/i)).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(60_000))
     expect(button).not.toBeDisabled()
+  })
+
+  // The seeded cooldown must match GoTrue's max_frequency, or the button re-enables before
+  // GoTrue will accept another send. [auth.sms] has its own max_frequency, so scope to
+  // [auth.email] rather than matching the first occurrence in the file.
+  it('keeps max_frequency in config.toml equal to COOLDOWN_MS', () => {
+    const config = readFileSync(resolve(process.cwd(), 'supabase/config.toml'), 'utf8')
+    const afterHeader = config.slice(config.indexOf('[auth.email]') + '[auth.email]'.length)
+    const nextSection = afterHeader.search(/^\[/m)
+    const emailSection = nextSection === -1 ? afterHeader : afterHeader.slice(0, nextSection)
+    const match = emailSection.match(/^max_frequency\s*=\s*"(\d+)s"/m)
+    expect(match, 'max_frequency not found in [auth.email]').not.toBeNull()
+    expect(Number(match![1]) * 1000).toBe(COOLDOWN_MS)
   })
 
   it('resends and confirms when not cooling down', async () => {

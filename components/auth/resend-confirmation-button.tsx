@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 // known send (signup, when seedCooldown is true) — not from first click — so the button is
 // already disabled during the window GoTrue would reject, turning the limit into a designed
 // pause rather than a surprise error. Static text, no live ticking timer.
-const COOLDOWN_MS = 60_000
+export const COOLDOWN_MS = 60_000
 
 export function ResendConfirmationButton({
   email,

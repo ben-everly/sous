@@ -1,5 +1,13 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { signInSchema, signUpSchema, forgotPasswordSchema, resetPasswordSchema } from './schemas'
+import {
+  MIN_PASSWORD_LENGTH,
+  signInSchema,
+  signUpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from './schemas'
 
 describe('signInSchema', () => {
   it('accepts a valid email and any non-empty password', () => {
@@ -63,6 +71,18 @@ describe('signUpSchema', () => {
 describe('forgotPasswordSchema', () => {
   it('accepts a valid email', () => {
     expect(forgotPasswordSchema.safeParse({ email: 'a@b.com' }).success).toBe(true)
+  })
+})
+
+// Client-side length validation is UX only; GoTrue's minimum_password_length is the real
+// boundary. Fail loudly if the two drift, so a config change can't silently make the client
+// accept passwords GoTrue will reject (or vice versa).
+describe('config drift', () => {
+  it('keeps minimum_password_length in config.toml equal to MIN_PASSWORD_LENGTH', () => {
+    const config = readFileSync(resolve(process.cwd(), 'supabase/config.toml'), 'utf8')
+    const match = config.match(/^minimum_password_length\s*=\s*(\d+)/m)
+    expect(match, 'minimum_password_length not found in config.toml').not.toBeNull()
+    expect(Number(match![1])).toBe(MIN_PASSWORD_LENGTH)
   })
 })
 
