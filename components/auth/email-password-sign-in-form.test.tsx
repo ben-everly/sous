@@ -24,7 +24,7 @@ describe('EmailPasswordSignInForm', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'whatever' } })
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/valid email/i)
+    expect(await screen.findByText(/valid email/i)).toBeInTheDocument()
     expect(signInWithPassword).not.toHaveBeenCalled()
   })
 
@@ -83,10 +83,11 @@ describe('EmailPasswordSignInForm', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nope' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'whatever' } })
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
-    const message = await screen.findByRole('alert')
+    const message = await screen.findByText(/valid email/i)
     const input = screen.getByLabelText('Email')
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input.getAttribute('aria-describedby')).toContain(message.id)
+    expect(message).toHaveAttribute('aria-live', 'polite')
   })
 
   it('keeps Forgot password visible and reveals Resend confirmation only on failure', async () => {

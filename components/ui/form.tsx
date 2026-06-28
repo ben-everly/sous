@@ -137,18 +137,13 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message ?? '') : props.children
 
-  if (!body) {
-    return null
-  }
-
   return (
     <p
       data-slot="form-message"
       id={formMessageId}
-      // The one deviation from vanilla shadcn: field errors must announce via a live region
-      // so the form tests can query them with findByRole('alert').
-      role="alert"
-      className={cn('text-destructive text-sm', className)}
+      aria-live="polite"
+      aria-atomic="true"
+      className={cn('text-destructive text-sm empty:sr-only', className)}
       {...props}
     >
       {body}
