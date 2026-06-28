@@ -1,11 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { signInSchema, type SignInValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
 import { Input } from '@/components/ui/input'
@@ -48,7 +50,6 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
-        <FormRootError />
         <FormField
           control={form.control}
           name="email"
@@ -67,7 +68,15 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Password</FormLabel>
+                <Link
+                  href={AUTH_PATHS.forgotPassword}
+                  className="text-muted-foreground text-sm underline underline-offset-4"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <FormControl>
                 <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>
@@ -76,6 +85,17 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
           )}
         />
         <SubmitButton pending={pending}>Sign in</SubmitButton>
+        <FormRootError />
+        {/* Gate on any failure, never on the error code: keying this to email_not_confirmed
+            would reveal that the account exists but is unconfirmed. */}
+        {form.formState.errors.root && (
+          <p className="text-muted-foreground text-center text-sm">
+            Need to confirm your email?{' '}
+            <Link href={AUTH_PATHS.resendConfirmation} className="underline underline-offset-4">
+              Resend confirmation
+            </Link>
+          </p>
+        )}
       </form>
     </Form>
   )

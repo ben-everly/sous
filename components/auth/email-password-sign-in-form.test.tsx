@@ -89,6 +89,24 @@ describe('EmailPasswordSignInForm', () => {
     expect(input.getAttribute('aria-describedby')).toContain(message.id)
   })
 
+  it('keeps Forgot password visible and reveals Resend confirmation only on failure', async () => {
+    signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
+    render(<EmailPasswordSignInForm />)
+    expect(screen.getByRole('link', { name: /forgot password/i })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    )
+    expect(screen.queryByRole('link', { name: /resend confirmation/i })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/incorrect/i)
+    expect(screen.getByRole('link', { name: /resend confirmation/i })).toHaveAttribute(
+      'href',
+      '/resend-confirmation',
+    )
+  })
+
   it('clears the server-error banner on a successful resubmit', async () => {
     signInWithPassword
       .mockResolvedValueOnce({ error: { code: 'invalid_credentials' } })

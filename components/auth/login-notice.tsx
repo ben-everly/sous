@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { AUTH_PATHS } from '@/lib/auth/routes'
 import type { LoginError } from '@/lib/auth/login-errors'
 import type { ForgotPasswordError } from '@/lib/auth/forgot-password-errors'
 
@@ -6,7 +8,10 @@ type Tone = 'error' | 'info'
 
 type AuthNoticeError = LoginError | ForgotPasswordError
 
-const NOTICES: Record<AuthNoticeError, { message: string; tone: Tone }> = {
+const NOTICES: Record<
+  AuthNoticeError,
+  { message: string; tone: Tone; action?: { href: string; label: string } }
+> = {
   auth: {
     message: 'Something went wrong signing you in. Try again below.',
     tone: 'error',
@@ -16,17 +21,19 @@ const NOTICES: Record<AuthNoticeError, { message: string; tone: Tone }> = {
     tone: 'info',
   },
   recovery_invalid: {
-    message: 'That password-reset link has expired or was already used. Request a new one below.',
+    message: 'That password-reset link has expired or was already used.',
     tone: 'error',
+    action: { href: AUTH_PATHS.forgotPassword, label: 'Request a new one' },
   },
   confirmation_invalid: {
-    message: 'That confirmation link has expired or was already used. Request a new one below.',
+    message: 'That confirmation link has expired or was already used.',
     tone: 'error',
+    action: { href: AUTH_PATHS.resendConfirmation, label: 'Request a new one' },
   },
 }
 
 export function LoginNotice({ error }: { error: AuthNoticeError }) {
-  const { message, tone } = NOTICES[error]
+  const { message, tone, action } = NOTICES[error]
   return (
     <p
       role={tone === 'error' ? 'alert' : 'status'}
@@ -36,6 +43,15 @@ export function LoginNotice({ error }: { error: AuthNoticeError }) {
       )}
     >
       {message}
+      {action && (
+        <>
+          {' '}
+          <Link href={action.href} className="underline underline-offset-4">
+            {action.label}
+          </Link>
+          .
+        </>
+      )}
     </p>
   )
 }
