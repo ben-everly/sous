@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 // Mirrors supabase/config.toml max_frequency = "60s". The cooldown is seeded from the last
 // known send (signup, when seedCooldown is true) — not from first click — so the button is
 // already disabled during the window GoTrue would reject, turning the limit into a designed
-// pause rather than a surprise error. Static text, no live ticking timer.
+// pause rather than a surprise error.
 export const COOLDOWN_MS = 60_000
 
 export function ResendConfirmationButton({
@@ -22,13 +22,14 @@ export function ResendConfirmationButton({
   seedCooldown: boolean
 }) {
   const [pending, setPending] = useState(false)
-  const [cooling, setCooling] = useState(seedCooldown)
+  const [secondsLeft, setSecondsLeft] = useState(seedCooldown ? COOLDOWN_MS / 1000 : 0)
   const [message, setMessage] = useState<string | null>(null)
+  const cooling = secondsLeft > 0
 
   useEffect(() => {
     if (!cooling) return
-    const timer = setTimeout(() => setCooling(false), COOLDOWN_MS)
-    return () => clearTimeout(timer)
+    const timer = setInterval(() => setSecondsLeft((s) => (s <= 1 ? 0 : s - 1)), 1000)
+    return () => clearInterval(timer)
   }, [cooling])
 
   const onResend = async () => {
@@ -45,32 +46,34 @@ export function ResendConfirmationButton({
       return
     }
     setMessage('Sent — check your inbox.')
-    setCooling(true)
+    setSecondsLeft(COOLDOWN_MS / 1000)
   }
 
   return (
     <div className="space-y-1">
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={onResend}
-        disabled={pending || cooling}
-        aria-busy={pending}
-        className="w-full"
-      >
-        {pending && <LoaderCircle className="animate-spin" />}
-        Resend confirmation email
-      </Button>
-      {message ? (
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onResend}
+          disabled={pending || cooling}
+          aria-busy={pending}
+        >
+          {pending && <LoaderCircle className="animate-spin" />}
+          Resend confirmation email
+        </Button>
+        {/* aria-hidden: the disabled button already conveys "not yet"; a per-second
+            live count would spam screen readers. */}
+        {cooling && (
+          <span aria-hidden className="text-muted-foreground text-xs tabular-nums">
+            {secondsLeft}s
+          </span>
+        )}
+      </div>
+      {message && (
         <p role="status" className="text-muted-foreground text-xs">
           {message}
         </p>
-      ) : (
-        cooling && (
-          <p role="status" className="text-muted-foreground text-xs">
-            You can resend in about a minute.
-          </p>
-        )
       )}
     </div>
   )

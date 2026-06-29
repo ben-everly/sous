@@ -14,14 +14,17 @@ beforeEach(() => {
 })
 
 describe('ResendConfirmationButton', () => {
-  it('starts disabled when the cooldown is seeded, then enables after 60s', () => {
+  it('starts disabled with a live countdown when seeded, then enables after 60s', () => {
     vi.useFakeTimers()
     render(<ResendConfirmationButton email="a@b.com" seedCooldown />)
     const button = screen.getByRole('button', { name: /resend/i })
     expect(button).toBeDisabled()
-    expect(screen.getByText(/resend in about a minute/i)).toBeInTheDocument()
-    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByText('60s')).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(15_000))
+    expect(screen.getByText('45s')).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(45_000))
     expect(button).not.toBeDisabled()
+    expect(screen.queryByText(/\d+s/)).not.toBeInTheDocument()
   })
 
   // The seeded cooldown must match GoTrue's max_frequency, or the button re-enables before

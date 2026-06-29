@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -10,7 +11,7 @@ import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
-import { CheckInbox } from '@/components/auth/check-inbox'
+import { ResendConfirmationButton } from '@/components/auth/resend-confirmation-button'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import {
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/form'
 import { FormRootError } from '@/components/ui/form-root-error'
 
-export function RegisterForm() {
+export function RegisterForm({ loginHref }: { loginHref: string }) {
   const router = useRouter()
   const [sentTo, setSentTo] = useState<string | null>(null)
   const form = useForm<SignUpValues>({
@@ -60,68 +61,107 @@ export function RegisterForm() {
     }
   }
 
-  if (sentTo) {
-    return (
-      <CheckInbox
-        email={sentTo}
-        onUseDifferentEmail={() => {
-          setSentTo(null)
-          form.clearErrors('root')
-        }}
-      />
-    )
-  }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
-        <FormRootError />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" autoComplete="new-password" {...field} />
-              </FormControl>
-              {/* the error restates the rule, so keep the hint only for screen
-                readers (still in aria-describedby) */}
-              <FormDescription className={fieldState.error ? 'sr-only' : undefined}>
-                Must be at least {MIN_PASSWORD_LENGTH} characters.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm password</FormLabel>
-              <FormControl>
-                <Input type="password" autoComplete="new-password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <SubmitButton pending={pending}>Create account</SubmitButton>
-      </form>
-    </Form>
+    <div className="w-full max-w-sm space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {sentTo ? 'Check your email' : 'Create your account'}
+        </h1>
+        {!sentTo && (
+          <p className="text-muted-foreground text-sm">Start managing your kitchen with Sous.</p>
+        )}
+      </div>
+
+      {sentTo ? (
+        <div className="space-y-3 text-center text-sm">
+          <p role="status" className="text-muted-foreground">
+            We&apos;ve sent a confirmation link to{' '}
+            <span className="text-foreground font-medium">{sentTo}</span>. It can take up to a
+            minute. Check spam if you don&apos;t see it.
+          </p>
+          <ResendConfirmationButton email={sentTo} seedCooldown />
+          <button
+            type="button"
+            onClick={() => {
+              // Backing out is a fresh start, not an edit of the just-sent address.
+              setSentTo(null)
+              form.reset()
+            }}
+            className="underline underline-offset-4"
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
+              <FormRootError />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field, fieldState }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    {/* the error restates the rule, so keep the hint only for screen
+                      readers (still in aria-describedby) */}
+                    <FormDescription className={fieldState.error ? 'sr-only' : undefined}>
+                      Must be at least {MIN_PASSWORD_LENGTH} characters.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <SubmitButton pending={pending}>Create account</SubmitButton>
+            </form>
+          </Form>
+          <div className="text-muted-foreground space-y-1 text-center text-sm">
+            <p>
+              Already have an account?{' '}
+              <Link href={loginHref} className="text-foreground underline underline-offset-4">
+                Sign in
+              </Link>
+            </p>
+            <p>
+              <Link
+                href={AUTH_PATHS.forgotPassword}
+                className="text-foreground underline underline-offset-4"
+              >
+                Forgot password?
+              </Link>
+            </p>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
