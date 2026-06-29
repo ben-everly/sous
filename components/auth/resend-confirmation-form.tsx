@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/auth/schemas'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { AUTH_PATHS } from '@/lib/auth/routes'
-import { ResendConfirmationButton } from './resend-confirmation-button'
+import { AuthPanel } from '@/components/auth/auth-panel'
+import { ConfirmationSent } from '@/components/auth/confirmation-sent'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import {
@@ -39,43 +41,50 @@ export function ResendConfirmationForm() {
     setSentTo(values.email)
   }
 
-  if (sentTo) {
-    return (
-      <div className="space-y-3 text-center text-sm">
-        <p role="status" className="text-muted-foreground">
+  return (
+    <AuthPanel
+      title="Resend confirmation"
+      subtitle="Enter your email and we'll send a new confirmation link."
+      sent={!!sentTo}
+    >
+      {sentTo ? (
+        <ConfirmationSent
+          email={sentTo}
+          loginHref={AUTH_PATHS.login}
+          onUseDifferentEmail={() => setSentTo(null)}
+        >
           If an account for <span className="text-foreground font-medium">{sentTo}</span> still
           needs confirming, we&apos;ve sent a new link. Check your inbox and spam folder.
-        </p>
-        <ResendConfirmationButton email={sentTo} seedCooldown />
-        <button
-          type="button"
-          onClick={() => setSentTo(null)}
-          className="underline underline-offset-4"
-        >
-          Use a different email
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <SubmitButton pending={form.formState.isSubmitting}>Resend confirmation email</SubmitButton>
-      </form>
-    </Form>
+        </ConfirmationSent>
+      ) : (
+        <>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <SubmitButton pending={form.formState.isSubmitting}>
+                Resend confirmation email
+              </SubmitButton>
+            </form>
+          </Form>
+          <p className="text-center text-sm">
+            <Link href={AUTH_PATHS.login} className="underline underline-offset-4">
+              Back to sign in
+            </Link>
+          </p>
+        </>
+      )}
+    </AuthPanel>
   )
 }

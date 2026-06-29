@@ -92,8 +92,9 @@ describe('RegisterForm', () => {
 
   // Confirmations-on: a genuine new signup is sessionless but has identities — it must show
   // the check-inbox view, not navigate home (which the auth gate would bounce). The heading
-  // follows and the sign-in / forgot-password footer drops — you just created the account.
-  it('swaps to the check-inbox view and sheds the footer after sending', async () => {
+  // follows; the signup form footer drops (you just created the account) and the sent view
+  // offers its own "Back to sign in".
+  it('swaps to the check-inbox view and sheds the form footer after sending', async () => {
     signUp.mockResolvedValue(awaitingConfirmation)
     render(<RegisterForm loginHref="/login" />)
     fillForm()
@@ -103,8 +104,9 @@ describe('RegisterForm', () => {
     expect(screen.getByText('a@b.com')).toBeInTheDocument()
     expect(screen.getByText(/spam/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /sign in/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /back to sign in/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /forgot password/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/already have an account/i)).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
   })
 

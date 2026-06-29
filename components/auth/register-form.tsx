@@ -11,7 +11,8 @@ import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
-import { ResendConfirmationButton } from '@/components/auth/resend-confirmation-button'
+import { AuthPanel } from '@/components/auth/auth-panel'
+import { ConfirmationSent } from '@/components/auth/confirmation-sent'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
 import {
@@ -62,36 +63,25 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
   }
 
   return (
-    <div className="w-full max-w-sm space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {sentTo ? 'Check your email' : 'Create your account'}
-        </h1>
-        {!sentTo && (
-          <p className="text-muted-foreground text-sm">Start managing your kitchen with Sous.</p>
-        )}
-      </div>
-
+    <AuthPanel
+      title="Create your account"
+      subtitle="Start managing your kitchen with Sous."
+      sent={!!sentTo}
+    >
       {sentTo ? (
-        <div className="space-y-3 text-center text-sm">
-          <p role="status" className="text-muted-foreground">
-            We&apos;ve sent a confirmation link to{' '}
-            <span className="text-foreground font-medium">{sentTo}</span>. It can take up to a
-            minute. Check spam if you don&apos;t see it.
-          </p>
-          <ResendConfirmationButton email={sentTo} seedCooldown />
-          <button
-            type="button"
-            onClick={() => {
-              // Backing out is a fresh start, not an edit of the just-sent address.
-              setSentTo(null)
-              form.reset()
-            }}
-            className="underline underline-offset-4"
-          >
-            Use a different email
-          </button>
-        </div>
+        <ConfirmationSent
+          email={sentTo}
+          loginHref={loginHref}
+          onUseDifferentEmail={() => {
+            // Backing out is a fresh start, not an edit of the just-sent address.
+            setSentTo(null)
+            form.reset()
+          }}
+        >
+          We&apos;ve sent a confirmation link to{' '}
+          <span className="text-foreground font-medium">{sentTo}</span>. It can take up to a minute.
+          Check spam if you don&apos;t see it.
+        </ConfirmationSent>
       ) : (
         <>
           <Form {...form}>
@@ -162,6 +152,6 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
           </div>
         </>
       )}
-    </div>
+    </AuthPanel>
   )
 }

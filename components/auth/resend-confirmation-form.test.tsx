@@ -9,6 +9,16 @@ afterEach(cleanup)
 beforeEach(() => resend.mockReset())
 
 describe('ResendConfirmationForm', () => {
+  it('swaps the heading to the check-inbox state after sending', async () => {
+    resend.mockResolvedValue({ error: null })
+    render(<ResendConfirmationForm />)
+    expect(screen.getByRole('heading', { name: 'Resend confirmation' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /resend confirmation/i }))
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /back to sign in/i })).toBeInTheDocument()
+  })
+
   it('shows the same non-enumerating confirmation after a valid submit', async () => {
     resend.mockResolvedValue({ error: null })
     render(<ResendConfirmationForm />)
