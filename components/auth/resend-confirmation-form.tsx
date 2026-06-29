@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/client'
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/auth/schemas'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { AUTH_PATHS } from '@/lib/auth/routes'
-import { AuthPanel } from '@/components/auth/auth-panel'
 import { ConfirmationSent } from '@/components/auth/confirmation-sent'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -42,11 +41,7 @@ export function ResendConfirmationForm() {
   }
 
   return (
-    <AuthPanel
-      title="Resend confirmation"
-      subtitle="Enter your email and we'll send a new confirmation link."
-      sent={!!sentTo}
-    >
+    <div className="w-full max-w-sm space-y-6">
       {sentTo ? (
         <ConfirmationSent
           email={sentTo}
@@ -58,6 +53,12 @@ export function ResendConfirmationForm() {
         </ConfirmationSent>
       ) : (
         <>
+          <div className="space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Resend confirmation</h1>
+            <p className="text-muted-foreground text-sm">
+              Enter your email and we&apos;ll send a new confirmation link.
+            </p>
+          </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
               <FormField
@@ -85,6 +86,6 @@ export function ResendConfirmationForm() {
           </p>
         </>
       )}
-    </AuthPanel>
+    </div>
   )
 }

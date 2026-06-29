@@ -18,19 +18,28 @@ export function ConfirmationSent({
   children: ReactNode
 }) {
   return (
-    <div className="space-y-3 text-center text-sm">
-      <p role="status" className="text-muted-foreground">
-        {children}
-      </p>
-      <ResendConfirmationButton email={email} seedCooldown />
-      <button type="button" onClick={onUseDifferentEmail} className="underline underline-offset-4">
-        Use a different email
-      </button>
-      <p>
-        <Link href={loginHref} className="text-foreground underline underline-offset-4">
-          Back to sign in
-        </Link>
-      </p>
-    </div>
+    <>
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
+      </div>
+      <div className="space-y-3 text-center text-sm">
+        <p role="status" className="text-muted-foreground">
+          {children}
+        </p>
+        <ResendConfirmationButton email={email} seedCooldown />
+        <button
+          type="button"
+          onClick={onUseDifferentEmail}
+          className="underline underline-offset-4"
+        >
+          Use a different email
+        </button>
+        <p>
+          <Link href={loginHref} className="text-foreground underline underline-offset-4">
+            Back to sign in
+          </Link>
+        </p>
+      </div>
+    </>
   )
 }

@@ -14,6 +14,7 @@ describe('ConfirmationSent', () => {
         We sent a link to <span>a@b.com</span>.
       </ConfirmationSent>,
     )
+    expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument()
     expect(screen.getByText(/we sent a link to/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /use a different email/i })).toBeInTheDocument()

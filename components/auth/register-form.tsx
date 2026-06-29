@@ -11,7 +11,6 @@ import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
-import { AuthPanel } from '@/components/auth/auth-panel'
 import { ConfirmationSent } from '@/components/auth/confirmation-sent'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -63,11 +62,7 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
   }
 
   return (
-    <AuthPanel
-      title="Create your account"
-      subtitle="Start managing your kitchen with Sous."
-      sent={!!sentTo}
-    >
+    <div className="w-full max-w-sm space-y-6">
       {sentTo ? (
         <ConfirmationSent
           email={sentTo}
@@ -84,6 +79,10 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
         </ConfirmationSent>
       ) : (
         <>
+          <div className="space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
+            <p className="text-muted-foreground text-sm">Start managing your kitchen with Sous.</p>
+          </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onValid)} className="space-y-3" noValidate>
               <FormRootError />
@@ -152,6 +151,6 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
           </div>
         </>
       )}
-    </AuthPanel>
+    </div>
   )
 }
