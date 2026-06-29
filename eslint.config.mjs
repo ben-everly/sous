@@ -4,8 +4,7 @@ import nextTs from 'eslint-config-next/typescript'
 import prettier from 'eslint-config-prettier/flat'
 
 const eslintConfig = defineConfig([
-  // Nested worktrees are separate checkouts, not part of this one's source.
-  { ignores: ['.claude/worktrees/**'] },
+  { ignores: ['playwright-report/**'] },
   ...nextVitals,
   ...nextTs,
   prettier,
