@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { signInSchema, type SignInValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
-import { AUTH_PATHS } from '@/lib/auth/routes'
+import { isLoginError } from '@/lib/auth/login-errors'
+import { AUTH_PATHS, withNext } from '@/lib/auth/routes'
 import { sameOriginPath } from '@/lib/auth/same-origin-path'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ import { FormRootError } from '@/components/ui/form-root-error'
 
 export function EmailPasswordSignInForm({ next }: { next?: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
@@ -38,6 +40,10 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
       // Land on the field so a correction is one keystroke away. The root banner is role="alert",
       // announced regardless of focus.
       form.setFocus('email')
+      // A failed sign-in supersedes a page-arrival notice; drop it so it doesn't stack atop this error.
+      if (isLoginError(searchParams.get('error'))) {
+        router.replace(withNext(AUTH_PATHS.login, next))
+      }
       return
     }
     // signInWithPassword resolves before the browser leaves the page — startNavigating holds

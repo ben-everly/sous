@@ -4,9 +4,14 @@ import { EmailPasswordSignInForm } from './email-password-sign-in-form'
 
 const push = vi.fn()
 const refresh = vi.fn()
+const replace = vi.fn()
 const signInWithPassword = vi.fn()
+let searchParams = new URLSearchParams()
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, replace: vi.fn() }) }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push, refresh, replace }),
+  useSearchParams: () => searchParams,
+}))
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ auth: { signInWithPassword } }),
 }))
@@ -15,7 +20,9 @@ afterEach(cleanup)
 beforeEach(() => {
   push.mockReset()
   refresh.mockReset()
+  replace.mockReset()
   signInWithPassword.mockReset()
+  searchParams = new URLSearchParams()
 })
 
 describe('EmailPasswordSignInForm', () => {
@@ -120,5 +127,48 @@ describe('EmailPasswordSignInForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/kitchen'))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('drops a stale ?error notice on a failed sign-in, preserving next', async () => {
+    searchParams = new URLSearchParams('error=confirmation_invalid&next=/kitchen')
+    signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
+    render(<EmailPasswordSignInForm next="/kitchen" />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await screen.findByRole('alert')
+    expect(replace).toHaveBeenCalledWith('/login?next=%2Fkitchen')
+  })
+
+  it('leaves the URL alone on a failed sign-in when there is no notice', async () => {
+    signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await screen.findByRole('alert')
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('leaves the URL alone for an error value the page never renders a notice for', async () => {
+    searchParams = new URLSearchParams('error=garbage')
+    signInWithPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await screen.findByRole('alert')
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('keeps the notice when the submit fails client validation', async () => {
+    searchParams = new URLSearchParams('error=confirmation_invalid')
+    render(<EmailPasswordSignInForm />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'bad' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+    await screen.findByText(/valid email/i)
+    expect(signInWithPassword).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 })
