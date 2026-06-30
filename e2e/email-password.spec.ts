@@ -2,7 +2,13 @@ import { test, expect } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import { adminClient } from './admin-client'
 import { makeGoogleOnly, identityProviders } from './db'
-import { clearMailpit, waitForEmail, getRecoveryLink, getConfirmationLink } from './mailpit'
+import {
+  clearMailpit,
+  waitForEmail,
+  expectNoEmail,
+  getRecoveryLink,
+  getConfirmationLink,
+} from './mailpit'
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
@@ -147,5 +153,66 @@ test.describe('email/password auth', () => {
     } finally {
       await deleteUser(email)
     }
+  })
+
+  // The user is seeded unconfirmed via the admin API (which sends no mail), so the resend
+  // is the first email for this address and GoTrue's max_frequency can't throttle it.
+  test('resend confirmation delivers a working link for an unconfirmed account', async ({
+    page,
+  }) => {
+    const email = `resend-${Date.now()}@example.com`
+    await deleteUser(email)
+    await adminClient().auth.admin.createUser({ email, password: PASSWORD, email_confirm: false })
+    try {
+      await page.goto('/resend-confirmation')
+      await page.getByLabel('Email').fill(email)
+      await page.getByRole('button', { name: /resend confirmation email/i }).click()
+      await expect(page.getByText(/still needs confirming/i)).toBeVisible()
+
+      const messageId = await waitForEmail(email)
+      await page.goto(await getConfirmationLink(messageId))
+      await expect(page).toHaveURL(/\/$/)
+    } finally {
+      await deleteUser(email)
+    }
+  })
+
+  // Non-enumeration: an address with no account gets the identical "we've sent a new link"
+  // copy, yet GoTrue sends nothing — the absence of an email is the property under test.
+  test('resend confirmation stays non-enumerating for an unknown email', async ({ page }) => {
+    const email = `resend-unknown-${Date.now()}@example.com`
+    await page.goto('/resend-confirmation')
+    await page.getByLabel('Email').fill(email)
+    await page.getByRole('button', { name: /resend confirmation email/i }).click()
+    await expect(page.getByText(/still needs confirming/i)).toBeVisible()
+    await expectNoEmail(email)
+  })
+
+  // A garbage token can't burn a real account; it bounces to login with the resend nudge.
+  test('an invalid confirmation link bounces to login', async ({ page }) => {
+    await page.goto('/auth/confirm?token_hash=not-a-real-token&type=signup')
+    await expect(page).toHaveURL(/\/login\?error=confirmation_invalid/)
+    await expect(
+      page.getByRole('alert').filter({ hasText: /that confirmation link has expired/i }),
+    ).toBeVisible()
+  })
+
+  test('an invalid recovery link bounces to forgot-password', async ({ page }) => {
+    await page.goto('/reset-password?token_hash=not-a-real-token&type=recovery')
+    await expect(page).toHaveURL(/\/forgot-password\?error=recovery_invalid/)
+    await expect(
+      page.getByRole('alert').filter({ hasText: /that password-reset link has expired/i }),
+    ).toBeVisible()
+  })
+
+  // Non-enumeration on the forgot-password side: an unknown address gets the same neutral
+  // confirmation, and no reset email is sent.
+  test('forgot-password sends no email for an unknown address', async ({ page }) => {
+    const email = `forgot-unknown-${Date.now()}@example.com`
+    await page.goto('/forgot-password')
+    await page.getByLabel('Email').fill(email)
+    await page.getByRole('button', { name: /send reset link/i }).click()
+    await expect(page.getByRole('status')).toBeVisible()
+    await expectNoEmail(email)
   })
 })

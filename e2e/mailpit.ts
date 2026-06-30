@@ -17,6 +17,19 @@ export async function waitForEmail(recipient: string, timeoutMs = 15000): Promis
   throw new Error(`No email for ${recipient} within ${timeoutMs}ms`)
 }
 
+// The negative half of non-enumeration: the UI must respond identically, but GoTrue
+// genuinely sends nothing for an address with no (unconfirmed) account.
+export async function expectNoEmail(recipient: string, windowMs = 3000): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, windowMs))
+  const res = await fetch(
+    `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${recipient}`)}`,
+  )
+  const body = (await res.json()) as { messages?: { ID: string }[] }
+  if (body.messages?.length) {
+    throw new Error(`Expected no email for ${recipient}, found ${body.messages.length}`)
+  }
+}
+
 // Pull the first token_hash link whose path matches `pathFragment` out of the email body.
 async function getEmailLink(messageId: string, pathFragment: string): Promise<string> {
   const res = await fetch(`${MAILPIT_URL}/api/v1/message/${messageId}`)
