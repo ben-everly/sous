@@ -30,8 +30,8 @@ describe('LoginNotice', () => {
   it('renders an expired confirmation link assertively with a resend link (role=alert)', () => {
     render(<LoginNotice error="confirmation_invalid" />)
     const notice = screen.getByRole('alert')
-    expect(notice).toHaveTextContent(/confirmation link/i)
-    expect(screen.getByRole('link', { name: /request a new one/i })).toHaveAttribute(
+    expect(notice).toHaveTextContent(/expired or has already been used/i)
+    expect(screen.getByRole('link', { name: /request a new link/i })).toHaveAttribute(
       'href',
       '/resend-confirmation',
     )

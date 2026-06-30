@@ -26,9 +26,9 @@ const NOTICES: Record<
     action: { href: AUTH_PATHS.forgotPassword, label: 'Request a new one' },
   },
   confirmation_invalid: {
-    message: 'That confirmation link has expired or was already used.',
+    message: 'That link is expired or has already been used. Sign in or',
     tone: 'error',
-    action: { href: AUTH_PATHS.resendConfirmation, label: 'Request a new one' },
+    action: { href: AUTH_PATHS.resendConfirmation, label: 'request a new link' },
   },
 }
 
