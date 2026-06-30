@@ -2,14 +2,17 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 import { COOLDOWN_MS, ResendConfirmationButton } from './resend-confirmation-button'
 
 const resend = vi.fn()
 vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ auth: { resend } }) }))
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
 afterEach(cleanup)
 beforeEach(() => {
   resend.mockReset()
+  vi.mocked(toast.success).mockReset()
   vi.useRealTimers()
 })
 
@@ -40,11 +43,13 @@ describe('ResendConfirmationButton', () => {
     expect(Number(match![1]) * 1000).toBe(COOLDOWN_MS)
   })
 
-  it('resends and confirms when not cooling down', async () => {
+  it('toasts a success confirmation on a successful resend', async () => {
     resend.mockResolvedValue({ error: null })
     render(<ResendConfirmationButton email="a@b.com" seedCooldown={false} />)
     fireEvent.click(screen.getByRole('button', { name: /resend/i }))
-    expect(await screen.findByText(/sent/i)).toBeInTheDocument()
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith('Confirmation email sent.'))
+    // The success path also seeds the cooldown so the button can't immediately re-fire.
+    expect(screen.getByRole('button', { name: /resend/i })).toBeDisabled()
     expect(resend).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'signup',
@@ -54,5 +59,13 @@ describe('ResendConfirmationButton', () => {
         }),
       }),
     )
+  })
+
+  it('surfaces a resend error as an alert, with no success toast', async () => {
+    resend.mockResolvedValue({ error: { code: 'over_email_send_rate_limit' } })
+    render(<ResendConfirmationButton email="a@b.com" seedCooldown={false} />)
+    fireEvent.click(screen.getByRole('button', { name: /resend/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(toast.success).not.toHaveBeenCalled()
   })
 })

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
@@ -23,7 +24,7 @@ export function ResendConfirmationButton({
 }) {
   const [pending, setPending] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(seedCooldown ? COOLDOWN_MS / 1000 : 0)
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const cooling = secondsLeft > 0
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function ResendConfirmationButton({
   }, [cooling])
 
   const onResend = async () => {
-    setMessage(null)
+    setError(null)
     setPending(true)
     const { error } = await createClient().auth.resend({
       type: OTP_TYPES.signup,
@@ -42,10 +43,10 @@ export function ResendConfirmationButton({
     })
     setPending(false)
     if (error) {
-      setMessage(authErrorMessage(error))
+      setError(authErrorMessage(error))
       return
     }
-    setMessage('Sent — check your inbox.')
+    toast.success('Confirmation email sent.')
     setSecondsLeft(COOLDOWN_MS / 1000)
   }
 
@@ -70,9 +71,9 @@ export function ResendConfirmationButton({
           </span>
         )}
       </div>
-      {message && (
-        <p role="status" className="text-muted-foreground text-xs">
-          {message}
+      {error && (
+        <p role="alert" className="text-destructive text-xs">
+          {error}
         </p>
       )}
     </div>
