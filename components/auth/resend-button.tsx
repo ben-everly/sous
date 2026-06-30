@@ -3,14 +3,22 @@
 import { useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import type { AuthError } from '@supabase/supabase-js'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
-import { OTP_TYPES } from '@/lib/auth/otp-types'
-import { AUTH_PATHS } from '@/lib/auth/routes'
 import { useResendCooldown } from '@/lib/hooks/use-resend-cooldown'
 import { Button } from '@/components/ui/button'
 
-export function ResendConfirmationButton({ email }: { email: string }) {
+export function ResendButton({
+  email,
+  resend,
+  label,
+  successMessage,
+}: {
+  email: string
+  resend: () => Promise<{ error: AuthError | null }>
+  label: string
+  successMessage: string
+}) {
   const { cooling, secondsLeft, markSent } = useResendCooldown(email)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,17 +26,13 @@ export function ResendConfirmationButton({ email }: { email: string }) {
   const onResend = async () => {
     setError(null)
     setPending(true)
-    const { error } = await createClient().auth.resend({
-      type: OTP_TYPES.signup,
-      email,
-      options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
-    })
+    const { error } = await resend()
     setPending(false)
     if (error) {
       setError(authErrorMessage(error))
       return
     }
-    toast.success('Confirmation email sent.')
+    toast.success(successMessage)
     markSent()
   }
 
@@ -42,7 +46,7 @@ export function ResendConfirmationButton({ email }: { email: string }) {
         aria-busy={pending}
       >
         {pending && <LoaderCircle className="animate-spin" />}
-        {cooling ? `Resend available in ${secondsLeft}s` : 'Resend confirmation email'}
+        {cooling ? `Resend available in ${secondsLeft}s` : label}
       </Button>
       {error && (
         <p role="alert" className="text-destructive text-xs">

@@ -1,11 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { ResendConfirmationButton } from '@/components/auth/resend-confirmation-button'
+import { createClient } from '@/lib/supabase/client'
+import { OTP_TYPES } from '@/lib/auth/otp-types'
+import { AUTH_PATHS } from '@/lib/auth/routes'
+import { CheckYourInbox } from '@/components/auth/check-your-inbox'
 
-// Shared by the signup and standalone-resend flows; the copy differs per flow, so callers
-// pass it as children while everything else stays common.
 export function ConfirmationSent({
   email,
   loginHref,
@@ -18,28 +18,21 @@ export function ConfirmationSent({
   children: ReactNode
 }) {
   return (
-    <>
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
-      </div>
-      <div className="space-y-3 text-center text-sm">
-        <p role="status" className="text-muted-foreground">
-          {children}
-        </p>
-        <ResendConfirmationButton email={email} />
-        <button
-          type="button"
-          onClick={onUseDifferentEmail}
-          className="underline underline-offset-4"
-        >
-          Use a different email
-        </button>
-        <p>
-          <Link href={loginHref} className="text-foreground underline underline-offset-4">
-            Back to sign in
-          </Link>
-        </p>
-      </div>
-    </>
+    <CheckYourInbox
+      email={email}
+      loginHref={loginHref}
+      onUseDifferentEmail={onUseDifferentEmail}
+      resend={() =>
+        createClient().auth.resend({
+          type: OTP_TYPES.signup,
+          email,
+          options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
+        })
+      }
+      resendLabel="Resend confirmation email"
+      resendSuccessMessage="Confirmation email sent."
+    >
+      {children}
+    </CheckYourInbox>
   )
 }

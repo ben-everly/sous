@@ -8,7 +8,10 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ auth: { resetPasswordForEmail } }),
 }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  localStorage.clear()
+})
 beforeEach(() => resetPasswordForEmail.mockReset())
 
 describe('ForgotPasswordForm', () => {
@@ -26,6 +29,8 @@ describe('ForgotPasswordForm', () => {
     )
     const call = resetPasswordForEmail.mock.calls[0]
     expect(call[1].redirectTo).not.toContain('/auth/callback')
+    // Disabled because the send just seeded the cooldown.
+    expect(screen.getByRole('button', { name: /resend/i })).toBeDisabled()
   })
 
   it('shows the entered email and offers a way back to the form', async () => {

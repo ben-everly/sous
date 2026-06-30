@@ -193,7 +193,7 @@ test.describe('email/password auth', () => {
     await page.goto('/auth/confirm?token_hash=not-a-real-token&type=signup')
     await expect(page).toHaveURL(/\/login\?error=confirmation_invalid/)
     await expect(
-      page.getByRole('alert').filter({ hasText: /that confirmation link has expired/i }),
+      page.getByRole('alert').filter({ hasText: /that link is expired or has already been used/i }),
     ).toBeVisible()
   })
 
