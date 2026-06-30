@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { signUpSchema, MIN_PASSWORD_LENGTH, type SignUpValues } from '@/lib/auth/schemas'
 import { authErrorMessage } from '@/lib/auth/auth-errors'
 import { classifySignupResult } from '@/lib/auth/signup'
+import { markResendSent } from '@/lib/auth/resend-cooldown'
 import { AUTH_PATHS } from '@/lib/auth/routes'
 import { useNavigatingSubmit } from '@/lib/hooks/use-navigating-submit'
 import { ConfirmationSent } from '@/components/auth/confirmation-sent'
@@ -56,6 +57,7 @@ export function RegisterForm({ loginHref }: { loginHref: string }) {
         router.refresh()
         return
       case 'awaiting_confirmation':
+        markResendSent(values.email)
         setSentTo(values.email)
         return
     }

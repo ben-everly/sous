@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/auth/schemas'
 import { OTP_TYPES } from '@/lib/auth/otp-types'
 import { AUTH_PATHS } from '@/lib/auth/routes'
+import { useResendCooldown } from '@/lib/hooks/use-resend-cooldown'
 import { ConfirmationSent } from '@/components/auth/confirmation-sent'
 import { Input } from '@/components/ui/input'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -26,6 +27,10 @@ export function ResendConfirmationForm() {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   })
+  // Guard the submit by the email currently typed, so backing out and resubmitting the same
+  // address respects the cooldown instead of firing a send GoTrue would throttle.
+  const email = useWatch({ control: form.control, name: 'email' })
+  const { cooling, secondsLeft, markSent } = useResendCooldown(email)
 
   const onValid = async (values: ForgotPasswordValues) => {
     // Fire and ignore the result: a non-enumerating affordance must respond identically
@@ -37,6 +42,9 @@ export function ResendConfirmationForm() {
         options: { emailRedirectTo: `${window.location.origin}${AUTH_PATHS.confirm}` },
       })
       .catch(() => {})
+    // Mark unconditionally (the result was ignored above): a per-outcome cooldown would leak
+    // whether the address had an account, defeating the non-enumeration this form exists for.
+    markSent()
     setSentTo(values.email)
   }
 
@@ -74,8 +82,8 @@ export function ResendConfirmationForm() {
                   </FormItem>
                 )}
               />
-              <SubmitButton pending={form.formState.isSubmitting}>
-                Resend confirmation email
+              <SubmitButton pending={form.formState.isSubmitting} disabled={cooling}>
+                {cooling ? `Resend available in ${secondsLeft}s` : 'Resend confirmation email'}
               </SubmitButton>
             </form>
           </Form>

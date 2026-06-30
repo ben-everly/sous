@@ -11,7 +11,10 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ auth: { signUp, resend: vi.fn() } }),
 }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  sessionStorage.clear()
+})
 beforeEach(() => {
   push.mockReset()
   refresh.mockReset()
@@ -103,7 +106,9 @@ describe('RegisterForm', () => {
     expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument()
     expect(screen.getByText('a@b.com')).toBeInTheDocument()
     expect(screen.getByText(/spam/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /resend/i })).toBeInTheDocument()
+    // Signup seeds the cooldown, so the resend button arrives already disabled (no premature
+    // re-send within GoTrue's window).
+    expect(screen.getByRole('button', { name: /resend/i })).toBeDisabled()
     expect(screen.getByRole('link', { name: /back to sign in/i })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /forgot password/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/already have an account/i)).not.toBeInTheDocument()

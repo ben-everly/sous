@@ -26,7 +26,7 @@ export function ConfirmationSent({
         <p role="status" className="text-muted-foreground">
           {children}
         </p>
-        <ResendConfirmationButton email={email} seedCooldown />
+        <ResendConfirmationButton email={email} />
         <button
           type="button"
           onClick={onUseDifferentEmail}
