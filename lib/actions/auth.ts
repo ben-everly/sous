@@ -11,7 +11,11 @@ export async function backfillEmailIdentity(): Promise<void> {
     const {
       data: { user },
     } = await (await createClient()).auth.getUser()
-    if (user) await ensureEmailIdentity(user, adminClient())
+    if (user && (await ensureEmailIdentity(user, adminClient()))) {
+      // [audit] channel: service-role / RLS-bypass writes, info-level + tagged so observability
+      // can route them apart from request logs and errors. Fires only on a real mutation.
+      console.info('[audit] materialized email identity', { userId: user.id })
+    }
   } catch (error) {
     console.error('email identity backfill failed:', error instanceof Error ? error.message : error)
   }
