@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase/client', () => ({
 
 afterEach(() => {
   cleanup()
-  sessionStorage.clear()
+  localStorage.clear()
 })
 beforeEach(() => {
   push.mockReset()

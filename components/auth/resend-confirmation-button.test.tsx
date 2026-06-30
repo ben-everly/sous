@@ -10,7 +10,7 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
 afterEach(() => {
   cleanup()
-  sessionStorage.clear()
+  localStorage.clear()
 })
 beforeEach(() => {
   resend.mockReset()

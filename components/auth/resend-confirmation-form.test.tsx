@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ auth: { resend 
 
 afterEach(() => {
   cleanup()
-  sessionStorage.clear()
+  localStorage.clear()
 })
 beforeEach(() => resend.mockReset())
 

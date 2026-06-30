@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { COOLDOWN_MS, markResendSent, resendCooldownRemainingMs } from '@/lib/auth/resend-cooldown'
 
-afterEach(() => sessionStorage.clear())
+afterEach(() => localStorage.clear())
 
 describe('resend cooldown store', () => {
   it('returns no remaining time for an address that was never sent to', () => {
