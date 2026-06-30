@@ -3,9 +3,7 @@ import { z } from 'zod'
 
 export const env = createEnv({
   server: {
-    // Optional so builds without it (prod before email/password ships, SIDE-135)
-    // stay green; the admin client throws at call time when it's actually needed.
-    SUPABASE_SECRET_KEY: z.string().min(1).optional(),
+    SUPABASE_SECRET_KEY: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.url(),
