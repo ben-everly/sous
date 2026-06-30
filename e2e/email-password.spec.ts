@@ -144,7 +144,6 @@ test.describe('email/password auth', () => {
       // The backfill action added the email identity alongside the existing google one.
       await expect.poll(() => identityProviders(created.user.id)).toEqual(['email', 'google'])
 
-      // The newly set password works for email/password sign-in.
       const { data: signIn } = await createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,

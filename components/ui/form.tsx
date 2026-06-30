@@ -72,8 +72,7 @@ const FormItemContext = React.createContext<FormItemContextValue>({} as FormItem
 
 function FormItem({ className, children, ...props }: React.ComponentProps<'div'>) {
   const id = React.useId()
-  // Detect the description at render time so FormControl wires aria-describedby to it on the
-  // first paint; only a direct FormDescription child counts.
+  // Detect the description at render time so FormControl wires aria-describedby on first paint.
   const hasDescription = React.Children.toArray(children).some(
     (child) => React.isValidElement(child) && child.type === FormDescription,
   )

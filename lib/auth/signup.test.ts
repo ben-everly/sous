@@ -7,8 +7,7 @@ import { classifySignupResult } from './signup'
 const result = (data: any) => classifySignupResult(data)
 
 describe('classifySignupResult', () => {
-  // GoTrue obfuscates a signup for an already-registered email as a user with an empty
-  // identities array (independent of the confirmations setting).
+  // Independent of the confirmations setting.
   it("is 'existing' when identities is empty (obfuscated duplicate)", () => {
     expect(result({ user: { identities: [] }, session: null })).toBe('existing')
   })
@@ -19,7 +18,6 @@ describe('classifySignupResult', () => {
     )
   })
 
-  // Confirmations on: a genuine new signup is sessionless but has identities.
   it("is 'awaiting_confirmation' for a new signup with identities and no session", () => {
     expect(result({ user: { identities: [{ id: '1' }] }, session: null })).toBe(
       'awaiting_confirmation',

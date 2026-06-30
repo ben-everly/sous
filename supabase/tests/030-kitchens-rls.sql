@@ -1,4 +1,3 @@
--- Locks the kitchens RLS + invariant contract.
 begin;
 
 -- Seed two users; on_auth_user_created bootstraps one nameless kitchen for each.
@@ -14,7 +13,6 @@ select ok(
   'RLS is enabled on public.kitchens'
 );
 
--- Act as Alice.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -137,7 +135,6 @@ select is(
   'Alice cannot update Bob''s kitchen'
 );
 
--- Alice can delete her own kitchen.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -151,7 +148,6 @@ select is(
   'Alice can delete her own kitchen'
 );
 
--- Bob sees only his own kitchen.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',

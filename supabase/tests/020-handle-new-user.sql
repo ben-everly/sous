@@ -1,4 +1,3 @@
--- Locks the handle_new_user bootstrap contract.
 begin;
 
 select plan(36);
@@ -16,7 +15,7 @@ select is(
   'no auth_hooks function is executable by anon'
 );
 
--- The pure sanitizers the trigger reuses, tested directly (jsonb in → text out).
+-- The pure sanitizers the trigger reuses, tested directly.
 select is(
   auth_hooks.sanitize_meta_name('{"full_name": "Grace Hopper"}'::jsonb),
   'Grace Hopper',

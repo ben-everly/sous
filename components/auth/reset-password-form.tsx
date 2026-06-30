@@ -97,10 +97,9 @@ export function ResetPasswordForm() {
       form.setError('root', { message: authErrorMessage(error) })
       return
     }
-    // Backfill the email identity for first-password users (e.g. Google-only; see
-    // backfillEmailIdentity), then go home. A full navigation, not router.push: a Server
-    // Action refreshes its caller route and would clobber a soft client navigation. The
-    // backfill is best-effort and the password is already set, so never block the redirect.
+    // A full navigation, not router.push: a Server Action refreshes its caller route and would
+    // clobber a soft client navigation. The backfill is best-effort and the password is already
+    // set, so never block the redirect.
     await backfillEmailIdentity().catch(() => {})
     startNavigating()
     window.location.assign('/')

@@ -61,7 +61,6 @@ describe('ResetPasswordForm', () => {
     render(<ResetPasswordForm />)
     expect(await screen.findByLabelText('New password', { exact: true })).toBeInTheDocument()
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'abc', type: 'recovery' })
-    // The spent token is stripped from the URL once consumed.
     expect(replace).toHaveBeenCalledWith('/reset-password')
   })
 
@@ -134,7 +133,7 @@ describe('ResetPasswordForm', () => {
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/8 characters/i)
-    // A non-session failure shows inline; it must not bounce to recovery_invalid.
+    // Must not bounce to recovery_invalid like a dead session would.
     expect(replace).not.toHaveBeenCalledWith('/forgot-password?error=recovery_invalid')
   })
 })

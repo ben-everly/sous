@@ -139,7 +139,6 @@ describe('KitchensManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House' }))
     fireEvent.click(await screen.findByRole('button', { name: /^Delete$/ }))
 
-    // Optimistically removed, then restored on failure — the row survives and we toast.
     await waitFor(() =>
       expect(mocks.toastError).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
     )

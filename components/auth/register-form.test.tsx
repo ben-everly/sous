@@ -70,7 +70,6 @@ describe('RegisterForm', () => {
     expect(screen.getByLabelText('Password', { exact: true })).toHaveAccessibleDescription(
       'Must be at least 8 characters.',
     )
-    // Email has no description and no error, so it must not reference a non-existent element.
     expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-describedby')
   })
 
@@ -79,7 +78,6 @@ describe('RegisterForm', () => {
     fillForm('a@b.com', 'short')
     submit()
     expect(await screen.findByText('Password must be at least 8 characters.')).toBeInTheDocument()
-    // The hint is visually hidden but stays in the accessible description alongside the error.
     expect(screen.getByText('Must be at least 8 characters.')).toHaveClass('sr-only')
     expect(screen.getByLabelText('Password', { exact: true })).toHaveAccessibleDescription(
       /Must be at least 8 characters\./,
@@ -93,10 +91,8 @@ describe('RegisterForm', () => {
     expect(screen.getByRole('link', { name: /forgot password/i })).toBeInTheDocument()
   })
 
-  // Confirmations-on: a genuine new signup is sessionless but has identities — it must show
-  // the check-inbox view, not navigate home (which the auth gate would bounce). The heading
-  // follows; the signup form footer drops (you just created the account) and the sent view
-  // offers its own "Back to sign in".
+  // A genuine new signup is sessionless but has identities — it must show the check-inbox
+  // view, not navigate home (the auth gate would bounce that).
   it('swaps to the check-inbox view and sheds the form footer after sending', async () => {
     signUp.mockResolvedValue(awaitingConfirmation)
     render(<RegisterForm loginHref="/login" />)
@@ -124,7 +120,6 @@ describe('RegisterForm', () => {
     fireEvent.click(await screen.findByRole('button', { name: /different email/i }))
     expect(screen.getByRole('heading', { name: 'Create your account' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument()
-    // Backing out resets the form rather than pre-filling the just-sent address.
     expect(screen.getByLabelText('Email')).toHaveValue('')
     expect(screen.getByLabelText('Password', { exact: true })).toHaveValue('')
   })

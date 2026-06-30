@@ -1,4 +1,3 @@
--- Locks the profiles RLS contract.
 begin;
 
 -- Seed two users; the on_auth_user_created trigger bootstraps their profiles.
@@ -14,7 +13,6 @@ select ok(
   'RLS is enabled on public.profiles'
 );
 
--- Act as Alice.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -77,7 +75,6 @@ select is(
   'Alice cannot update Bob''s profile'
 );
 
--- Act as Bob.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',

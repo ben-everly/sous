@@ -43,7 +43,6 @@ describe('ResendButton', () => {
     fireEvent.click(screen.getByRole('button', { name: /resend/i }))
     await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith('Confirmation email sent.'))
     expect(resend).toHaveBeenCalledOnce()
-    // The success path also seeds the cooldown so the button can't immediately re-fire.
     expect(screen.getByRole('button', { name: /resend/i })).toBeDisabled()
   })
 

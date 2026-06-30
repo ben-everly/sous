@@ -43,8 +43,7 @@ describe('ResendConfirmationForm', () => {
     expect(await screen.findByText(/if an account/i)).toBeInTheDocument()
   })
 
-  // The cooldown is keyed by email and persisted, so backing out and resubmitting the same
-  // address is blocked — it can't fire a send GoTrue would silently throttle.
+  // The cooldown is persisted, so backing out doesn't reset it.
   it('blocks resubmitting the same address during the cooldown after backing out', async () => {
     resend.mockResolvedValue({ error: null })
     render(<ResendConfirmationForm />)

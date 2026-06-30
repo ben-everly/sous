@@ -8,26 +8,22 @@ test.describe('kitchens', () => {
   test('manage kitchens from settings', async ({ page }) => {
     await page.goto('/')
 
-    // Reach the kitchens page via the avatar dropdown.
     await page.getByText(TEST_USER.fullName).click()
     await page.getByRole('menuitem', { name: /settings/i }).click()
     await expect(page).toHaveURL(/\/settings\/kitchens$/)
     await expect(page.getByText(ownerKitchen)).toBeVisible()
 
-    // Create a named kitchen via a draft row.
     await page.getByRole('button', { name: 'Add kitchen' }).click()
     await page.getByLabel('New kitchen name').fill('Beach House')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('Beach House')).toBeVisible()
 
-    // Rename it.
     await page.getByRole('button', { name: 'Rename Beach House' }).click()
     await page.getByLabel('Kitchen name', { exact: true }).fill('Lake House')
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByText('Lake House')).toBeVisible()
     await expect(page.getByText('Beach House')).toHaveCount(0)
 
-    // Delete it.
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText('Lake House')).toHaveCount(0)

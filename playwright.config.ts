@@ -5,12 +5,11 @@ import { defineConfig, devices } from '@playwright/test'
 try {
   process.loadEnvFile('.env')
 } catch {
-  // No .env — rely on the ambient environment (CI).
+  // missing .env is fine — see above
 }
 
 const authFile = 'e2e/.auth/user.json'
 
-// Default to 3000; override with PORT when it's taken by another local service.
 const port = process.env.PORT ?? '3000'
 const baseURL = `http://localhost:${port}`
 

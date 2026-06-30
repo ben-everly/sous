@@ -37,8 +37,7 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
     const { error } = await createClient().auth.signInWithPassword(values)
     if (error) {
       form.setError('root', { message: authErrorMessage(error) })
-      // Land on the field so a correction is one keystroke away. The root banner is role="alert",
-      // announced regardless of focus.
+      // Land on the field so a correction is one keystroke away.
       form.setFocus('email')
       // A failed sign-in supersedes a page-arrival notice; drop it so it doesn't stack atop this error.
       if (isLoginError(searchParams.get('error'))) {
