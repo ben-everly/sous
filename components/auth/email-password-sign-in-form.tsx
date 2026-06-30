@@ -95,11 +95,12 @@ export function EmailPasswordSignInForm({ next }: { next?: string }) {
         {/* Gate on any failure, never on the error code: keying this to email_not_confirmed
             would reveal that the account exists but is unconfirmed. */}
         {form.formState.errors.root && (
-          <p className="text-muted-foreground text-center text-sm">
-            Need to confirm your email?{' '}
+          <p className="text-center text-sm">
+            Just signed up? Confirm your email to finish.{' '}
             <Link href={AUTH_PATHS.resendConfirmation} className="underline underline-offset-4">
               Resend confirmation
             </Link>
+            .
           </p>
         )}
       </form>
