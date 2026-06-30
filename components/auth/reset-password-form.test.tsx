@@ -37,8 +37,8 @@ beforeEach(() => {
 })
 
 describe('ResetPasswordForm', () => {
-  // The P2 fix: a normal logged-in session with no recovery token in the URL must
-  // never reach the form — token presence + verifyOtp is the gate, not session presence.
+  // A normal logged-in session with no recovery token in the URL must never reach the
+  // form — token presence + verifyOtp is the gate, not session presence.
   it('redirects to forgot-password when there is no recovery token in the URL', async () => {
     search = new URLSearchParams()
     render(<ResetPasswordForm />)

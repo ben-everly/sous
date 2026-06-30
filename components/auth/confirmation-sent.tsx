@@ -4,8 +4,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ResendConfirmationButton } from '@/components/auth/resend-confirmation-button'
 
-// The post-send "check your email" body, shared by the signup and standalone-resend flows.
-// The message copy differs per flow, so callers pass it as children; everything else is common.
+// Shared by the signup and standalone-resend flows; the copy differs per flow, so callers
+// pass it as children while everything else stays common.
 export function ConfirmationSent({
   email,
   loginHref,

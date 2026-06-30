@@ -2,8 +2,7 @@ import { Suspense } from 'react'
 import { ConfirmEmail } from '@/components/auth/confirm-email'
 import { Spinner } from '@/components/ui/spinner'
 
-// A page, not a route handler: ConfirmEmail consumes the single-use token client-side so a
-// mail scanner's prefetch GET can't burn it before the user clicks (see ConfirmEmail).
+// A page, not a route handler, so the token is consumed client-side — see ConfirmEmail for why.
 export default function ConfirmEmailPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
