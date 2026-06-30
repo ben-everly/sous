@@ -34,25 +34,16 @@ export function ResendConfirmationButton({ email }: { email: string }) {
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onResend}
-          disabled={pending || cooling}
-          aria-busy={pending}
-        >
-          {pending && <LoaderCircle className="animate-spin" />}
-          Resend confirmation email
-        </Button>
-        {/* aria-hidden: the disabled button already conveys "not yet"; a per-second
-            live count would spam screen readers. */}
-        {cooling && (
-          <span aria-hidden className="text-muted-foreground text-xs tabular-nums">
-            {secondsLeft}s
-          </span>
-        )}
-      </div>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onResend}
+        disabled={pending || cooling}
+        aria-busy={pending}
+      >
+        {pending && <LoaderCircle className="animate-spin" />}
+        {cooling ? `Resend available in ${secondsLeft}s` : 'Resend confirmation email'}
+      </Button>
       {error && (
         <p role="alert" className="text-destructive text-xs">
           {error}

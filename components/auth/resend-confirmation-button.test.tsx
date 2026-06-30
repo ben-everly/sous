@@ -25,12 +25,13 @@ describe('ResendConfirmationButton', () => {
     render(<ResendConfirmationButton email="a@b.com" />)
     const button = screen.getByRole('button', { name: /resend/i })
     expect(button).toBeDisabled()
-    expect(screen.getByText('60s')).toBeInTheDocument()
+    expect(button).toHaveTextContent(/available in 60s/i)
     act(() => vi.advanceTimersByTime(15_000))
-    expect(screen.getByText('45s')).toBeInTheDocument()
+    expect(button).toHaveTextContent(/available in 45s/i)
     act(() => vi.advanceTimersByTime(45_000))
     expect(button).not.toBeDisabled()
-    expect(screen.queryByText(/\d+s/)).not.toBeInTheDocument()
+    expect(button).toHaveTextContent('Resend confirmation email')
+    expect(button).not.toHaveTextContent(/available in/i)
   })
 
   it('toasts a success confirmation on a successful resend', async () => {
