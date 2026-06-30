@@ -216,3 +216,18 @@ test.describe('email/password auth', () => {
     await expectNoEmail(email)
   })
 })
+
+// secure_password_change is off, so GoTrue won't distinguish a recovery session from any
+// other — the client token gate is the only thing keeping a logged-in user out of the form.
+test.describe('reset-password authorization', () => {
+  test.use({ storageState: 'e2e/.auth/user.json' })
+
+  test('an authenticated session without a recovery token cannot reach the reset form', async ({
+    page,
+  }) => {
+    await page.goto('/reset-password')
+    // No token → recovery_invalid → forgot-password bounces an authed user home.
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0)
+  })
+})
