@@ -54,7 +54,7 @@ export function ResendConfirmationButton({
       <div className="flex items-center justify-center gap-2">
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           onClick={onResend}
           disabled={pending || cooling}
           aria-busy={pending}
