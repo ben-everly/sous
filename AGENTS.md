@@ -38,6 +38,7 @@ This document serves as the core set of instructions and architectural rules for
 - **Domain logic lives apart from the UI**: Business rules, data access, validation, and contracts go in framework-agnostic modules (`lib/services/`, query functions, Zod schemas, `lib/auth/login-errors.ts`) — no UI-framework imports (React/Next/`react-dom`). Components stay thin: call that layer and render. The payoff is logic that is unit-testable in isolation and portable across renderers — a web (DOM) UI and a future React Native UI never share components, but both sit on the same core.
 - **Guard the client/server boundary**: A module that touches secrets or server-only APIs (`next/headers`, `next/cache`, `createServerClient`) must start with `import 'server-only'`, so an accidental client import fails the build instead of leaking to the browser. Client-exposed config must use a `NEXT_PUBLIC_` prefix (validated in `lib/env.ts`); unprefixed secrets stay server-side.
 - **Styling**: Use strictly Tailwind CSS utility classes and `shadcn/ui` components. Do not create custom `.css` or `.scss` files unless absolutely necessary for a global reset.
+- **Forms**: Build forms with `react-hook-form` + `zodResolver` on the shadcn `Form` primitives — the established house pattern. Don't hand-roll form state or introduce a second forms library.
 - **Backend**: Supabase (Postgres with RLS, Supabase Auth).
 - **AI**: Vercel AI SDK with strict Zod schemas for structured extraction.
 - **Testing**: Vitest (unit/integration), Playwright (E2E), pgTAP (database).
