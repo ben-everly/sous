@@ -50,17 +50,18 @@ export async function renameKitchen(supabase: Client, id: string, name: string):
 }
 
 // security-invoker RPC: RLS scopes the update to the owner; the deleted_at guard makes a wrong-state
-// call a no-op. The function returns the row (or null when nothing matched) — null = failure.
-export async function softDeleteKitchen(supabase: Client, id: string): Promise<boolean> {
+// call a no-op. Returns the affected row so the caller gets the DB's authoritative deleted_at; null
+// (no row matched, or an error) = failure.
+export async function softDeleteKitchen(supabase: Client, id: string): Promise<Kitchen | null> {
   const { data, error } = await supabase.rpc('soft_delete_kitchen', { kitchen_id: id })
   if (error) console.error('softDeleteKitchen failed:', error.message)
-  return !error && data !== null
+  return error ? null : data
 }
 
-export async function restoreKitchen(supabase: Client, id: string): Promise<boolean> {
+export async function restoreKitchen(supabase: Client, id: string): Promise<Kitchen | null> {
   const { data, error } = await supabase.rpc('restore_kitchen', { kitchen_id: id })
   if (error) console.error('restoreKitchen failed:', error.message)
-  return !error && data !== null
+  return error ? null : data
 }
 
 // Permanent, irreversible delete. FK on delete cascade will handle future child rows.

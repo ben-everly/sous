@@ -124,12 +124,17 @@ export function useKitchens() {
     try {
       setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
       setDeleted((d) => (d === null ? d : insertSorted(d, trashed, byDeletedAtDesc)))
-      if (!(await softDeleteKitchen(supabase, kitchen.id))) {
+      const row = await softDeleteKitchen(supabase, kitchen.id)
+      if (!row) {
         setKitchens((ks) => insertSorted(ks, kitchen, byCreatedThenId))
         setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
         toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
         return
       }
+      // Replace the optimistic client stamp with the DB's authoritative deleted_at.
+      setDeleted((d) =>
+        d === null ? d : d.map((k) => (k.id === row.id ? { ...k, deleted_at: row.deleted_at } : k)),
+      )
       toast('Kitchen moved to trash', {
         duration: 8000,
         action: { label: 'Undo', onClick: () => restore(trashed) },

@@ -130,28 +130,26 @@ describe('renameKitchen / purgeKitchen', () => {
 })
 
 describe('softDeleteKitchen / restoreKitchen', () => {
-  it('call the matching RPC with the kitchen id and return true on a returned row', async () => {
-    const { supabase, rpcArg } = clientReturning({
-      data: { id: 'k1', name: null, created_at: '2026-01-01', deleted_at: '2026-02-01' },
-      error: null,
-    })
-    expect(await softDeleteKitchen(supabase, 'k1')).toBe(true)
+  it('call the matching RPC with the kitchen id and return the affected row', async () => {
+    const row = { id: 'k1', name: null, created_at: '2026-01-01', deleted_at: '2026-02-01' }
+    const { supabase, rpcArg } = clientReturning({ data: row, error: null })
+    expect(await softDeleteKitchen(supabase, 'k1')).toEqual(row)
     expect(rpcArg).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
-    expect(await restoreKitchen(supabase, 'k1')).toBe(true)
+    expect(await restoreKitchen(supabase, 'k1')).toEqual(row)
     expect(rpcArg).toHaveBeenCalledWith('restore_kitchen', { kitchen_id: 'k1' })
   })
 
-  it('return false when the RPC returns no row (wrong state / not owned)', async () => {
+  it('return null when the RPC returns no row (wrong state / not owned)', async () => {
     const { supabase } = clientReturning({ data: null, error: null })
-    expect(await softDeleteKitchen(supabase, 'k1')).toBe(false)
-    expect(await restoreKitchen(supabase, 'k1')).toBe(false)
+    expect(await softDeleteKitchen(supabase, 'k1')).toBeNull()
+    expect(await restoreKitchen(supabase, 'k1')).toBeNull()
   })
 
-  it('return false and log when the RPC errors', async () => {
+  it('return null and log when the RPC errors', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
-    expect(await softDeleteKitchen(supabase, 'k1')).toBe(false)
-    expect(await restoreKitchen(supabase, 'k1')).toBe(false)
+    expect(await softDeleteKitchen(supabase, 'k1')).toBeNull()
+    expect(await restoreKitchen(supabase, 'k1')).toBeNull()
     expect(spy).toHaveBeenCalledTimes(2)
     spy.mockRestore()
   })

@@ -152,15 +152,16 @@ describe('useKitchens', () => {
     })
     await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
-    mocks.results.rpc = { data: beach, error: null }
+    const serverStamp = '2026-02-01T00:00:00.000Z'
+    mocks.results.rpc = { data: { ...beach, deleted_at: serverStamp }, error: null }
     await act(async () => {
       await result.current.softDelete(beach)
     })
 
     expect(result.current.deleted).toHaveLength(1)
     expect(result.current.deleted![0].id).toBe('k1')
-    expect(result.current.deleted![0].deleted_at).not.toBeNull()
-    expect(typeof result.current.deleted![0].deleted_at).toBe('string')
+    // Reconciled to the DB's deleted_at, not the client clock.
+    expect(result.current.deleted![0].deleted_at).toBe(serverStamp)
     expect(result.current.kitchens).toEqual([])
   })
 
@@ -175,7 +176,9 @@ describe('useKitchens', () => {
     // 'a' deletes cleanly; 'b' fails. Fire both from the same render's closures, before either
     // resolves, so a by-value rollback would restore a stale [a, b] snapshot and revive 'a'.
     mocks.results.rpc = ({ kitchen_id }) =>
-      kitchen_id === 'b' ? { data: null, error: { message: 'boom' } } : { data: a, error: null }
+      kitchen_id === 'b'
+        ? { data: null, error: { message: 'boom' } }
+        : { data: { ...a, deleted_at: '2026-03-01T00:00:00.000Z' }, error: null }
     const softDelete = result.current.softDelete
     await act(async () => {
       await Promise.all([softDelete(a), softDelete(b)])
@@ -201,7 +204,9 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     mocks.results.rpc = ({ kitchen_id }) =>
-      kitchen_id === 'b' ? { data: null, error: { message: 'boom' } } : { data: a, error: null }
+      kitchen_id === 'b'
+        ? { data: null, error: { message: 'boom' } }
+        : { data: { ...a, deleted_at: '2026-03-01T00:00:00.000Z' }, error: null }
     const softDelete = result.current.softDelete
     await act(async () => {
       await Promise.all([softDelete(a), softDelete(b)])
