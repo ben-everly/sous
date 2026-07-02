@@ -2,3 +2,4 @@ package-lock.json
 types/database.types.ts
 .claude/worktrees/
 docs/superpowers/
+.superpowers/

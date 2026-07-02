@@ -29,7 +29,6 @@ export async function createKitchen(supabase: Client, name: string): Promise<Cre
 }
 
 // .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
-// A real error is logged; a zero-row match is an expected outcome, so it stays silent.
 export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('kitchens')

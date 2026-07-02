@@ -47,6 +47,8 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+      # Placeholder: the build validates env but never uses the service-role key (no admin calls at build time).
+      SUPABASE_SECRET_KEY: sb_secret_build_placeholder
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

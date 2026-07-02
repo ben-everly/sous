@@ -16,4 +16,24 @@ describe('LoginNotice', () => {
     const notice = screen.getByRole('status')
     expect(notice).toHaveTextContent(/cancelled/i)
   })
+
+  it('renders an expired recovery link assertively with a reset link (role=alert)', () => {
+    render(<LoginNotice error="recovery_invalid" />)
+    const notice = screen.getByRole('alert')
+    expect(notice).toHaveTextContent(/reset link/i)
+    expect(screen.getByRole('link', { name: /request a new one/i })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    )
+  })
+
+  it('renders an expired confirmation link assertively with a resend link (role=alert)', () => {
+    render(<LoginNotice error="confirmation_invalid" />)
+    const notice = screen.getByRole('alert')
+    expect(notice).toHaveTextContent(/expired or has already been used/i)
+    expect(screen.getByRole('link', { name: /request a new link/i })).toHaveAttribute(
+      'href',
+      '/resend-confirmation',
+    )
+  })
 })
