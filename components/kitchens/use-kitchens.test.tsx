@@ -271,12 +271,13 @@ describe('useKitchens', () => {
     })
     await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
-    mocks.results.delete = { data: null, error: { message: 'boom' } }
+    mocks.results.rpc = { data: null, error: { message: 'boom' } }
     await act(async () => {
       await result.current.purge(trashed)
     })
 
     expect(result.current.deleted!.some((k) => k.id === 'k1')).toBe(true)
+    expect(mocks.rpcSpy).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
     expect(mocks.toast.error).toHaveBeenCalledWith(
       'Couldn\'t permanently delete "Beach House". It\'s still in your trash.',
     )

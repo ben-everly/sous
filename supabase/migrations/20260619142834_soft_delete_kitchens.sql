@@ -29,7 +29,17 @@ language sql security invoker set search_path = '' as $$
   returning *;
 $$;
 
+-- Permanent, irreversible delete. The deleted_at guard makes purging a live row a no-op, so the
+-- "only trashed kitchens can be purged" invariant is enforced here, not just in the UI.
+create function public.purge_kitchen(kitchen_id uuid)
+returns public.kitchens
+language sql security invoker set search_path = '' as $$
+  delete from public.kitchens
+   where id = kitchen_id and deleted_at is not null
+  returning *;
+$$;
+
 -- Defense in depth: functions grant execute to PUBLIC (incl. anon) by default. Deny anon at the
 -- execute layer too, matching the never-anon contract on the kitchens table (see 20260611201503).
-revoke execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid) from public;
-grant execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid) to authenticated;
+revoke execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid), public.purge_kitchen(uuid) from public;
+grant execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid), public.purge_kitchen(uuid) to authenticated;

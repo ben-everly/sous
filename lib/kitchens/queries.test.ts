@@ -13,6 +13,16 @@ import {
 
 type Resp = { data: unknown; error: { code?: string; message?: string } | null }
 
+// PostgREST serializes a zero-row `returns public.kitchens` RPC as an all-null object, not JSON null.
+const ALL_NULL_ROW = {
+  id: null,
+  owner_id: null,
+  name: null,
+  created_at: null,
+  updated_at: null,
+  deleted_at: null,
+}
+
 function clientReturning(resp: Resp) {
   const insertArg = vi.fn()
   const updateArg = vi.fn()
@@ -115,9 +125,12 @@ describe('renameKitchen / purgeKitchen', () => {
 
   it('return false without logging when no row matched (RLS-filtered or stale id)', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { supabase } = clientReturning({ data: null, error: null })
-    expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
-    expect(await purgeKitchen(supabase, 'k1')).toBe(false)
+    // rename is a table update: a 0-row match resolves to null via maybeSingle().
+    const rename = clientReturning({ data: null, error: null })
+    expect(await renameKitchen(rename.supabase, 'k1', 'New')).toBe(false)
+    // purge is a composite RPC: a 0-row match comes back as an all-null object, not null.
+    const purge = clientReturning({ data: ALL_NULL_ROW, error: null })
+    expect(await purgeKitchen(purge.supabase, 'k1')).toBe(false)
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
@@ -139,8 +152,8 @@ describe('softDeleteKitchen / restoreKitchen', () => {
     expect(rpcArg).toHaveBeenCalledWith('restore_kitchen', { kitchen_id: 'k1' })
   })
 
-  it('return null when the RPC returns no row (wrong state / not owned)', async () => {
-    const { supabase } = clientReturning({ data: null, error: null })
+  it('return null on a no-op, which PostgREST serializes as an all-null object (wrong state / not owned)', async () => {
+    const { supabase } = clientReturning({ data: ALL_NULL_ROW, error: null })
     expect(await softDeleteKitchen(supabase, 'k1')).toBeNull()
     expect(await restoreKitchen(supabase, 'k1')).toBeNull()
   })

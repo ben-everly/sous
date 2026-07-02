@@ -90,6 +90,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      purge_kitchen: {
+        Args: { kitchen_id: string }
+        Returns: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "kitchens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       restore_kitchen: {
         Args: { kitchen_id: string }
         Returns: {

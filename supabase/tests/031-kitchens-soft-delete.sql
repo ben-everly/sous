@@ -8,7 +8,7 @@ values
   ('33333333-3333-3333-3333-333333333333', 'carol@example.com', '{"full_name": "Carol"}'::jsonb),
   ('44444444-4444-4444-4444-444444444444', 'dave@example.com', '{"full_name": "Dave"}'::jsonb);
 
-select plan(13);
+select plan(20);
 
 -- Act as Dave first: create a kitchen with a known id so Carol can later try (and fail) to trash it.
 set local role authenticated;
@@ -127,7 +127,62 @@ select is(
   'a new nameless kitchen is allowed once the prior one is trashed (partial index ignores it)'
 );
 
--- anon has no execute grant on the RPCs, so both are denied at the grant layer (42501) and never
+-- purge_kitchen: the deleted_at guard makes purging a live kitchen a no-op (Beach House is live here).
+select is(
+  (select id from public.purge_kitchen(
+     (select id from public.kitchens where name = 'Beach House'))),
+  null,
+  'purge_kitchen is a no-op on a live kitchen'
+);
+select is(
+  (select count(*) from public.kitchens where name = 'Beach House'),
+  1::bigint,
+  'purge_kitchen leaves a live kitchen in place'
+);
+
+-- Once trashed, purge_kitchen permanently deletes the row.
+select public.soft_delete_kitchen((select id from public.kitchens where name = 'Beach House'));
+select isnt(
+  (select id from public.purge_kitchen(
+     (select id from public.kitchens where name = 'Beach House'))),
+  null,
+  'purge_kitchen deletes a trashed kitchen and returns the row'
+);
+select is(
+  (select count(*) from public.kitchens where name = 'Beach House'),
+  0::bigint,
+  'a purged kitchen is gone even from the owner''s view'
+);
+
+-- Cross-owner: Dave trashes his own kitchen; Carol still cannot purge it (RLS via invoker).
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text,
+  true
+);
+select public.soft_delete_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd');
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text,
+  true
+);
+select is(
+  (select id from public.purge_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')),
+  null,
+  'purge_kitchen cannot touch another owner''s kitchen (RLS via invoker)'
+);
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text,
+  true
+);
+select is(
+  (select count(*) from public.kitchens where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  1::bigint,
+  'the other owner''s trashed kitchen survives the blocked purge'
+);
+
+-- anon has no execute grant on the RPCs, so all are denied at the grant layer (42501) and never
 -- run the body — the never-anon contract holds even if a future table grant or policy opens up.
 set local role anon;
 select throws_ok(
@@ -141,6 +196,12 @@ select throws_ok(
   '42501',
   null,
   'anon cannot execute restore_kitchen'
+);
+select throws_ok(
+  $$select public.purge_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
+  '42501',
+  null,
+  'anon cannot execute purge_kitchen'
 );
 reset role;
 
