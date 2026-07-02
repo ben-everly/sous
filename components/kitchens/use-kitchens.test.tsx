@@ -283,6 +283,67 @@ describe('useKitchens', () => {
     spy.mockRestore()
   })
 
+  it('undo still works when the trash panel opened mid-delete and its read missed the row', async () => {
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+    const undo = mocks.toast.mock.calls[0][1].action.onClick
+
+    // Panel opened while the soft-delete was in flight: the trash read committed before beach did,
+    // so it comes back empty. A wholesale reseed would drop beach from trashedIds and strand it.
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    await act(async () => {
+      await undo()
+    })
+
+    expect(result.current.kitchens).toEqual([beach])
+    expect(mocks.toast.error).not.toHaveBeenCalled()
+  })
+
+  it('a stale undo after a trash-panel restore is a no-op (does not resurrect the kitchen)', async () => {
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+    const undo = mocks.toast.mock.calls[0][1].action.onClick
+
+    // Open trash, restore beach from the panel — beach is live again.
+    const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
+    mocks.results.select = { data: [trashed], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+    await act(async () => {
+      await result.current.restore(trashed)
+    })
+    expect(result.current.kitchens).toEqual([beach])
+    expect(result.current.deleted).toEqual([])
+
+    // Beach is already live, so the DB's deleted_at guard makes this restore a null no-op. The stale
+    // toast must not read that as a failure and roll the live kitchen back into the trash.
+    mocks.results.rpc = { data: null, error: null }
+    mocks.rpcSpy.mockClear()
+    await act(async () => {
+      await undo()
+    })
+
+    expect(result.current.kitchens).toEqual([beach])
+    expect(result.current.deleted).toEqual([])
+    expect(mocks.rpcSpy).not.toHaveBeenCalled()
+    expect(mocks.toast.error).not.toHaveBeenCalled()
+  })
+
   it('restore failure rolls back and toasts an error', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }

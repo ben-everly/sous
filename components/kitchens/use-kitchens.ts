@@ -40,6 +40,11 @@ export function useKitchens() {
   // Ids with a mutation in flight. A second delete/restore/purge of the same kitchen would hit the
   // RPC's deleted_at-guard no-op (null → "failure") and roll back the first call's success, so drop it.
   const pending = useRef(new Set<string>())
+  // Ids the client believes are in the trash. restore() guards on this so a stale Undo toast — fired
+  // after the kitchen was already restored or purged via the trash panel — is a no-op instead of
+  // rolling live state back on the RPC's null (already-in-target-state) result. loadTrash merges the
+  // DB's ids in rather than resetting, so an in-flight soft-delete the read hasn't observed isn't dropped.
+  const trashedIds = useRef(new Set<string>())
 
   // Kept as .then (not async/await): the set-state-in-effect lint rule traces setState in an async
   // body called from the effect, but not into a .then callback.
@@ -69,6 +74,7 @@ export function useKitchens() {
       if (data === null) {
         setTrashStatus('error')
       } else {
+        data.forEach((k) => trashedIds.current.add(k.id))
         setDeleted(data)
         setTrashStatus('ready')
       }
@@ -101,11 +107,15 @@ export function useKitchens() {
   // Declared before softDelete so the undo toast's onClick references an initialized binding.
   const restore = async (kitchen: Kitchen) => {
     if (pending.current.has(kitchen.id)) return
+    // Not in the trash (already restored/purged elsewhere): a stale Undo would roll live state back.
+    if (!trashedIds.current.has(kitchen.id)) return
     pending.current.add(kitchen.id)
     try {
+      trashedIds.current.delete(kitchen.id)
       setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
       setKitchens((ks) => insertSorted(ks, { ...kitchen, deleted_at: null }, byCreatedThenId))
       if (!(await restoreKitchen(supabase, kitchen.id))) {
+        trashedIds.current.add(kitchen.id)
         setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
         setDeleted((d) => (d === null ? d : insertSorted(d, kitchen, byDeletedAtDesc)))
         toast.error(`Couldn't restore "${kitchenLabel(kitchen.name)}". Try again.`)
@@ -122,10 +132,12 @@ export function useKitchens() {
     // the undo toast (not the live `kitchen`) so a failed undo re-inserts the row with its timestamp.
     const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
     try {
+      trashedIds.current.add(kitchen.id)
       setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
       setDeleted((d) => (d === null ? d : insertSorted(d, trashed, byDeletedAtDesc)))
       const row = await softDeleteKitchen(supabase, kitchen.id)
       if (!row) {
+        trashedIds.current.delete(kitchen.id)
         setKitchens((ks) => insertSorted(ks, kitchen, byCreatedThenId))
         setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
         toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
@@ -148,8 +160,10 @@ export function useKitchens() {
     if (pending.current.has(kitchen.id)) return
     pending.current.add(kitchen.id)
     try {
+      trashedIds.current.delete(kitchen.id)
       setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
       if (!(await purgeKitchen(supabase, kitchen.id))) {
+        trashedIds.current.add(kitchen.id)
         setDeleted((d) => (d === null ? d : insertSorted(d, kitchen, byDeletedAtDesc)))
         toast.error(
           `Couldn't permanently delete "${kitchenLabel(kitchen.name)}". It's still in your trash.`,
