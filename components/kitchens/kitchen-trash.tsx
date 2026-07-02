@@ -49,7 +49,7 @@ export function KitchenTrash({
         className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
       >
         <ChevronRight className={`transition-transform ${open ? 'rotate-90' : ''}`} />
-        Recently deleted
+        Trash
       </button>
 
       {open && (

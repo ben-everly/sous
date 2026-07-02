@@ -28,7 +28,7 @@ function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash
 describe('KitchenTrash', () => {
   it('is collapsed by default and lazy-loads on first expand', () => {
     const { onLoad } = renderTrash({ status: 'idle', deleted: null })
-    const btn = screen.getByRole('button', { name: 'Recently deleted' })
+    const btn = screen.getByRole('button', { name: 'Trash' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('Beach House')).not.toBeInTheDocument()
     fireEvent.click(btn)
@@ -38,21 +38,21 @@ describe('KitchenTrash', () => {
 
   it('lists trashed kitchens when expanded', () => {
     renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
     expect(screen.getByText('Beach House')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Restore Beach House' })).toBeInTheDocument()
   })
 
   it('restores a kitchen via the callback', () => {
     const { onRestore } = renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
     fireEvent.click(screen.getByRole('button', { name: 'Restore Beach House' }))
     expect(onRestore).toHaveBeenCalledWith(trashed)
   })
 
   it('purges only after confirming the dialog', () => {
     const { onPurge } = renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House permanently' }))
     expect(onPurge).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }))
@@ -61,7 +61,7 @@ describe('KitchenTrash', () => {
 
   it('does not call onLoad when status is already ready (re-expand)', () => {
     const { onLoad } = renderTrash({ status: 'ready', deleted: [trashed] })
-    const btn = screen.getByRole('button', { name: 'Recently deleted' })
+    const btn = screen.getByRole('button', { name: 'Trash' })
     fireEvent.click(btn)
     fireEvent.click(btn)
     fireEvent.click(btn)
@@ -70,7 +70,7 @@ describe('KitchenTrash', () => {
 
   it('shows an empty message when the trash is loaded but empty', () => {
     renderTrash({ deleted: [] })
-    fireEvent.click(screen.getByRole('button', { name: 'Recently deleted' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
     expect(screen.getByText('Trash is empty.')).toBeInTheDocument()
   })
 })

@@ -31,10 +31,10 @@ test.describe('kitchens', () => {
     await page.getByRole('button', { name: 'Undo' }).click()
     await expect(page.getByText('Lake House')).toBeVisible()
 
-    // Delete again, then restore from the Recently deleted trash.
+    // Delete again, then restore from the Trash.
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
     await expect(page.getByText('Lake House')).toHaveCount(0)
-    await page.getByRole('button', { name: 'Recently deleted' }).click()
+    await page.getByRole('button', { name: 'Trash' }).click()
     await page.getByRole('button', { name: 'Restore Lake House' }).click()
     await expect(page.getByText('Lake House')).toBeVisible()
 
