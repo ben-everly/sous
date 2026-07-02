@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = { id: string; name: string | null; created_at: string; deleted_at: string | null }
+type RpcResult = { data: Row | null; error: null | { message: string } }
 
 const mocks = vi.hoisted(() => ({
   results: {
@@ -9,7 +10,10 @@ const mocks = vi.hoisted(() => ({
     insert: { data: null as Row | null, error: null as null | { message: string } },
     update: { data: null as { id: string } | null, error: null as null | { message: string } },
     delete: { data: null as { id: string } | null, error: null as null | { message: string } },
-    rpc: { data: null as Row | null, error: null as null | { message: string } },
+    // A function lets a single act() drive per-kitchen outcomes (one delete succeeds, one fails).
+    rpc: { data: null as Row | null, error: null as null | { message: string } } as
+      | RpcResult
+      | ((args: { kitchen_id: string }) => RpcResult),
   },
   rpcSpy: vi.fn(),
   // sonner's toast is both a function (the undo toast) and an object with .error.
@@ -46,9 +50,11 @@ vi.mock('@/lib/supabase/client', () => ({
       }
       return chain
     },
-    rpc: (name: string, args: unknown) => {
+    rpc: (name: string, args: { kitchen_id: string }) => {
       mocks.rpcSpy(name, args)
-      return { then: (resolve: (v: unknown) => void) => resolve(mocks.results.rpc) }
+      const r =
+        typeof mocks.results.rpc === 'function' ? mocks.results.rpc(args) : mocks.results.rpc
+      return { then: (resolve: (v: unknown) => void) => resolve(r) }
     },
   }),
 }))
@@ -156,6 +162,96 @@ describe('useKitchens', () => {
     expect(result.current.deleted![0].deleted_at).not.toBeNull()
     expect(typeof result.current.deleted![0].deleted_at).toBe('string')
     expect(result.current.kitchens).toEqual([])
+  })
+
+  it('a failed softDelete overlapping a successful one does not revive the deleted kitchen', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const a: Row = { id: 'a', name: 'A', created_at: '2026-01-01', deleted_at: null }
+    const b: Row = { id: 'b', name: 'B', created_at: '2026-01-02', deleted_at: null }
+    mocks.results.select = { data: [a, b], error: null }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    // 'a' deletes cleanly; 'b' fails. Fire both from the same render's closures, before either
+    // resolves, so a by-value rollback would restore a stale [a, b] snapshot and revive 'a'.
+    mocks.results.rpc = ({ kitchen_id }) =>
+      kitchen_id === 'b' ? { data: null, error: { message: 'boom' } } : { data: a, error: null }
+    const softDelete = result.current.softDelete
+    await act(async () => {
+      await Promise.all([softDelete(a), softDelete(b)])
+    })
+
+    expect(result.current.kitchens.some((k) => k.id === 'a')).toBe(false)
+    expect(result.current.kitchens.map((k) => k.id)).toEqual(['b'])
+    spy.mockRestore()
+  })
+
+  it('overlapping softDeletes keep both live and trash lists consistent when one fails', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const a: Row = { id: 'a', name: 'A', created_at: '2026-01-01', deleted_at: null }
+    const b: Row = { id: 'b', name: 'B', created_at: '2026-01-02', deleted_at: null }
+    mocks.results.select = { data: [a, b], error: null }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [], error: null } // trash loaded, currently empty
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    mocks.results.rpc = ({ kitchen_id }) =>
+      kitchen_id === 'b' ? { data: null, error: { message: 'boom' } } : { data: a, error: null }
+    const softDelete = result.current.softDelete
+    await act(async () => {
+      await Promise.all([softDelete(a), softDelete(b)])
+    })
+
+    // 'a' deleted → in trash, not live; 'b' failed → back in live, not trash.
+    expect(result.current.kitchens.map((k) => k.id)).toEqual(['b'])
+    expect(result.current.deleted!.map((k) => k.id)).toEqual(['a'])
+    spy.mockRestore()
+  })
+
+  it('a second softDelete of the same kitchen is dropped while the first is in flight', async () => {
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    const softDelete = result.current.softDelete
+    await act(async () => {
+      await Promise.all([softDelete(beach), softDelete(beach)])
+    })
+
+    // Guard suppresses the duplicate, so only one RPC fires and beach stays deleted (not revived).
+    expect(mocks.rpcSpy).toHaveBeenCalledTimes(1)
+    expect(result.current.kitchens).toEqual([])
+  })
+
+  it('a failed undo re-inserts the kitchen into trash with its deletion timestamp intact', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+    const undo = mocks.toast.mock.calls[0][1].action.onClick
+
+    mocks.results.rpc = { data: null, error: { message: 'boom' } }
+    await act(async () => {
+      await undo()
+    })
+
+    expect(result.current.kitchens.some((k) => k.id === 'k1')).toBe(false)
+    const row = result.current.deleted!.find((k) => k.id === 'k1')
+    expect(typeof row!.deleted_at).toBe('string')
+    spy.mockRestore()
   })
 
   it('restore failure rolls back and toasts an error', async () => {
