@@ -8,7 +8,7 @@ values
   ('33333333-3333-3333-3333-333333333333', 'carol@example.com', '{"full_name": "Carol"}'::jsonb),
   ('44444444-4444-4444-4444-444444444444', 'dave@example.com', '{"full_name": "Dave"}'::jsonb);
 
-select plan(11);
+select plan(13);
 
 -- Act as Dave first: create a kitchen with a known id so Carol can later try (and fail) to trash it.
 set local role authenticated;
@@ -126,6 +126,23 @@ select is(
   1::bigint,
   'a new nameless kitchen is allowed once the prior one is trashed (partial index ignores it)'
 );
+
+-- anon has no execute grant on the RPCs, so both are denied at the grant layer (42501) and never
+-- run the body — the never-anon contract holds even if a future table grant or policy opens up.
+set local role anon;
+select throws_ok(
+  $$select public.soft_delete_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
+  '42501',
+  null,
+  'anon cannot execute soft_delete_kitchen'
+);
+select throws_ok(
+  $$select public.restore_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
+  '42501',
+  null,
+  'anon cannot execute restore_kitchen'
+);
+reset role;
 
 select * from finish();
 rollback;

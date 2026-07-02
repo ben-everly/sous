@@ -28,3 +28,8 @@ language sql security invoker set search_path = '' as $$
    where id = kitchen_id and deleted_at is not null
   returning *;
 $$;
+
+-- Defense in depth: functions grant execute to PUBLIC (incl. anon) by default. Deny anon at the
+-- execute layer too, matching the never-anon contract on the kitchens table (see 20260611201503).
+revoke execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid) from public;
+grant execute on function public.soft_delete_kitchen(uuid), public.restore_kitchen(uuid) to authenticated;
