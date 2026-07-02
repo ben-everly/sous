@@ -73,4 +73,13 @@ describe('KitchenTrash', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
     expect(screen.getByText('Trash is empty.')).toBeInTheDocument()
   })
+
+  it('links the disclosure to its panel and announces transient status', () => {
+    renderTrash({ status: 'loading', deleted: null })
+    const btn = screen.getByRole('button', { name: 'Trash' })
+    expect(btn).toHaveAttribute('aria-controls', 'kitchen-trash-panel')
+    fireEvent.click(btn)
+    expect(document.getElementById('kitchen-trash-panel')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+  })
 })

@@ -46,17 +46,22 @@ export function KitchenTrash({
         type="button"
         onClick={toggle}
         aria-expanded={open}
+        aria-controls="kitchen-trash-panel"
         className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
       >
-        <ChevronRight className={`transition-transform ${open ? 'rotate-90' : ''}`} />
+        <ChevronRight aria-hidden className={`transition-transform ${open ? 'rotate-90' : ''}`} />
         Trash
       </button>
 
       {open && (
-        <>
-          {status === 'loading' && <p className="text-muted-foreground text-sm">Loading…</p>}
+        <div id="kitchen-trash-panel" className="space-y-3">
+          {status === 'loading' && (
+            <p role="status" className="text-muted-foreground text-sm">
+              Loading…
+            </p>
+          )}
           {status === 'error' && (
-            <div className="space-y-2 text-sm">
+            <div role="status" className="space-y-2 text-sm">
               <p className="text-muted-foreground">Could not load deleted kitchens.</p>
               <Button size="sm" onClick={onLoad}>
                 Try again
@@ -64,7 +69,9 @@ export function KitchenTrash({
             </div>
           )}
           {status === 'ready' && deleted?.length === 0 && (
-            <p className="text-muted-foreground text-sm">Trash is empty.</p>
+            <p role="status" className="text-muted-foreground text-sm">
+              Trash is empty.
+            </p>
           )}
           {status === 'ready' && deleted && deleted.length > 0 && (
             <ul className="divide-y rounded-md border">
@@ -101,7 +108,7 @@ export function KitchenTrash({
               })}
             </ul>
           )}
-        </>
+        </div>
       )}
 
       <AlertDialog open={pendingPurge !== null} onOpenChange={(o) => !o && setPendingPurge(null)}>
