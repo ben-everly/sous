@@ -151,7 +151,9 @@ export function useKitchens() {
       setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
       if (!(await purgeKitchen(supabase, kitchen.id))) {
         setDeleted((d) => (d === null ? d : insertSorted(d, kitchen, byDeletedAtDesc)))
-        toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
+        toast.error(
+          `Couldn't permanently delete "${kitchenLabel(kitchen.name)}". It's still in your trash.`,
+        )
       }
     } finally {
       pending.current.delete(kitchen.id)

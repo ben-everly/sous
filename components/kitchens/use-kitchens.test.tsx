@@ -259,6 +259,30 @@ describe('useKitchens', () => {
     spy.mockRestore()
   })
 
+  it('purge failure rolls back and toasts a distinct permanent-delete error', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [trashed], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    mocks.results.delete = { data: null, error: { message: 'boom' } }
+    await act(async () => {
+      await result.current.purge(trashed)
+    })
+
+    expect(result.current.deleted!.some((k) => k.id === 'k1')).toBe(true)
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      'Couldn\'t permanently delete "Beach House". It\'s still in your trash.',
+    )
+    spy.mockRestore()
+  })
+
   it('restore failure rolls back and toasts an error', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
