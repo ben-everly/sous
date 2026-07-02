@@ -45,6 +45,9 @@ export function useKitchens() {
   // rolling live state back on the RPC's null (already-in-target-state) result. loadTrash merges the
   // DB's ids in rather than resetting, so an in-flight soft-delete the read hasn't observed isn't dropped.
   const trashedIds = useRef(new Set<string>())
+  // Bumped per loadTrash; a fetch applies only if it's still the latest, so overlapping reopens can't
+  // resolve out of order and paint stale trash.
+  const trashLoadSeq = useRef(0)
 
   // Kept as .then (not async/await): the set-state-in-effect lint rule traces setState in an async
   // body called from the effect, but not into a .then callback.
@@ -69,10 +72,14 @@ export function useKitchens() {
   }
 
   const loadTrash = useCallback(() => {
-    setTrashStatus('loading')
+    const seq = ++trashLoadSeq.current
+    // A reopen refetches in the background: keep the already-loaded list visible rather than flashing
+    // a loading/error screen. Only the first load — when there's nothing to show yet — surfaces those.
+    setTrashStatus((s) => (s === 'ready' ? s : 'loading'))
     return listDeletedKitchens(supabase).then((data) => {
+      if (seq !== trashLoadSeq.current) return // superseded by a newer open
       if (data === null) {
-        setTrashStatus('error')
+        setTrashStatus((s) => (s === 'ready' ? s : 'error'))
       } else {
         data.forEach((k) => trashedIds.current.add(k.id))
         setDeleted(data)

@@ -37,7 +37,8 @@ export function KitchenTrash({
   const toggle = () => {
     const next = !open
     setOpen(next)
-    if (next && status === 'idle') onLoad()
+    // Refetch on every open so a reopen reflects restores/purges from another tab and fresh timestamps.
+    if (next) onLoad()
   }
 
   return (

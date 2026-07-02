@@ -6,7 +6,7 @@ type RpcResult = { data: Row | null; error: null | { message: string } }
 
 const mocks = vi.hoisted(() => ({
   results: {
-    select: { data: [] as Row[], error: null as null | { message: string } },
+    select: { data: [] as Row[] | null, error: null as null | { message: string } },
     insert: { data: null as Row | null, error: null as null | { message: string } },
     update: { data: null as { id: string } | null, error: null as null | { message: string } },
     delete: { data: null as { id: string } | null, error: null as null | { message: string } },
@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   rpcSpy: vi.fn(),
   // sonner's toast is both a function (the undo toast) and an object with .error.
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
+  // When true, select() reads park their resolver here instead of resolving, so a test can drain them
+  // in any order to exercise out-of-order fetch resolution.
+  deferSelect: false,
+  selectResolvers: [] as Array<() => void>,
 }))
 
 vi.mock('sonner', () => ({ toast: mocks.toast }))
@@ -46,7 +50,13 @@ vi.mock('@/lib/supabase/client', () => ({
         eq: () => chain,
         single: () => chain,
         maybeSingle: () => chain,
-        then: (resolve: (v: unknown) => void) => resolve(mocks.results[op]),
+        then: (resolve: (v: unknown) => void) => {
+          if (op === 'select' && mocks.deferSelect) {
+            mocks.selectResolvers.push(() => resolve(mocks.results.select))
+            return
+          }
+          resolve(mocks.results[op])
+        },
       }
       return chain
     },
@@ -72,6 +82,8 @@ beforeEach(() => {
   mocks.rpcSpy.mockReset()
   mocks.toast.mockReset()
   mocks.toast.error.mockReset()
+  mocks.deferSelect = false
+  mocks.selectResolvers = []
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -140,6 +152,81 @@ describe('useKitchens', () => {
     })
     await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     expect(result.current.deleted).toEqual([trashed])
+  })
+
+  it('loadTrash refetches fresh data on reopen', async () => {
+    const first: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [first], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+    expect(result.current.deleted).toEqual([first])
+
+    // Reopen: the item was purged elsewhere, so a refetch should reflect the now-empty trash.
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      await result.current.loadTrash()
+    })
+    expect(result.current.trashStatus).toBe('ready')
+    expect(result.current.deleted).toEqual([])
+  })
+
+  it('ignores a slow reopen refetch that resolves after a newer one (no stale overwrite)', async () => {
+    const stale: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    // Two overlapping reopens: #1 (older) then #2 (newer), neither resolved yet.
+    mocks.deferSelect = true
+    let older!: Promise<void>
+    let newer!: Promise<void>
+    await act(async () => {
+      older = result.current.loadTrash()
+    })
+    await act(async () => {
+      newer = result.current.loadTrash()
+    })
+    expect(mocks.selectResolvers).toHaveLength(2)
+
+    // Resolve the NEWER fetch first with fresh (empty) trash...
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      mocks.selectResolvers[1]()
+      await newer
+    })
+    // ...then the OLDER fetch with stale data — it must be discarded, not painted over the newer one.
+    mocks.results.select = { data: [stale], error: null }
+    await act(async () => {
+      mocks.selectResolvers[0]()
+      await older
+    })
+
+    expect(result.current.deleted).toEqual([])
+  })
+
+  it('keeps the loaded trash list when a reopen refetch fails, instead of blanking to an error', async () => {
+    const first: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    mocks.results.select = { data: [first], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+
+    // Reopen while offline: the refetch errors, but the already-loaded list must stay visible.
+    mocks.results.select = { data: null, error: { message: 'offline' } }
+    await act(async () => {
+      await result.current.loadTrash()
+    })
+
+    expect(result.current.trashStatus).toBe('ready')
+    expect(result.current.deleted).toEqual([first])
   })
 
   it('softDelete prepends a deleted_at-stamped copy when trash is loaded', async () => {

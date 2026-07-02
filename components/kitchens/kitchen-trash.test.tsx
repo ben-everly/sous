@@ -59,13 +59,13 @@ describe('KitchenTrash', () => {
     expect(onPurge).toHaveBeenCalledWith(trashed)
   })
 
-  it('does not call onLoad when status is already ready (re-expand)', () => {
+  it('refetches on each expand so a reopen sees fresh trash', () => {
     const { onLoad } = renderTrash({ status: 'ready', deleted: [trashed] })
     const btn = screen.getByRole('button', { name: 'Trash' })
-    fireEvent.click(btn)
-    fireEvent.click(btn)
-    fireEvent.click(btn)
-    expect(onLoad).not.toHaveBeenCalled()
+    fireEvent.click(btn) // open
+    fireEvent.click(btn) // close
+    fireEvent.click(btn) // open again
+    expect(onLoad).toHaveBeenCalledTimes(2)
   })
 
   it('shows an empty message when the trash is loaded but empty', () => {
