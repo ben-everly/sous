@@ -16,6 +16,7 @@ function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash
   const props = {
     deleted: [trashed],
     status: 'ready' as const,
+    count: null as number | null,
     onLoad: vi.fn(),
     onRestore: vi.fn(),
     onPurge: vi.fn(),
@@ -26,6 +27,22 @@ function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash
 }
 
 describe('KitchenTrash', () => {
+  it('shows a count and un-mutes the label when trash is non-empty', () => {
+    renderTrash({ count: 2 })
+    const btn = screen.getByRole('button', { name: 'Trash (2)' })
+    expect(btn).toHaveClass('text-foreground')
+    expect(btn).not.toHaveClass('text-muted-foreground')
+  })
+
+  it('shows a bare, muted label when trash is empty or the count is unknown', () => {
+    renderTrash({ count: 0 })
+    const empty = screen.getByRole('button', { name: 'Trash' })
+    expect(empty).toHaveClass('text-muted-foreground')
+    cleanup()
+    renderTrash({ count: null })
+    expect(screen.getByRole('button', { name: 'Trash' })).toHaveClass('text-muted-foreground')
+  })
+
   it('is collapsed by default and lazy-loads on first expand', () => {
     const { onLoad } = renderTrash({ status: 'idle', deleted: null })
     const btn = screen.getByRole('button', { name: 'Trash' })

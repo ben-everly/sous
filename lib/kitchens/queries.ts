@@ -20,6 +20,15 @@ export async function listKitchens(supabase: Client): Promise<Kitchen[] | null> 
   return error ? null : data
 }
 
+// Just the trash count, for the collapsed disclosure badge without fetching the rows. null = failed.
+export async function countDeletedKitchens(supabase: Client): Promise<number | null> {
+  const { count, error } = await supabase
+    .from('kitchens')
+    .select('*', { count: 'exact', head: true })
+    .not('deleted_at', 'is', null)
+  return error ? null : (count ?? 0)
+}
+
 // The trash list: most-recently-deleted first.
 export async function listDeletedKitchens(supabase: Client): Promise<Kitchen[] | null> {
   const { data, error } = await supabase

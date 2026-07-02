@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import {
+  countDeletedKitchens,
   createKitchen,
   listDeletedKitchens,
   listKitchens,
@@ -37,6 +38,9 @@ export function useKitchens() {
   const [status, setStatus] = useState<KitchensStatus>('loading')
   const [deleted, setDeleted] = useState<Kitchen[] | null>(null)
   const [trashStatus, setTrashStatus] = useState<TrashStatus>('idle')
+  // Trash size for the collapsed disclosure badge. null = not yet known (mount count pending/failed);
+  // deltas fall back to a 0 baseline so a soft-delete still surfaces a badge, and loadTrash sets it exact.
+  const [trashCount, setTrashCount] = useState<number | null>(null)
   // Ids with a mutation in flight. A second delete/restore/purge of the same kitchen would hit the
   // RPC's deleted_at-guard no-op (null → "failure") and roll back the first call's success, so drop it.
   const pending = useRef(new Set<string>())
@@ -62,9 +66,16 @@ export function useKitchens() {
     })
   }, [supabase])
 
+  // Deltas fall back to a 0 baseline (a null count fetch shouldn't strand the badge); loadTrash sets it
+  // exact once the panel opens. Clamp at 0 so a stale count can't drive it negative.
+  const bumpTrashCount = (by: number) => setTrashCount((c) => Math.max(0, (c ?? 0) + by))
+
   useEffect(() => {
     load()
-  }, [load])
+    // Eager count for the disclosure badge. Only seeds the baseline if no optimistic delta has set it
+    // yet; loadTrash reconciles the exact number when the panel opens.
+    countDeletedKitchens(supabase).then((n) => setTrashCount((c) => (c === null ? n : c)))
+  }, [load, supabase])
 
   const retry = () => {
     setStatus('loading')
@@ -83,6 +94,7 @@ export function useKitchens() {
       } else {
         data.forEach((k) => trashedIds.current.add(k.id))
         setDeleted(data)
+        setTrashCount(data.length)
         setTrashStatus('ready')
       }
     })
@@ -119,10 +131,12 @@ export function useKitchens() {
     pending.current.add(kitchen.id)
     try {
       trashedIds.current.delete(kitchen.id)
+      bumpTrashCount(-1)
       setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
       setKitchens((ks) => insertSorted(ks, { ...kitchen, deleted_at: null }, byCreatedThenId))
       if (!(await restoreKitchen(supabase, kitchen.id))) {
         trashedIds.current.add(kitchen.id)
+        bumpTrashCount(1)
         setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
         setDeleted((d) => (d === null ? d : insertSorted(d, kitchen, byDeletedAtDesc)))
         toast.error(`Couldn't restore "${kitchenLabel(kitchen.name)}". Try again.`)
@@ -140,11 +154,13 @@ export function useKitchens() {
     const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
     try {
       trashedIds.current.add(kitchen.id)
+      bumpTrashCount(1)
       setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
       setDeleted((d) => (d === null ? d : insertSorted(d, trashed, byDeletedAtDesc)))
       const row = await softDeleteKitchen(supabase, kitchen.id)
       if (!row) {
         trashedIds.current.delete(kitchen.id)
+        bumpTrashCount(-1)
         setKitchens((ks) => insertSorted(ks, kitchen, byCreatedThenId))
         setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
         toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
@@ -168,9 +184,11 @@ export function useKitchens() {
     pending.current.add(kitchen.id)
     try {
       trashedIds.current.delete(kitchen.id)
+      bumpTrashCount(-1)
       setDeleted((d) => (d === null ? d : d.filter((k) => k.id !== kitchen.id)))
       if (!(await purgeKitchen(supabase, kitchen.id))) {
         trashedIds.current.add(kitchen.id)
+        bumpTrashCount(1)
         setDeleted((d) => (d === null ? d : insertSorted(d, kitchen, byDeletedAtDesc)))
         toast.error(
           `Couldn't permanently delete "${kitchenLabel(kitchen.name)}". It's still in your trash.`,
@@ -190,6 +208,7 @@ export function useKitchens() {
     softDelete,
     deleted,
     trashStatus,
+    trashCount,
     loadTrash,
     restore,
     purge,

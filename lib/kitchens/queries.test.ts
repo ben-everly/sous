@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import {
+  countDeletedKitchens,
   createKitchen,
   listDeletedKitchens,
   listKitchens,
@@ -11,7 +12,11 @@ import {
   softDeleteKitchen,
 } from './queries'
 
-type Resp = { data: unknown; error: { code?: string; message?: string } | null }
+type Resp = {
+  data: unknown
+  error: { code?: string; message?: string } | null
+  count?: number | null
+}
 
 // PostgREST serializes a zero-row `returns public.kitchens` RPC as an all-null object, not JSON null.
 const ALL_NULL_ROW = {
@@ -81,6 +86,23 @@ describe('listDeletedKitchens', () => {
   it('returns null on a read error', async () => {
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
     expect(await listDeletedKitchens(supabase)).toBeNull()
+  })
+})
+
+describe('countDeletedKitchens', () => {
+  it('returns the trash count on success', async () => {
+    const { supabase } = clientReturning({ data: null, error: null, count: 3 })
+    expect(await countDeletedKitchens(supabase)).toBe(3)
+  })
+
+  it('treats a null count as 0', async () => {
+    const { supabase } = clientReturning({ data: null, error: null, count: null })
+    expect(await countDeletedKitchens(supabase)).toBe(0)
+  })
+
+  it('returns null on a read error', async () => {
+    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
+    expect(await countDeletedKitchens(supabase)).toBeNull()
   })
 })
 

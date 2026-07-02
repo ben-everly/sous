@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { relativeTime } from '@/lib/kitchens/relative-time'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -21,12 +22,14 @@ import type { TrashStatus } from './use-kitchens'
 export function KitchenTrash({
   deleted,
   status,
+  count,
   onLoad,
   onRestore,
   onPurge,
 }: {
   deleted: Kitchen[] | null
   status: TrashStatus
+  count: number | null
   onLoad: () => void
   onRestore: (kitchen: Kitchen) => void
   onPurge: (kitchen: Kitchen) => void
@@ -41,6 +44,8 @@ export function KitchenTrash({
     if (next) onLoad()
   }
 
+  const hasItems = count != null && count > 0
+
   return (
     <section className="space-y-3">
       <button
@@ -48,10 +53,13 @@ export function KitchenTrash({
         onClick={toggle}
         aria-expanded={open}
         aria-controls="kitchen-trash-panel"
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
+        className={cn(
+          'hover:text-foreground flex items-center gap-1 text-sm',
+          hasItems ? 'text-foreground' : 'text-muted-foreground',
+        )}
       >
         <ChevronRight aria-hidden className={`transition-transform ${open ? 'rotate-90' : ''}`} />
-        Trash
+        {hasItems ? `Trash (${count})` : 'Trash'}
       </button>
 
       {open && (
