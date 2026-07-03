@@ -45,7 +45,6 @@ describe('ConfirmEmail', () => {
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'abc', type: 'signup' })
   })
 
-  // Pins that the URL's type=recovery is ignored — verify uses the signup constant.
   it('verifies as signup even when the URL says recovery', async () => {
     verifyOtp.mockResolvedValue({ error: null })
     search = new URLSearchParams('token_hash=abc&type=recovery')

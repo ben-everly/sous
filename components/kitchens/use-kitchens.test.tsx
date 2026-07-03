@@ -172,13 +172,11 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(result.current.trashCount).toBe(2)
 
-    // Soft-delete moves beach into trash: the count follows with no manual bookkeeping.
     await act(async () => {
       await result.current.softDelete(beach)
     })
     expect(result.current.trashCount).toBe(3)
 
-    // Undo restores beach and the count follows back down.
     const undo = mocks.toast.mock.calls[0][1].action.onClick
     await act(async () => {
       await undo()
@@ -342,7 +340,6 @@ describe('useKitchens', () => {
       await Promise.all([softDelete(beach), softDelete(beach)])
     })
 
-    // Guard suppresses the duplicate, so only one RPC fires and beach stays deleted (not revived).
     expect(mocks.rpcSpy).toHaveBeenCalledTimes(1)
     expect(result.current.kitchens).toEqual([])
   })
@@ -430,7 +427,6 @@ describe('useKitchens', () => {
     })
     const undo = mocks.toast.mock.calls[0][1].action.onClick
 
-    // Open trash, restore beach from the panel — beach is live again.
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
     mocks.results.select = { data: [trashed], error: null }
     await act(async () => {
@@ -483,7 +479,6 @@ describe('useKitchens', () => {
     const { result } = renderHook(() => useKitchens())
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    // Delete beach, open trash (confirming it), then restore it from the panel.
     await act(async () => {
       await result.current.softDelete(beach)
     })
@@ -496,8 +491,8 @@ describe('useKitchens', () => {
     })
     expect(result.current.kitchens).toEqual([beach])
 
-    // Delete beach a second time; a trash refetch then races ahead of the delete and comes back empty.
-    // The stale confirmation from the first cycle must not drop this fresh optimistic delete.
+    // A trash refetch races ahead of this second delete and comes back empty; the stale confirmation
+    // from the first cycle must not drop this fresh optimistic delete.
     await act(async () => {
       await result.current.softDelete(beach)
     })

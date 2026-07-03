@@ -24,8 +24,6 @@ describe('classifySignupResult', () => {
     )
   })
 
-  // An empty-identities duplicate is 'existing' even if a session were somehow present —
-  // the duplicate check must win over the session check.
   it("prefers 'existing' over 'authed' when identities is empty", () => {
     expect(result({ user: { identities: [] }, session: { access_token: 't' } })).toBe('existing')
   })

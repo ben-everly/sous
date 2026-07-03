@@ -32,7 +32,6 @@ update public.kitchens set name = 'Home' where name is null;
 insert into public.kitchens (owner_id, name)
 values ('33333333-3333-3333-3333-333333333333', 'Beach House');
 
--- soft_delete_kitchen stamps deleted_at and returns the row.
 select isnt(
   (select deleted_at from public.soft_delete_kitchen(
      (select id from public.kitchens where name = 'Beach House'))),
@@ -40,13 +39,11 @@ select isnt(
   'soft_delete_kitchen stamps deleted_at and returns the row'
 );
 
--- The trashed kitchen is hidden from the live filter...
 select is(
   (select count(*) from public.kitchens where name = 'Beach House' and deleted_at is null),
   0::bigint,
   'a soft-deleted kitchen is excluded by the deleted_at is null filter'
 );
--- ...but still owner-visible (RLS unchanged).
 select is(
   (select count(*) from public.kitchens where name = 'Beach House'),
   1::bigint,
@@ -62,7 +59,6 @@ select is(
   'soft_delete_kitchen is a no-op on an already-trashed kitchen'
 );
 
--- restore_kitchen clears deleted_at.
 select is(
   (select deleted_at from public.restore_kitchen(
      (select id from public.kitchens where name = 'Beach House'))),
@@ -70,7 +66,6 @@ select is(
   'restore_kitchen clears deleted_at'
 );
 
--- No-op on a live row.
 select is(
   (select id from public.restore_kitchen(
      (select id from public.kitchens where name = 'Beach House'))),
@@ -140,7 +135,6 @@ select is(
   'purge_kitchen leaves a live kitchen in place'
 );
 
--- Once trashed, purge_kitchen permanently deletes the row.
 select public.soft_delete_kitchen((select id from public.kitchens where name = 'Beach House'));
 select isnt(
   (select id from public.purge_kitchen(

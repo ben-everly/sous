@@ -20,7 +20,6 @@ export async function listAllKitchens(supabase: Client): Promise<Kitchen[] | nul
   return error ? null : data
 }
 
-// The trash list: most-recently-deleted first.
 export async function listDeletedKitchens(supabase: Client): Promise<Kitchen[] | null> {
   const { data, error } = await supabase
     .from('kitchens')

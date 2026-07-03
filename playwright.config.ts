@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
 try {
   process.loadEnvFile('.env')
 } catch {
-  // missing .env is fine — see above
+  // missing .env is fine
 }
 
 const authFile = 'e2e/.auth/user.json'

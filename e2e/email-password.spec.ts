@@ -141,7 +141,6 @@ test.describe('email/password auth', () => {
       await page.getByRole('button', { name: /update password/i }).click()
       await expect(page).toHaveURL(/\/$/)
 
-      // The backfill action added the email identity alongside the existing google one.
       await expect.poll(() => identityProviders(created.user.id)).toEqual(['email', 'google'])
 
       const { data: signIn } = await createClient(

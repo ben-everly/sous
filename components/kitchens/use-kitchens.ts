@@ -18,12 +18,11 @@ import type { Kitchen } from '@/lib/kitchens/types'
 export type KitchensStatus = 'loading' | 'error' | 'ready'
 export type TrashStatus = 'idle' | 'loading' | 'error' | 'ready'
 
-// Live list order: created_at asc, id tiebreak — matches the DB so a restored kitchen lands back in
-// its original slot rather than at the end.
+// Matches the DB's order so a restored kitchen lands back in its original slot, not at the end.
 const byCreatedThenId = (a: Kitchen, b: Kitchen) =>
   a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
 
-// Trash order: most-recently-deleted first, id tiebreak for a total order.
+// id tiebreak gives the trash a total order.
 const byDeletedAtDesc = (a: Kitchen, b: Kitchen) =>
   (b.deleted_at ?? '').localeCompare(a.deleted_at ?? '') || a.id.localeCompare(b.id)
 
