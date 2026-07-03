@@ -509,4 +509,37 @@ describe('useKitchens', () => {
     expect(mocks.toast.error).toHaveBeenCalledWith('Couldn\'t restore "Beach House". Try again.')
     spy.mockRestore()
   })
+
+  it('a re-delete after a restore is not stranded by a racing empty trash refetch', async () => {
+    const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
+    const { result } = renderHook(() => useKitchens())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    // Delete beach, open trash (confirming it), then restore it from the panel.
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+    mocks.results.select = { data: [trashed], error: null }
+    await act(async () => {
+      result.current.loadTrash()
+    })
+    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
+    await act(async () => {
+      await result.current.restore(trashed)
+    })
+    expect(result.current.kitchens).toEqual([beach])
+
+    // Delete beach a second time; a trash refetch then races ahead of the delete and comes back empty.
+    // The stale confirmation from the first cycle must not drop this fresh optimistic delete.
+    await act(async () => {
+      await result.current.softDelete(beach)
+    })
+    mocks.results.select = { data: [], error: null }
+    await act(async () => {
+      await result.current.loadTrash()
+    })
+
+    expect(result.current.deleted!.some((k) => k.id === 'k1')).toBe(true)
+    expect(result.current.kitchens.some((k) => k.id === 'k1')).toBe(false)
+  })
 })
