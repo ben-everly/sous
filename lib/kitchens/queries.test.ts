@@ -2,10 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import {
-  countDeletedKitchens,
   createKitchen,
+  listAllKitchens,
   listDeletedKitchens,
-  listKitchens,
   purgeKitchen,
   renameKitchen,
   restoreKitchen,
@@ -15,7 +14,6 @@ import {
 type Resp = {
   data: unknown
   error: { code?: string; message?: string } | null
-  count?: number | null
 }
 
 // PostgREST serializes a zero-row `returns public.kitchens` RPC as an all-null object, not JSON null.
@@ -61,16 +59,19 @@ function clientReturning(resp: Resp) {
   return { supabase, insertArg, updateArg, rpcArg }
 }
 
-describe('listKitchens', () => {
-  it('returns the rows on success', async () => {
-    const rows = [{ id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: null }]
+describe('listAllKitchens', () => {
+  it('returns the rows (live and trashed) on success', async () => {
+    const rows = [
+      { id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: null },
+      { id: 'k2', name: 'Lake House', created_at: '2026-01-02', deleted_at: '2026-02-01' },
+    ]
     const { supabase } = clientReturning({ data: rows, error: null })
-    expect(await listKitchens(supabase)).toEqual(rows)
+    expect(await listAllKitchens(supabase)).toEqual(rows)
   })
 
   it('returns null on a read error', async () => {
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
-    expect(await listKitchens(supabase)).toBeNull()
+    expect(await listAllKitchens(supabase)).toBeNull()
   })
 })
 
@@ -86,23 +87,6 @@ describe('listDeletedKitchens', () => {
   it('returns null on a read error', async () => {
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
     expect(await listDeletedKitchens(supabase)).toBeNull()
-  })
-})
-
-describe('countDeletedKitchens', () => {
-  it('returns the trash count on success', async () => {
-    const { supabase } = clientReturning({ data: null, error: null, count: 3 })
-    expect(await countDeletedKitchens(supabase)).toBe(3)
-  })
-
-  it('treats a null count as 0', async () => {
-    const { supabase } = clientReturning({ data: null, error: null, count: null })
-    expect(await countDeletedKitchens(supabase)).toBe(0)
-  })
-
-  it('returns null on a read error', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
-    expect(await countDeletedKitchens(supabase)).toBeNull()
   })
 })
 

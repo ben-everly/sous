@@ -8,25 +8,16 @@ export type CreateResult = { ok: true; kitchen: Kitchen } | { ok: false }
 
 const COLUMNS = 'id, name, created_at, deleted_at'
 
-// null = read failed; an empty array is a real empty account.
-// Tiebreak on id so the order is total: the nameless kitchen, always the oldest row, stays first.
-export async function listKitchens(supabase: Client): Promise<Kitchen[] | null> {
+// Every kitchen the owner has, live and trashed — the hook partitions by deleted_at and derives both
+// the live list and the trash count from one read, so there's no separate count query to race.
+// null = read failed; an empty array is a real empty account. Tiebreak on id for a total order.
+export async function listAllKitchens(supabase: Client): Promise<Kitchen[] | null> {
   const { data, error } = await supabase
     .from('kitchens')
     .select(COLUMNS)
-    .is('deleted_at', null)
     .order('created_at')
     .order('id')
   return error ? null : data
-}
-
-// Just the trash count, for the collapsed disclosure badge without fetching the rows. null = failed.
-export async function countDeletedKitchens(supabase: Client): Promise<number | null> {
-  const { count, error } = await supabase
-    .from('kitchens')
-    .select('*', { count: 'exact', head: true })
-    .not('deleted_at', 'is', null)
-  return error ? null : (count ?? 0)
 }
 
 // The trash list: most-recently-deleted first.

@@ -5,10 +5,9 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import {
-  countDeletedKitchens,
   createKitchen,
+  listAllKitchens,
   listDeletedKitchens,
-  listKitchens,
   purgeKitchen,
   renameKitchen,
   restoreKitchen,
@@ -38,13 +37,6 @@ export function useKitchens() {
   const [byId, setById] = useState<ById>({})
   const [status, setStatus] = useState<KitchensStatus>('loading')
   const [trashStatus, setTrashStatus] = useState<TrashStatus>('idle')
-  // Whether loadTrash has run. Until it has, `byId`'s trashed partition holds only optimistically
-  // deleted rows, not the full DB trash — so `deleted` reads as null (not []) to mean "panel never
-  // opened" and the count falls back to unopenedTrashCount.
-  const [trashLoaded, setTrashLoaded] = useState(false)
-  // Collapsed-badge count, used ONLY before the panel opens. null = not yet known (mount count
-  // pending/failed); deltas fall back to a 0 baseline so a soft-delete still surfaces a badge.
-  const [unopenedTrashCount, setUnopenedTrashCount] = useState<number | null>(null)
   // Ids with a mutation in flight. A second delete/restore/purge of the same kitchen would hit the
   // RPC's deleted_at-guard no-op (null → "failure") and roll back the first call's success, so drop it.
   const pending = useRef(new Set<string>())
@@ -75,44 +67,39 @@ export function useKitchens() {
         .sort(byDeletedAtDesc),
     [byId],
   )
-  const deleted = trashLoaded ? trashed : null
-  const trashCount = trashLoaded ? trashed.length : unopenedTrashCount
+  const deleted = trashed
+  const trashCount = trashed.length
 
   // Kept as .then (not async/await): the set-state-in-effect lint rule traces setState in an async
   // body called from the effect, but not into a .then callback.
   const load = useCallback(() => {
-    return listKitchens(supabase).then((data) => {
+    return listAllKitchens(supabase).then((data) => {
       if (data === null) {
         setStatus('error')
-      } else {
-        // Replace the live partition wholesale; preserve any trashed rows already known.
-        setById((prev) => {
-          const next: ById = {}
-          // Keep known trashed rows plus any id with a mutation in flight (e.g. an optimistic restore
-          // this live read predates), so a refetch can't drop them.
-          for (const k of Object.values(prev))
-            if (k.deleted_at || pending.current.has(k.id)) next[k.id] = k
-          for (const k of data) next[k.id] = k
-          return next
-        })
-        setStatus('ready')
+        return
       }
+      // Trashed rows a server read reports are confirmed in the trash (except any mid-mutation), so a
+      // later loadTrash that omits them may drop them.
+      data.forEach((k) => {
+        if (k.deleted_at && !pending.current.has(k.id)) trashConfirmed.current.add(k.id)
+      })
+      setById((prev) => {
+        const next: ById = {}
+        // Preserve in-flight optimistic rows the read may predate; take everything else from the server.
+        for (const k of Object.values(prev)) if (pending.current.has(k.id)) next[k.id] = k
+        for (const k of data) if (!pending.current.has(k.id)) next[k.id] = k
+        return next
+      })
+      setStatus('ready')
+      // The same read seeds the trash partition, so the panel opens without a load flash; a reopen
+      // still refetches via loadTrash for cross-tab freshness.
+      setTrashStatus('ready')
     })
   }, [supabase])
 
-  // Closed-panel only (open → trashCount derives from the loaded list). No clamp: while closed a
-  // restore only ever follows a soft-delete, so the count can't go negative.
-  const bumpUnopenedCount = (by: number) => {
-    if (trashLoaded) return
-    setUnopenedTrashCount((c) => (c ?? 0) + by)
-  }
-
   useEffect(() => {
     load()
-    // Eager count for the disclosure badge. Only seeds the baseline if no optimistic delta has set it
-    // yet; once the panel opens the count derives from the loaded list instead.
-    countDeletedKitchens(supabase).then((n) => setUnopenedTrashCount((c) => (c === null ? n : c)))
-  }, [load, supabase])
+  }, [load])
 
   const retry = () => {
     setStatus('loading')
@@ -151,7 +138,6 @@ export function useKitchens() {
           for (const k of data) if (!pending.current.has(k.id)) next[k.id] = k
           return next
         })
-        setTrashLoaded(true)
         setTrashStatus('ready')
       }
     })
@@ -185,13 +171,11 @@ export function useKitchens() {
     if (!byIdRef.current[kitchen.id]?.deleted_at) return
     pending.current.add(kitchen.id)
     try {
-      bumpUnopenedCount(-1)
       // Leaving trash: drop the confirmation so a racing read that still lists it (DB not yet updated)
       // can't strand a later re-delete of the same kitchen.
       trashConfirmed.current.delete(kitchen.id)
       setById((prev) => ({ ...prev, [kitchen.id]: { ...kitchen, deleted_at: null } }))
       if (!(await restoreKitchen(supabase, kitchen.id))) {
-        bumpUnopenedCount(1)
         setById((prev) => ({ ...prev, [kitchen.id]: kitchen }))
         toast.error(`Couldn't restore "${kitchenLabel(kitchen.name)}". Try again.`)
       }
@@ -208,11 +192,9 @@ export function useKitchens() {
     // `kitchen`) so a failed undo re-inserts the row with a timestamp.
     const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
     try {
-      bumpUnopenedCount(1)
       setById((prev) => ({ ...prev, [kitchen.id]: trashed }))
       const row = await softDeleteKitchen(supabase, kitchen.id)
       if (!row) {
-        bumpUnopenedCount(-1)
         setById((prev) => ({ ...prev, [kitchen.id]: { ...kitchen, deleted_at: null } }))
         toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
         return
@@ -236,7 +218,6 @@ export function useKitchens() {
     if (pending.current.has(kitchen.id)) return
     pending.current.add(kitchen.id)
     try {
-      bumpUnopenedCount(-1)
       trashConfirmed.current.delete(kitchen.id)
       setById((prev) => {
         const next = { ...prev }
@@ -244,7 +225,6 @@ export function useKitchens() {
         return next
       })
       if (!(await purgeKitchen(supabase, kitchen.id))) {
-        bumpUnopenedCount(1)
         setById((prev) => ({ ...prev, [kitchen.id]: kitchen }))
         toast.error(
           `Couldn't permanently delete "${kitchenLabel(kitchen.name)}". It's still in your trash.`,

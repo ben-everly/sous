@@ -7,8 +7,6 @@ type RpcResult = { data: Row | null; error: null | { message: string } }
 const mocks = vi.hoisted(() => ({
   results: {
     select: { data: [] as Row[] | null, error: null as null | { message: string } },
-    // A head:true count query (countDeletedKitchens) resolves here, separate from list reads.
-    count: { count: 0 as number | null, error: null as null | { message: string } },
     insert: { data: null as Row | null, error: null as null | { message: string } },
     update: { data: null as { id: string } | null, error: null as null | { message: string } },
     delete: { data: null as { id: string } | null, error: null as null | { message: string } },
@@ -32,12 +30,8 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     from: () => {
       let op: 'select' | 'insert' | 'update' | 'delete' = 'select'
-      let isCount = false
       const chain = {
-        select: (_cols?: string, opts?: { head?: boolean }) => {
-          if (opts?.head) isCount = true
-          return chain
-        },
+        select: () => chain,
         insert: () => {
           op = 'insert'
           return chain
@@ -57,7 +51,6 @@ vi.mock('@/lib/supabase/client', () => ({
         single: () => chain,
         maybeSingle: () => chain,
         then: (resolve: (v: unknown) => void) => {
-          if (isCount) return resolve(mocks.results.count)
           if (op === 'select' && mocks.deferSelect) {
             mocks.selectResolvers.push(() => resolve(mocks.results.select))
             return
@@ -82,7 +75,6 @@ const beach: Row = { id: 'k1', name: 'Beach House', created_at: '2026-01-01', de
 
 beforeEach(() => {
   mocks.results.select = { data: [beach], error: null }
-  mocks.results.count = { count: 0, error: null }
   mocks.results.insert = { data: null, error: null }
   mocks.results.update = { data: null, error: null }
   mocks.results.delete = { data: null, error: null }
@@ -155,58 +147,43 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashed], error: null }
-    act(() => {
-      result.current.loadTrash()
+    await act(async () => {
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     expect(result.current.deleted).toEqual([trashed])
   })
 
-  it('exposes the mount trash count and keeps it in sync across delete/restore', async () => {
-    mocks.results.count = { count: 2, error: null }
+  it('derives the trash count from the loaded set and keeps it in sync across delete/restore', async () => {
+    const trashedA: Row = {
+      id: 'd1',
+      name: 'Old A',
+      created_at: '2025-01-01',
+      deleted_at: '2026-01-01',
+    }
+    const trashedB: Row = {
+      id: 'd2',
+      name: 'Old B',
+      created_at: '2025-01-02',
+      deleted_at: '2026-01-02',
+    }
+    // One mount read seeds both partitions, so the count is exact immediately — no separate query.
+    mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
     const { result } = renderHook(() => useKitchens())
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    await waitFor(() => expect(result.current.trashCount).toBe(2))
+    expect(result.current.trashCount).toBe(2)
 
-    // Soft-delete bumps the badge even though the panel was never opened (deleted still null).
+    // Soft-delete moves beach into trash: the count follows with no manual bookkeeping.
     await act(async () => {
       await result.current.softDelete(beach)
     })
-    expect(result.current.deleted).toBeNull()
     expect(result.current.trashCount).toBe(3)
 
-    // Undo restores and decrements.
+    // Undo restores beach and the count follows back down.
     const undo = mocks.toast.mock.calls[0][1].action.onClick
     await act(async () => {
       await undo()
     })
     expect(result.current.trashCount).toBe(2)
-  })
-
-  it('still surfaces a badge count after a soft-delete when the mount count fetch failed', async () => {
-    mocks.results.count = { count: null, error: { message: 'boom' } }
-    const { result } = renderHook(() => useKitchens())
-    await waitFor(() => expect(result.current.status).toBe('ready'))
-    expect(result.current.trashCount).toBeNull() // fetch failed → unknown, no badge yet
-
-    await act(async () => {
-      await result.current.softDelete(beach)
-    })
-    // The delta falls back to a 0 baseline instead of no-oping, so the badge appears.
-    expect(result.current.trashCount).toBe(1)
-  })
-
-  it('reconciles the trash count to the loaded list length on open', async () => {
-    mocks.results.count = { count: 99, error: null } // stale/wrong mount count
-    const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
-    await waitFor(() => expect(result.current.status).toBe('ready'))
-
-    mocks.results.select = { data: [trashed], error: null }
-    await act(async () => {
-      await result.current.loadTrash()
-    })
-    expect(result.current.trashCount).toBe(1)
   })
 
   it('loadTrash refetches fresh data on reopen', async () => {
@@ -216,9 +193,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [first], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     expect(result.current.deleted).toEqual([first])
 
     // Reopen: the item was purged elsewhere, so a refetch should reflect the now-empty trash.
@@ -270,9 +246,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [first], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     // Reopen while offline: the refetch errors, but the already-loaded list must stay visible.
     mocks.results.select = { data: null, error: { message: 'offline' } }
@@ -290,9 +265,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     const serverStamp = '2026-02-01T00:00:00.000Z'
     mocks.results.rpc = { data: { ...beach, deleted_at: serverStamp }, error: null }
@@ -341,9 +315,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [], error: null } // trash loaded, currently empty
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     mocks.results.rpc = ({ kitchen_id }) =>
       kitchen_id === 'b'
@@ -381,9 +354,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     await act(async () => {
       await result.current.softDelete(beach)
@@ -409,9 +381,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashed], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     mocks.results.rpc = { data: null, error: { message: 'boom' } }
     await act(async () => {
@@ -439,9 +410,8 @@ describe('useKitchens', () => {
     // so it comes back empty. A wholesale reseed would drop beach from trashedIds and strand it.
     mocks.results.select = { data: [], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     await act(async () => {
       await undo()
@@ -464,9 +434,8 @@ describe('useKitchens', () => {
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
     mocks.results.select = { data: [trashed], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     await act(async () => {
       await result.current.restore(trashed)
     })
@@ -495,9 +464,8 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashed], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
 
     mocks.results.rpc = { data: null, error: { message: 'boom' } }
     await act(async () => {
@@ -521,9 +489,8 @@ describe('useKitchens', () => {
     })
     mocks.results.select = { data: [trashed], error: null }
     await act(async () => {
-      result.current.loadTrash()
+      await result.current.loadTrash()
     })
-    await waitFor(() => expect(result.current.trashStatus).toBe('ready'))
     await act(async () => {
       await result.current.restore(trashed)
     })
