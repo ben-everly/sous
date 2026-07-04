@@ -2,7 +2,6 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConfirmationSent } from './confirmation-sent'
 
-// Renders a ResendButton whose resend thunk calls the browser client.
 vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({ auth: { resend: vi.fn() } }) }))
 
 afterEach(cleanup)

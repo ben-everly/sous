@@ -2,8 +2,8 @@ import type { Session, User } from '@supabase/supabase-js'
 
 export type SignupOutcome = 'existing' | 'authed' | 'awaiting_confirmation'
 
-// The three outcomes of a signup attempt, named in one place so register-form reads a switch
-// instead of an if-ladder over GoTrue's quirks.
+// The three signup outcomes, named in one place so callers read a switch instead of an
+// if-ladder over GoTrue's quirks.
 export function classifySignupResult(data: {
   user: User | null
   session: Session | null

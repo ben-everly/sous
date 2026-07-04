@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner'
 
 // The single-use confirmation token is consumed on the CLIENT after mount, not in a GET
 // route: email-security scanners (Safe Links, Proofpoint) fire prefetch GETs that would burn
-// a server route's token, but don't run JS. Mirrors the recovery flow in reset-password-form.
+// a server route's token, but don't run JS.
 // The ref guard keeps verifyOtp to once under StrictMode (dev).
 export function ConfirmEmail() {
   const router = useRouter()

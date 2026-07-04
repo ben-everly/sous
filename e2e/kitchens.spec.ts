@@ -5,7 +5,7 @@ import { TEST_USER } from './test-user'
 const ownerKitchen = 'My Kitchen'
 
 test.describe('kitchens', () => {
-  test('manage kitchens from settings', async ({ page }) => {
+  test('soft delete: undo, restore from trash, and permanent delete', async ({ page }) => {
     await page.goto('/')
 
     await page.getByText(TEST_USER.fullName).click()
@@ -25,19 +25,26 @@ test.describe('kitchens', () => {
     await expect(page.getByText('Beach House')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
-    await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(page.getByText('Lake House')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Lake House')).toBeVisible()
 
-    // Delete the last (bootstrapped) kitchen → empty state.
-    await page.getByRole('button', { name: `Delete ${ownerKitchen}` }).click()
-    await page.getByRole('button', { name: 'Delete', exact: true }).click()
-    await expect(page.getByText(/you have no kitchens yet/i)).toBeVisible()
+    await page.getByRole('button', { name: 'Delete Lake House' }).click()
+    await expect(page.getByText('Lake House')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Trash' }).click()
+    await page.getByRole('button', { name: 'Restore Lake House' }).click()
+    await expect(page.getByText('Lake House')).toBeVisible()
 
-    // Re-create from empty: a name is required (the nameless kitchen is bootstrap-only).
-    await page.getByRole('button', { name: 'Add kitchen' }).click()
-    await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeDisabled()
-    await page.getByLabel('New kitchen name').fill('Pantry')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
-    await expect(page.getByText('Pantry')).toBeVisible()
+    await page.getByRole('button', { name: 'Delete Lake House' }).click()
+    // The trash is already open, so "Lake House" text remains visible there.
+    // exact: true avoids matching "Delete Lake House permanently" in the open trash.
+    await expect(page.getByRole('button', { name: 'Delete Lake House', exact: true })).toHaveCount(
+      0,
+    )
+    // Deleting a live kitchen while the trash is open optimistically prepends it — no toggle needed.
+    await expect(page.getByRole('button', { name: 'Restore Lake House' })).toBeVisible()
+    await page.getByRole('button', { name: 'Delete Lake House permanently' }).click()
+    await page.getByRole('button', { name: 'Delete permanently' }).click()
+    await expect(page.getByRole('button', { name: 'Restore Lake House' })).toHaveCount(0)
   })
 })

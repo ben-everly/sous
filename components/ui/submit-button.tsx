@@ -1,8 +1,7 @@
 import { LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-// Full-width form submit that owns the in-flight affordance (disabled + aria-busy + the
-// spinning loader) so every form shows "pending" the same way.
+// Full-width form submit that owns the in-flight affordance so every form shows "pending" the same way.
 export function SubmitButton({
   pending,
   disabled = false,

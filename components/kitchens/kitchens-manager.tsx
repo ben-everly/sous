@@ -1,57 +1,30 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
-import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
-import { listKitchens, createKitchen, renameKitchen, deleteKitchen } from '@/lib/kitchens/queries'
+import { useKitchens } from './use-kitchens'
 import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
-import type { Kitchen } from '@/lib/kitchens/types'
+import { KitchenTrash } from './kitchen-trash'
 
 export function KitchensManager() {
-  const [supabase] = useState(createClient)
-  const [kitchens, setKitchens] = useState<Kitchen[]>([])
-  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
+  const {
+    kitchens,
+    status,
+    retry,
+    create,
+    rename,
+    softDelete,
+    deleted,
+    trashStatus,
+    trashCount,
+    loadTrash,
+    restore,
+    purge,
+  } = useKitchens()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<Kitchen | null>(null)
-
-  const load = useCallback(() => {
-    // RLS scopes the read to the owner; no client-side owner filter needed.
-    // Kept as .then (not async/await): the set-state-in-effect lint rule traces setState in an
-    // async body called from the effect, but not into a .then callback.
-    return listKitchens(supabase).then((data) => {
-      if (data === null) {
-        setStatus('error')
-      } else {
-        setKitchens(data)
-        setStatus('ready')
-      }
-    })
-  }, [supabase])
-
-  // Mount: status already starts 'loading', so the effect only fetches (no synchronous setState).
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const retry = () => {
-    setStatus('loading')
-    load()
-  }
 
   if (status === 'error') {
     return (
@@ -80,44 +53,6 @@ export function KitchensManager() {
     )
   }
 
-  const create = async (name: string) => {
-    const result = await createKitchen(supabase, name)
-    if (result.ok) {
-      setKitchens((ks) => [...ks, result.kitchen])
-      setDraftOpen(false)
-      return true
-    }
-    toast.error("Couldn't create the kitchen. Try again.")
-    return false
-  }
-
-  const rename = async (id: string, name: string) => {
-    // The inline editor masks the row, so an optimistic write would be invisible — just await.
-    if (name === kitchens.find((k) => k.id === id)?.name) {
-      setEditingId(null)
-      return true
-    }
-    if (!(await renameKitchen(supabase, id, name))) {
-      toast.error("Couldn't rename the kitchen. Try again.")
-      return false
-    }
-    setKitchens((ks) => ks.map((k) => (k.id === id ? { ...k, name } : k)))
-    setEditingId(null)
-    return true
-  }
-
-  const remove = async (kitchen: Kitchen) => {
-    // Optimistic: closing the dialog unmounts the button, and the onClick's `pendingDelete &&`
-    // guards re-entry — so no in-flight flag is needed.
-    const prev = kitchens
-    setKitchens((ks) => ks.filter((k) => k.id !== kitchen.id))
-    setPendingDelete(null)
-    if (!(await deleteKitchen(supabase, kitchen.id))) {
-      setKitchens(prev)
-      toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
-    }
-  }
-
   return (
     <div className="mt-6 space-y-6">
       {kitchens.length === 0 && !draftOpen ? (
@@ -137,8 +72,12 @@ export function KitchensManager() {
                 isEditing={editingId === k.id}
                 onEdit={() => setEditingId(k.id)}
                 onCancelEdit={() => setEditingId(null)}
-                onRename={(name) => rename(k.id, name)}
-                onRequestDelete={() => setPendingDelete(k)}
+                onRename={async (name) => {
+                  const ok = await rename(k.id, name)
+                  if (ok) setEditingId(null)
+                  return ok
+                }}
+                onRequestDelete={() => softDelete(k)}
               />
             ))}
             {draftOpen && (
@@ -148,7 +87,11 @@ export function KitchensManager() {
                   inputLabel="New kitchen name"
                   submitLabel="Add"
                   placeholder="Name your kitchen"
-                  onSubmit={create}
+                  onSubmit={async (name) => {
+                    const ok = await create(name)
+                    if (ok) setDraftOpen(false)
+                    return ok
+                  }}
                   onCancel={() => setDraftOpen(false)}
                 />
               </li>
@@ -163,26 +106,14 @@ export function KitchensManager() {
         </>
       )}
 
-      <AlertDialog
-        open={pendingDelete !== null}
-        onOpenChange={(open) => !open && setPendingDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete kitchen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes {pendingDelete && kitchenLabel(pendingDelete.name)}. This
-              cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => pendingDelete && remove(pendingDelete)}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <KitchenTrash
+        deleted={deleted}
+        status={trashStatus}
+        count={trashCount}
+        onLoad={loadTrash}
+        onRestore={restore}
+        onPurge={purge}
+      />
     </div>
   )
 }
