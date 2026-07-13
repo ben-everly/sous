@@ -2,11 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import {
-  createKitchen,
-  listAllKitchens,
-  listDeletedKitchens,
+  COLUMNS,
+  allKitchensQuery,
   purgeKitchen,
-  renameKitchen,
   restoreKitchen,
   softDeleteKitchen,
 } from './queries'
@@ -27,24 +25,11 @@ const ALL_NULL_ROW = {
 }
 
 function clientReturning(resp: Resp) {
-  const insertArg = vi.fn()
-  const updateArg = vi.fn()
   const rpcArg = vi.fn()
   const chain = {
     select: () => chain,
-    insert: (obj: unknown) => {
-      insertArg(obj)
-      return chain
-    },
-    update: (obj: unknown) => {
-      updateArg(obj)
-      return chain
-    },
-    delete: () => chain,
     order: () => chain,
     eq: () => chain,
-    is: () => chain,
-    not: () => chain,
     single: () => chain,
     maybeSingle: () => chain,
     then: (resolve: (v: Resp) => void) => resolve(resp),
@@ -56,95 +41,51 @@ function clientReturning(resp: Resp) {
       return chain
     },
   } as unknown as SupabaseClient<Database>
-  return { supabase, insertArg, updateArg, rpcArg }
+  return { supabase, rpcArg }
 }
 
-describe('listAllKitchens', () => {
-  it('returns the rows (live and trashed) on success', async () => {
-    const rows = [
-      { id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: null },
-      { id: 'k2', name: 'Lake House', created_at: '2026-01-02', deleted_at: '2026-02-01' },
-    ]
-    const { supabase } = clientReturning({ data: rows, error: null })
-    expect(await listAllKitchens(supabase)).toEqual(rows)
-  })
+describe('allKitchensQuery', () => {
+  it('reads every kitchen (live and trashed) selecting COLUMNS ordered by created_at then id', () => {
+    const calls: Array<[string, unknown]> = []
+    const chain = {
+      select: (c: unknown) => (calls.push(['select', c]), chain),
+      order: (c: unknown) => (calls.push(['order', c]), chain),
+    }
+    const supabase = {
+      from: (t: unknown) => (calls.push(['from', t]), chain),
+    } as unknown as SupabaseClient<Database>
 
-  it('returns null on a read error', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
-    expect(await listAllKitchens(supabase)).toBeNull()
-  })
-})
+    allKitchensQuery(supabase)
 
-describe('listDeletedKitchens', () => {
-  it('returns the trashed rows on success', async () => {
-    const rows = [
-      { id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: '2026-02-01' },
-    ]
-    const { supabase } = clientReturning({ data: rows, error: null })
-    expect(await listDeletedKitchens(supabase)).toEqual(rows)
-  })
-
-  it('returns null on a read error', async () => {
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000' } })
-    expect(await listDeletedKitchens(supabase)).toBeNull()
+    expect(calls).toEqual([
+      ['from', 'kitchens'],
+      ['select', COLUMNS],
+      ['order', 'created_at'],
+      ['order', 'id'],
+    ])
   })
 })
 
-describe('createKitchen', () => {
-  it('stores the given name and returns the new kitchen', async () => {
-    const { supabase, insertArg } = clientReturning({
-      data: { id: 'k2', name: 'Lake House', created_at: '2026-01-02', deleted_at: null },
-      error: null,
-    })
-    const result = await createKitchen(supabase, 'Lake House')
-    expect(insertArg).toHaveBeenCalledWith({ name: 'Lake House' })
-    expect(result).toEqual({
-      ok: true,
-      kitchen: { id: 'k2', name: 'Lake House', created_at: '2026-01-02', deleted_at: null },
-    })
-  })
-
-  it('reports failure and logs when the insert errors', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
-    expect(await createKitchen(supabase, 'Lake House')).toEqual({ ok: false })
-    expect(spy).toHaveBeenCalled()
-    spy.mockRestore()
-  })
-})
-
-describe('renameKitchen / purgeKitchen', () => {
-  it('return true when the write affects a row', async () => {
+describe('purgeKitchen', () => {
+  it('returns true when the RPC affects a row', async () => {
     const { supabase } = clientReturning({ data: { id: 'k1' }, error: null })
-    expect(await renameKitchen(supabase, 'k1', 'New')).toBe(true)
     expect(await purgeKitchen(supabase, 'k1')).toBe(true)
   })
 
-  it('return false and log when the write errors', async () => {
+  it('returns false and logs when the RPC errors', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
-    expect(await renameKitchen(supabase, 'k1', 'New')).toBe(false)
     expect(await purgeKitchen(supabase, 'k1')).toBe(false)
-    expect(spy).toHaveBeenCalledTimes(2)
+    expect(spy).toHaveBeenCalledTimes(1)
     spy.mockRestore()
   })
 
-  it('return false without logging when no row matched (RLS-filtered or stale id)', async () => {
+  it('returns false without logging when the no-op serializes as an all-null object', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    // rename is a table update: a 0-row match resolves to null via maybeSingle().
-    const rename = clientReturning({ data: null, error: null })
-    expect(await renameKitchen(rename.supabase, 'k1', 'New')).toBe(false)
-    // purge is a composite RPC: a 0-row match comes back as an all-null object, not null.
-    const purge = clientReturning({ data: ALL_NULL_ROW, error: null })
-    expect(await purgeKitchen(purge.supabase, 'k1')).toBe(false)
+    const { supabase } = clientReturning({ data: ALL_NULL_ROW, error: null })
+    expect(await purgeKitchen(supabase, 'k1')).toBe(false)
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
-  })
-
-  it('sends the new name verbatim', async () => {
-    const { supabase, updateArg } = clientReturning({ data: { id: 'k1' }, error: null })
-    await renameKitchen(supabase, 'k1', 'New')
-    expect(updateArg).toHaveBeenCalledWith({ name: 'New' })
   })
 })
 

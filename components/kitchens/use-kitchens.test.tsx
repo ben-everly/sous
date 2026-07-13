@@ -1,75 +1,41 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeWrapper } from '@/test/query-wrapper'
+import type { MockState, Row } from '@/test/supabase-mock'
 
-type Row = { id: string; name: string | null; created_at: string; deleted_at: string | null }
 type RpcResult = { data: Row | null; error: null | { message: string } }
 
 const mocks = vi.hoisted(() => ({
   results: {
     select: { data: [] as Row[] | null, error: null as null | { message: string } },
     insert: { data: null as Row | null, error: null as null | { message: string } },
-    update: { data: null as { id: string } | null, error: null as null | { message: string } },
-    delete: { data: null as { id: string } | null, error: null as null | { message: string } },
+    update: {
+      data: null as { id: string } | Row | null,
+      error: null as null | { message: string },
+    },
     // A function lets a single act() drive per-kitchen outcomes (one delete succeeds, one fails).
     rpc: { data: null as Row | null, error: null as null | { message: string } } as
       | RpcResult
       | ((args: { kitchen_id: string }) => RpcResult),
   },
   rpcSpy: vi.fn(),
+  insertSpy: vi.fn(),
   // sonner's toast is both a function (the undo toast) and an object with .error.
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
-  // When true, select() reads park their resolver here instead of resolving, so a test can drain them
-  // in any order to exercise out-of-order fetch resolution.
   deferSelect: false,
   selectResolvers: [] as Array<() => void>,
 }))
 
 vi.mock('sonner', () => ({ toast: mocks.toast }))
 
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    from: () => {
-      let op: 'select' | 'insert' | 'update' | 'delete' = 'select'
-      const chain = {
-        select: () => chain,
-        insert: () => {
-          op = 'insert'
-          return chain
-        },
-        update: () => {
-          op = 'update'
-          return chain
-        },
-        delete: () => {
-          op = 'delete'
-          return chain
-        },
-        is: () => chain,
-        not: () => chain,
-        order: () => chain,
-        eq: () => chain,
-        single: () => chain,
-        maybeSingle: () => chain,
-        then: (resolve: (v: unknown) => void) => {
-          if (op === 'select' && mocks.deferSelect) {
-            mocks.selectResolvers.push(() => resolve(mocks.results.select))
-            return
-          }
-          resolve(mocks.results[op])
-        },
-      }
-      return chain
-    },
-    rpc: (name: string, args: { kitchen_id: string }) => {
-      mocks.rpcSpy(name, args)
-      const r =
-        typeof mocks.results.rpc === 'function' ? mocks.results.rpc(args) : mocks.results.rpc
-      return { then: (resolve: (v: unknown) => void) => resolve(r) }
-    },
-  }),
-}))
+vi.mock('@/lib/supabase/client', async () => {
+  const { createMockClient } = await import('@/test/supabase-mock')
+  return { createClient: () => createMockClient(mocks as unknown as MockState) }
+})
 
 import { useKitchens } from './use-kitchens'
+
+const renderUseKitchens = () => renderHook(() => useKitchens(), { wrapper: makeWrapper().wrapper })
 
 const beach: Row = { id: 'k1', name: 'Beach House', created_at: '2026-01-01', deleted_at: null }
 
@@ -77,9 +43,9 @@ beforeEach(() => {
   mocks.results.select = { data: [beach], error: null }
   mocks.results.insert = { data: null, error: null }
   mocks.results.update = { data: null, error: null }
-  mocks.results.delete = { data: null, error: null }
   mocks.results.rpc = { data: beach, error: null }
   mocks.rpcSpy.mockReset()
+  mocks.insertSpy.mockReset()
   mocks.toast.mockReset()
   mocks.toast.error.mockReset()
   mocks.deferSelect = false
@@ -90,13 +56,13 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('useKitchens', () => {
   it('loads the live list', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(result.current.kitchens).toEqual([beach])
   })
 
   it('softDelete removes the row and fires an 8s undo toast', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {
@@ -112,7 +78,7 @@ describe('useKitchens', () => {
   })
 
   it('undo restores the kitchen to the live list', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {
@@ -129,7 +95,7 @@ describe('useKitchens', () => {
   it('rolls back softDelete and toasts an error when the RPC fails', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.results.rpc = { data: null, error: { message: 'boom' } }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {
@@ -141,9 +107,53 @@ describe('useKitchens', () => {
     spy.mockRestore()
   })
 
+  it('renames a kitchen in place', async () => {
+    mocks.results.update = { data: { ...beach, name: 'Lake House' }, error: null }
+    const { result } = renderUseKitchens()
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    let ok!: boolean
+    await act(async () => {
+      ok = await result.current.rename('k1', 'Lake House')
+    })
+
+    expect(ok).toBe(true)
+    expect(result.current.kitchens.map((k) => k.name)).toEqual(['Lake House'])
+  })
+
+  it('no-ops a rename to the current name without hitting the DB', async () => {
+    const { result } = renderUseKitchens()
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    let ok!: boolean
+    await act(async () => {
+      ok = await result.current.rename('k1', 'Beach House')
+    })
+
+    expect(ok).toBe(true)
+    expect(result.current.kitchens).toEqual([beach])
+  })
+
+  it('reports failure and toasts when a rename matches no row', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.results.update = { data: null, error: { message: 'boom' } }
+    const { result } = renderUseKitchens()
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    let ok!: boolean
+    await act(async () => {
+      ok = await result.current.rename('k1', 'Lake House')
+    })
+
+    expect(ok).toBe(false)
+    expect(mocks.toast.error).toHaveBeenCalledWith("Couldn't rename the kitchen. Try again.")
+    expect(result.current.kitchens).toEqual([beach])
+    spy.mockRestore()
+  })
+
   it('loadTrash populates the trash list', async () => {
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashed], error: null }
@@ -168,7 +178,7 @@ describe('useKitchens', () => {
     }
     // One mount read seeds both partitions, so the count is exact immediately — no separate query.
     mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(result.current.trashCount).toBe(2)
 
@@ -186,7 +196,7 @@ describe('useKitchens', () => {
 
   it('loadTrash refetches fresh data on reopen', async () => {
     const first: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [first], error: null }
@@ -206,7 +216,7 @@ describe('useKitchens', () => {
 
   it('ignores a slow reopen refetch that resolves after a newer one (no stale overwrite)', async () => {
     const stale: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     // Two overlapping reopens: #1 (older) then #2 (newer), neither resolved yet.
@@ -239,7 +249,7 @@ describe('useKitchens', () => {
 
   it('keeps the loaded trash list when a reopen refetch fails, instead of blanking to an error', async () => {
     const first: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [first], error: null }
@@ -258,7 +268,7 @@ describe('useKitchens', () => {
   })
 
   it('softDelete prepends a deleted_at-stamped copy when trash is loaded', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [], error: null }
@@ -284,7 +294,7 @@ describe('useKitchens', () => {
     const a: Row = { id: 'a', name: 'A', created_at: '2026-01-01', deleted_at: null }
     const b: Row = { id: 'b', name: 'B', created_at: '2026-01-02', deleted_at: null }
     mocks.results.select = { data: [a, b], error: null }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     // 'a' deletes cleanly; 'b' fails. Fire both from the same render's closures, before either
@@ -308,7 +318,7 @@ describe('useKitchens', () => {
     const a: Row = { id: 'a', name: 'A', created_at: '2026-01-01', deleted_at: null }
     const b: Row = { id: 'b', name: 'B', created_at: '2026-01-02', deleted_at: null }
     mocks.results.select = { data: [a, b], error: null }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [], error: null } // trash loaded, currently empty
@@ -332,7 +342,7 @@ describe('useKitchens', () => {
   })
 
   it('a second softDelete of the same kitchen is dropped while the first is in flight', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     const softDelete = result.current.softDelete
@@ -346,7 +356,7 @@ describe('useKitchens', () => {
 
   it('a failed undo re-inserts the kitchen into trash with its deletion timestamp intact', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [], error: null }
@@ -373,7 +383,7 @@ describe('useKitchens', () => {
   it('purge failure rolls back and toasts a distinct permanent-delete error', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashed], error: null }
@@ -395,7 +405,7 @@ describe('useKitchens', () => {
   })
 
   it('undo still works when the trash panel opened mid-delete and its read missed the row', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {
@@ -404,7 +414,7 @@ describe('useKitchens', () => {
     const undo = mocks.toast.mock.calls[0][1].action.onClick
 
     // Panel opened while the soft-delete was in flight: the trash read committed before beach did,
-    // so it comes back empty. A wholesale reseed would drop beach from trashedIds and strand it.
+    // so it comes back empty. A wholesale reseed would drop beach from the trash and strand it.
     mocks.results.select = { data: [], error: null }
     await act(async () => {
       await result.current.loadTrash()
@@ -419,7 +429,7 @@ describe('useKitchens', () => {
   })
 
   it('a stale undo after a trash-panel restore is a no-op (does not resurrect the kitchen)', async () => {
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {
@@ -455,7 +465,7 @@ describe('useKitchens', () => {
   it('restore failure rolls back and toasts an error', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashed], error: null }
@@ -476,7 +486,7 @@ describe('useKitchens', () => {
 
   it('a re-delete after a restore is not stranded by a racing empty trash refetch', async () => {
     const trashed: Row = { ...beach, deleted_at: '2026-02-01' }
-    const { result } = renderHook(() => useKitchens())
+    const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     await act(async () => {

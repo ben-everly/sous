@@ -1,73 +1,47 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-type Row = { id: string; name: string | null; created_at: string; deleted_at: string | null }
+import { makeWrapper } from '@/test/query-wrapper'
+import type { MockState, Row } from '@/test/supabase-mock'
 
 const mocks = vi.hoisted(() => ({
   results: {
-    select: { data: [] as Row[], error: null as null | { message: string } },
+    select: { data: [] as Row[] | null, error: null as null | { message: string } },
     insert: { data: null as Row | null, error: null as null | { message: string; code?: string } },
-    update: { data: null as { id: string } | null, error: null as null | { message: string } },
-    delete: { data: null as { id: string } | null, error: null as null | { message: string } },
+    update: {
+      data: null as { id: string } | Row | null,
+      error: null as null | { message: string },
+    },
     rpc: { data: null as Row | null, error: null as null | { message: string } },
   },
   insertSpy: vi.fn(),
   rpcSpy: vi.fn(),
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
+  deferSelect: false,
+  selectResolvers: [] as Array<() => void>,
 }))
 
 vi.mock('sonner', () => ({ toast: mocks.toast }))
 
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    from: () => {
-      let op: 'select' | 'insert' | 'update' | 'delete' = 'select'
-      const chain = {
-        select: () => chain,
-        insert: (obj: { name: string | null }) => {
-          op = 'insert'
-          mocks.insertSpy(obj)
-          return chain
-        },
-        update: () => {
-          op = 'update'
-          return chain
-        },
-        delete: () => {
-          op = 'delete'
-          return chain
-        },
-        is: () => chain,
-        not: () => chain,
-        order: () => chain,
-        eq: () => chain,
-        single: () => chain,
-        maybeSingle: () => chain,
-        then: (resolve: (v: unknown) => void) => resolve(mocks.results[op]),
-      }
-      return chain
-    },
-    rpc: (name: string, args: unknown) => {
-      mocks.rpcSpy(name, args)
-      return { then: (resolve: (v: unknown) => void) => resolve(mocks.results.rpc) }
-    },
-  }),
-}))
+vi.mock('@/lib/supabase/client', async () => {
+  const { createMockClient } = await import('@/test/supabase-mock')
+  return { createClient: () => createMockClient(mocks as unknown as MockState) }
+})
 
 import { KitchensManager } from './kitchens-manager'
 
-const renderManager = () => render(<KitchensManager />)
+const renderManager = () => render(<KitchensManager />, { wrapper: makeWrapper().wrapper })
 
 beforeEach(() => {
   mocks.results.select = { data: [], error: null }
   mocks.results.insert = { data: null, error: null }
   mocks.results.update = { data: null, error: null }
-  mocks.results.delete = { data: null, error: null }
   mocks.results.rpc = { data: null, error: null }
   mocks.insertSpy.mockReset()
   mocks.rpcSpy.mockReset()
   mocks.toast.mockReset()
   mocks.toast.error.mockReset()
+  mocks.deferSelect = false
+  mocks.selectResolvers = []
 })
 
 afterEach(cleanup)
@@ -82,7 +56,7 @@ describe('KitchensManager', () => {
   })
 
   it('shows a retry view on load failure, then the list when retried', async () => {
-    mocks.results.select = { data: [], error: { message: 'network' } }
+    mocks.results.select = { data: null, error: { message: 'network' } }
     renderManager()
 
     expect(await screen.findByText('Could not load your kitchens.')).toBeInTheDocument()

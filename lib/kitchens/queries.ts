@@ -4,48 +4,14 @@ import type { Kitchen } from './types'
 
 type Client = SupabaseClient<Database>
 
-export type CreateResult = { ok: true; kitchen: Kitchen } | { ok: false }
+export const COLUMNS = 'id, name, created_at, deleted_at'
 
-const COLUMNS = 'id, name, created_at, deleted_at'
-
-// Every kitchen the owner has, live and trashed — the hook partitions by deleted_at and derives both
-// the live list and the trash count from one read, so there's no separate count query to race.
-// null = read failed; an empty array is a real empty account. Tiebreak on id for a total order.
-export async function listAllKitchens(supabase: Client): Promise<Kitchen[] | null> {
-  const { data, error } = await supabase
-    .from('kitchens')
-    .select(COLUMNS)
-    .order('created_at')
-    .order('id')
-  return error ? null : data
-}
-
-export async function listDeletedKitchens(supabase: Client): Promise<Kitchen[] | null> {
-  const { data, error } = await supabase
-    .from('kitchens')
-    .select(COLUMNS)
-    .not('deleted_at', 'is', null)
-    .order('deleted_at', { ascending: false })
-  return error ? null : data
-}
-
-// The UI only ever creates named kitchens; the lone nameless kitchen is bootstrapped at signup.
-export async function createKitchen(supabase: Client, name: string): Promise<CreateResult> {
-  const { data, error } = await supabase.from('kitchens').insert({ name }).select(COLUMNS).single()
-  if (error) console.error('createKitchen failed:', error.message)
-  return data ? { ok: true, kitchen: data } : { ok: false }
-}
-
-// .select().maybeSingle() so a zero-row match (RLS-filtered or stale id) reports failure, not silent success.
-export async function renameKitchen(supabase: Client, id: string, name: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('kitchens')
-    .update({ name })
-    .eq('id', id)
-    .select('id')
-    .maybeSingle()
-  if (error) console.error('renameKitchen failed:', error.message)
-  return !error && data !== null
+// Every kitchen the owner has, live and trashed, as a PostgREST query builder (not an awaited
+// promise): the client data layer derives its cache key from the builder and re-runs it to refetch.
+// The hook partitions the one result by deleted_at, so the live list, the trash, and the trash count
+// all come from a single read with no separate count query to race. Tiebreak on id for a total order.
+export function allKitchensQuery(supabase: Client) {
+  return supabase.from('kitchens').select(COLUMNS).order('created_at').order('id')
 }
 
 // security-invoker RPC: RLS scopes the update to the owner; the deleted_at guard makes a wrong-state
