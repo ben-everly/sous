@@ -49,6 +49,19 @@ This document serves as the core set of instructions and architectural rules for
 - **AI**: Vercel AI SDK with strict Zod schemas for structured extraction.
 - **Testing**: Vitest (unit/integration), Playwright (E2E), pgTAP (database).
 
+### 2.1 Client data layer (TanStack Query + @supabase-cache-helpers)
+
+Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/queries.ts` (query builder + RPC wrappers). Follow this shape for new entity cards rather than re-deriving it.
+
+- **Query keys**: never hand-roll one. `useQuery`/`encode` derive the key from the query builder itself — this is what lets a future realtime subscription or SSR prefetch write into the same cache entry a read hook populates.
+- **Reads**: export a builder factory (e.g. `allKitchensQuery(supabase)`) returning a PostgREST query — not an awaited promise — and pass it straight to `useQuery(...)`.
+- **Read shape**: one unfiltered query as the sole source, partitioned client-side (live/trash/count from a single `kitchens` read), is preferred when the read is cheap — it avoids racing a separate count/filtered query. Reach for separate live-filtered and trash-filtered queries instead when returning every row to derive a subset is unacceptable (large tables). cache-helpers keeps multiple filtered lists consistent on a write by evaluating each list's PostgREST filter (`PostgrestFilter.apply` + `orderBy`) against the mutated row — no manual invalidation needed across lists.
+- **Plain writes**: table inserts/updates with no side invariants use cache-helpers' `useInsertMutation` / `useUpdateMutation` directly against `supabase.from(table)`.
+- **RPC writes**: when invariants (state guards, authz) live in a `security-invoker` RPC, the RPC can't be driven by `useInsertMutation`/`useUpdateMutation` — their no-op/failure semantics live in the RPC body, not in a table predicate cache-helpers can infer. Call the RPC directly (plain async fn or `useMutation`), then patch the cache by hand with the imperative helpers — `useUpsertItem` / `useDeleteItem` — matched by primary key, projecting the RPC's returned row down to the cached columns (`COLUMNS` in `queries.ts`).
+- **Optimistic updates**: write the optimistic row via `upsertItem`/`deleteItem` before the RPC call; on failure, write the pre-mutation row back (rollback) and toast. Guard with `queryClient.cancelQueries({ queryKey })` first so an in-flight background refetch can't race the optimistic write.
+- **In-flight guard**: `lib/data/in-flight.ts` exports `inFlight.add` / `inFlight.has` / `inFlight.delete` over a module-level `Set`, keyed per-entity (e.g. `` `kitchen:${id}` ``). Wrap each mutation so a second call on the same id while one is in flight is dropped, not sent — an RPC's own no-op guard would otherwise let the second call roll back the first's result. This registry is also the seam realtime will consult (see below).
+- **Realtime — extension point, not yet shipped**: cache-helpers' `useSubscription` / `useSubscriptionQuery` are where a future realtime feed attaches, writing into the same query-key-derived cache entries reads already populate. Before applying a remote change, it must check `inFlight.has(key)` and skip if set, so an incoming realtime row can't clobber an optimistic edit still in flight. No realtime subscription exists yet — this is a placeholder for a future card, not current behavior.
+
 ## 3. Supabase & Database Rules
 
 - **Strict Typing**: You must _always_ use the generated Supabase types from `types/database.types.ts` when interacting with the database.
