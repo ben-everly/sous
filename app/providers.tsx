@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createClient } from '@/lib/supabase/client'
+import { reportClientError } from '@/lib/data/report-client-error'
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [client] = useState(() => new QueryClient())
+  const [client] = useState(
+    () => new QueryClient({ mutationCache: new MutationCache({ onError: reportClientError }) }),
+  )
   const [supabase] = useState(createClient)
 
   useEffect(() => {
