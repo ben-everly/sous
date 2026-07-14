@@ -15,7 +15,6 @@ const trashed: Kitchen = {
 function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash>> = {}) {
   const props = {
     deleted: [trashed],
-    status: 'ready' as const,
     count: null as number | null,
     onLoad: vi.fn(),
     onRestore: vi.fn(),
@@ -44,7 +43,7 @@ describe('KitchenTrash', () => {
   })
 
   it('is collapsed by default and lazy-loads on first expand', () => {
-    const { onLoad } = renderTrash({ status: 'idle', deleted: null })
+    const { onLoad } = renderTrash({ deleted: null })
     const btn = screen.getByRole('button', { name: 'Trash' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('Beach House')).not.toBeInTheDocument()
@@ -77,7 +76,7 @@ describe('KitchenTrash', () => {
   })
 
   it('refetches on each expand so a reopen sees fresh trash', () => {
-    const { onLoad } = renderTrash({ status: 'ready', deleted: [trashed] })
+    const { onLoad } = renderTrash({ deleted: [trashed] })
     const btn = screen.getByRole('button', { name: 'Trash' })
     fireEvent.click(btn) // open
     fireEvent.click(btn) // close
@@ -91,12 +90,11 @@ describe('KitchenTrash', () => {
     expect(screen.getByText('Trash is empty.')).toBeInTheDocument()
   })
 
-  it('links the disclosure to its panel and announces transient status', () => {
-    renderTrash({ status: 'loading', deleted: null })
+  it('links the disclosure to its panel', () => {
+    renderTrash({ deleted: [] })
     const btn = screen.getByRole('button', { name: 'Trash' })
     expect(btn).toHaveAttribute('aria-controls', 'kitchen-trash-panel')
     fireEvent.click(btn)
     expect(document.getElementById('kitchen-trash-panel')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
   })
 })

@@ -210,7 +210,6 @@ describe('useKitchens', () => {
     await act(async () => {
       await result.current.loadTrash()
     })
-    expect(result.current.trashStatus).toBe('ready')
     expect(result.current.deleted).toEqual([])
   })
 
@@ -263,7 +262,6 @@ describe('useKitchens', () => {
       await result.current.loadTrash()
     })
 
-    expect(result.current.trashStatus).toBe('ready')
     expect(result.current.deleted).toEqual([first])
   })
 

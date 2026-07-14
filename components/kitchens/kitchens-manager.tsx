@@ -17,7 +17,6 @@ export function KitchensManager() {
     rename,
     softDelete,
     deleted,
-    trashStatus,
     trashCount,
     loadTrash,
     restore,
@@ -108,7 +107,6 @@ export function KitchensManager() {
 
       <KitchenTrash
         deleted={deleted}
-        status={trashStatus}
         count={trashCount}
         onLoad={loadTrash}
         onRestore={restore}

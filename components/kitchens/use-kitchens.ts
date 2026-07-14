@@ -24,7 +24,6 @@ import {
 import type { Kitchen } from '@/lib/kitchens/types'
 
 export type KitchensStatus = 'loading' | 'error' | 'ready'
-export type TrashStatus = 'idle' | 'loading' | 'error' | 'ready'
 
 // Matches the DB's order so a restored kitchen lands back in its original slot, not at the end.
 const byCreatedThenId = (a: Kitchen, b: Kitchen) =>
@@ -97,9 +96,6 @@ export function useKitchens() {
 
   const status: KitchensStatus =
     query.data === undefined ? (query.isError ? 'error' : 'loading') : 'ready'
-  // The one mount read already carries the trashed rows, so the panel opens populated with no load
-  // flash; once data exists the loaded list stays visible even if a reopen refetch fails.
-  const trashStatus: TrashStatus = query.data === undefined ? 'idle' : 'ready'
 
   const retry = () => void query.refetch()
 
@@ -236,7 +232,6 @@ export function useKitchens() {
     rename,
     softDelete,
     deleted,
-    trashStatus,
     trashCount,
     loadTrash,
     restore,

@@ -17,18 +17,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import type { Kitchen } from '@/lib/kitchens/types'
-import type { TrashStatus } from './use-kitchens'
 
 export function KitchenTrash({
   deleted,
-  status,
   count,
   onLoad,
   onRestore,
   onPurge,
 }: {
   deleted: Kitchen[] | null
-  status: TrashStatus
   count: number | null
   onLoad: () => void
   onRestore: (kitchen: Kitchen) => void
@@ -64,25 +61,12 @@ export function KitchenTrash({
 
       {open && (
         <div id="kitchen-trash-panel" className="space-y-3">
-          {status === 'loading' && (
-            <p role="status" className="text-muted-foreground text-sm">
-              Loading…
-            </p>
-          )}
-          {status === 'error' && (
-            <div role="status" className="space-y-2 text-sm">
-              <p className="text-muted-foreground">Could not load deleted kitchens.</p>
-              <Button size="sm" onClick={onLoad}>
-                Try again
-              </Button>
-            </div>
-          )}
-          {status === 'ready' && deleted?.length === 0 && (
+          {deleted?.length === 0 && (
             <p role="status" className="text-muted-foreground text-sm">
               Trash is empty.
             </p>
           )}
-          {status === 'ready' && deleted && deleted.length > 0 && (
+          {deleted && deleted.length > 0 && (
             <ul className="divide-y rounded-md border">
               {deleted.map((k) => {
                 const label = kitchenLabel(k.name)
