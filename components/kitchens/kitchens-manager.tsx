@@ -17,7 +17,6 @@ export function KitchensManager() {
     rename,
     softDelete,
     deleted,
-    trashCount,
     loadTrash,
     restore,
     purge,
@@ -105,13 +104,7 @@ export function KitchensManager() {
         </>
       )}
 
-      <KitchenTrash
-        deleted={deleted}
-        count={trashCount}
-        onLoad={loadTrash}
-        onRestore={restore}
-        onPurge={purge}
-      />
+      <KitchenTrash deleted={deleted} onLoad={loadTrash} onRestore={restore} onPurge={purge} />
     </div>
   )
 }

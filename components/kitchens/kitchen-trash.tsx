@@ -20,13 +20,11 @@ import type { Kitchen } from '@/lib/kitchens/types'
 
 export function KitchenTrash({
   deleted,
-  count,
   onLoad,
   onRestore,
   onPurge,
 }: {
-  deleted: Kitchen[] | null
-  count: number | null
+  deleted: Kitchen[]
   onLoad: () => void
   onRestore: (kitchen: Kitchen) => void
   onPurge: (kitchen: Kitchen) => void
@@ -41,7 +39,7 @@ export function KitchenTrash({
     if (next) onLoad()
   }
 
-  const hasItems = count != null && count > 0
+  const hasItems = deleted.length > 0
 
   return (
     <section className="space-y-3">
@@ -56,17 +54,17 @@ export function KitchenTrash({
         )}
       >
         <ChevronRight aria-hidden className={`transition-transform ${open ? 'rotate-90' : ''}`} />
-        {hasItems ? `Trash (${count})` : 'Trash'}
+        {hasItems ? `Trash (${deleted.length})` : 'Trash'}
       </button>
 
       {open && (
         <div id="kitchen-trash-panel" className="space-y-3">
-          {deleted?.length === 0 && (
+          {deleted.length === 0 && (
             <p role="status" className="text-muted-foreground text-sm">
               Trash is empty.
             </p>
           )}
-          {deleted && deleted.length > 0 && (
+          {deleted.length > 0 && (
             <ul className="divide-y rounded-md border">
               {deleted.map((k) => {
                 const label = kitchenLabel(k.name)

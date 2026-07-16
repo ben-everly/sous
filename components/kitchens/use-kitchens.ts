@@ -60,7 +60,6 @@ export function useKitchens() {
 
   const kitchens = useMemo(() => rows.filter((k) => !k.deleted_at).sort(byCreatedThenId), [rows])
   const deleted = useMemo(() => rows.filter((k) => k.deleted_at).sort(byDeletedAtDesc), [rows])
-  const trashCount = deleted.length
 
   const status: KitchensStatus =
     query.data === undefined ? (query.isError ? 'error' : 'loading') : 'ready'
@@ -167,7 +166,6 @@ export function useKitchens() {
     rename,
     softDelete,
     deleted,
-    trashCount,
     loadTrash,
     restore,
     purge,

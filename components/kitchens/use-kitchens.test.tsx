@@ -223,20 +223,20 @@ describe('useKitchens', () => {
     mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    expect(result.current.trashCount).toBe(2)
+    expect(result.current.deleted).toHaveLength(2)
 
     mocks.results.select = { data: [trashedBeach, trashedA, trashedB], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
-    await waitFor(() => expect(result.current.trashCount).toBe(3))
+    await waitFor(() => expect(result.current.deleted).toHaveLength(3))
 
     const undo = mocks.toast.mock.calls[0][1].action.onClick
     mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
     await act(async () => {
       undo()
     })
-    await waitFor(() => expect(result.current.trashCount).toBe(2))
+    await waitFor(() => expect(result.current.deleted).toHaveLength(2))
   })
 
   it('reconciles the optimistic soft-delete stamp with the DB deleted_at on the settle refetch', async () => {
