@@ -67,7 +67,7 @@ export function useKitchens() {
   const retry = () => void query.refetch()
 
   // Invalidation forces a refetch even under staleTime: Infinity, reconciling the list to server truth.
-  const loadTrash = useCallback(
+  const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey }),
     [queryClient, queryKey],
   )
@@ -166,7 +166,7 @@ export function useKitchens() {
     rename,
     softDelete,
     deleted,
-    loadTrash,
+    refresh,
     restore,
     purge,
   }

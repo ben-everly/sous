@@ -158,31 +158,31 @@ describe('useKitchens', () => {
     expect(result.current.kitchens).toEqual([beach])
   })
 
-  it('loadTrash refetches and populates the trash list', async () => {
+  it('refresh refetches and populates the trash list', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
   })
 
-  it('loadTrash refetches fresh data on reopen', async () => {
+  it('refresh refetches fresh data on reopen', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
     // Reopen: the item was purged elsewhere, so a refetch should reflect the now-empty trash.
     mocks.results.select = { data: [], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([]))
   })
@@ -193,14 +193,14 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
     // Reopen while offline: the refetch errors, but the already-loaded list must stay visible.
     mocks.results.select = { data: null, error: { message: 'offline' } }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
 
     expect(result.current.deleted).toEqual([trashedBeach])
@@ -342,7 +342,7 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
@@ -364,7 +364,7 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
@@ -383,7 +383,7 @@ describe('useKitchens', () => {
 
     mocks.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
-      await result.current.loadTrash()
+      await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
