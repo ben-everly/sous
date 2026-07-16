@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createClient } from '@/lib/supabase/client'
 import { reportClientError } from '@/lib/data/report-client-error'
+
+// Dev-only, lazy + dynamically imported so a production build never resolves or bundles the module
+// (it lives in devDependencies, so a prod-only install won't have it). The prod/test branch is a
+// no-op the bundler dead-code-eliminates.
+const ReactQueryDevtools =
+  process.env.NODE_ENV === 'development'
+    ? lazy(() =>
+        import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })),
+      )
+    : () => null
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -29,7 +38,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      <Suspense>
+        <ReactQueryDevtools />
+      </Suspense>
     </QueryClientProvider>
   )
 }
