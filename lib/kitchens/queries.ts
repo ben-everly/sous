@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
-import type { Kitchen } from './types'
 
 type Client = SupabaseClient<Database>
 
@@ -15,26 +14,22 @@ export function allKitchensQuery(supabase: Client) {
 }
 
 // security-invoker RPC: RLS scopes the update to the owner; the deleted_at guard makes a wrong-state
-// call a no-op. PostgREST serializes a zero-row composite RPC as an all-null object, NOT null, so a
-// present id — not `data !== null` — is what tells a real hit from a no-op/error. Returning the row
-// also hands the caller the DB's authoritative deleted_at.
-export async function softDeleteKitchen(supabase: Client, id: string): Promise<Kitchen | null> {
-  const { data, error } = await supabase.rpc('soft_delete_kitchen', { kitchen_id: id })
-  if (error) console.error('softDeleteKitchen failed:', error.message)
-  return data?.id ? data : null
+// call a harmless no-op. Success = non-error: a transport/RLS failure throws (the caller's mutation
+// rolls back and the MutationCache sink logs it), while a zero-row no-op resolves like any other hit.
+export async function softDeleteKitchen(supabase: Client, id: string): Promise<void> {
+  const { error } = await supabase.rpc('soft_delete_kitchen', { kitchen_id: id })
+  if (error) throw error
 }
 
-export async function restoreKitchen(supabase: Client, id: string): Promise<Kitchen | null> {
-  const { data, error } = await supabase.rpc('restore_kitchen', { kitchen_id: id })
-  if (error) console.error('restoreKitchen failed:', error.message)
-  return data?.id ? data : null
+export async function restoreKitchen(supabase: Client, id: string): Promise<void> {
+  const { error } = await supabase.rpc('restore_kitchen', { kitchen_id: id })
+  if (error) throw error
 }
 
 // Permanent, irreversible delete via a security-invoker RPC: RLS scopes it to the owner and the
 // deleted_at guard makes purging a live kitchen a no-op, so only trashed rows can be destroyed.
-// null (no row matched, or an error) = failure. FK on delete cascade will handle future child rows.
-export async function purgeKitchen(supabase: Client, id: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc('purge_kitchen', { kitchen_id: id })
-  if (error) console.error('purgeKitchen failed:', error.message)
-  return !error && data?.id != null
+// FK on delete cascade will handle future child rows.
+export async function purgeKitchen(supabase: Client, id: string): Promise<void> {
+  const { error } = await supabase.rpc('purge_kitchen', { kitchen_id: id })
+  if (error) throw error
 }

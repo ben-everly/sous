@@ -67,50 +67,44 @@ describe('allKitchensQuery', () => {
 })
 
 describe('purgeKitchen', () => {
-  it('returns true when the RPC affects a row', async () => {
-    const { supabase } = clientReturning({ data: { id: 'k1' }, error: null })
-    expect(await purgeKitchen(supabase, 'k1')).toBe(true)
+  it('resolves and calls the RPC when it affects a row', async () => {
+    const { supabase, rpcArg } = clientReturning({ data: { id: 'k1' }, error: null })
+    await expect(purgeKitchen(supabase, 'k1')).resolves.toBeUndefined()
+    expect(rpcArg).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
   })
 
-  it('returns false and logs when the RPC errors', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
-    expect(await purgeKitchen(supabase, 'k1')).toBe(false)
-    expect(spy).toHaveBeenCalledTimes(1)
-    spy.mockRestore()
+  it('rejects with the error when the RPC errors', async () => {
+    const error = { code: 'XX000', message: 'boom' }
+    const { supabase } = clientReturning({ data: null, error })
+    await expect(purgeKitchen(supabase, 'k1')).rejects.toBe(error)
   })
 
-  it('returns false without logging when the no-op serializes as an all-null object', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('resolves on a zero-row no-op serialized as an all-null object', async () => {
     const { supabase } = clientReturning({ data: ALL_NULL_ROW, error: null })
-    expect(await purgeKitchen(supabase, 'k1')).toBe(false)
-    expect(spy).not.toHaveBeenCalled()
-    spy.mockRestore()
+    await expect(purgeKitchen(supabase, 'k1')).resolves.toBeUndefined()
   })
 })
 
 describe('softDeleteKitchen / restoreKitchen', () => {
-  it('call the matching RPC with the kitchen id and return the affected row', async () => {
+  it('call the matching RPC with the kitchen id and resolve on success', async () => {
     const row = { id: 'k1', name: null, created_at: '2026-01-01', deleted_at: '2026-02-01' }
     const { supabase, rpcArg } = clientReturning({ data: row, error: null })
-    expect(await softDeleteKitchen(supabase, 'k1')).toEqual(row)
+    await expect(softDeleteKitchen(supabase, 'k1')).resolves.toBeUndefined()
     expect(rpcArg).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
-    expect(await restoreKitchen(supabase, 'k1')).toEqual(row)
+    await expect(restoreKitchen(supabase, 'k1')).resolves.toBeUndefined()
     expect(rpcArg).toHaveBeenCalledWith('restore_kitchen', { kitchen_id: 'k1' })
   })
 
-  it('return null on a no-op, which PostgREST serializes as an all-null object (wrong state / not owned)', async () => {
+  it('resolve on a zero-row no-op serialized as an all-null object (wrong state / not owned)', async () => {
     const { supabase } = clientReturning({ data: ALL_NULL_ROW, error: null })
-    expect(await softDeleteKitchen(supabase, 'k1')).toBeNull()
-    expect(await restoreKitchen(supabase, 'k1')).toBeNull()
+    await expect(softDeleteKitchen(supabase, 'k1')).resolves.toBeUndefined()
+    await expect(restoreKitchen(supabase, 'k1')).resolves.toBeUndefined()
   })
 
-  it('return null and log when the RPC errors', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { supabase } = clientReturning({ data: null, error: { code: 'XX000', message: 'boom' } })
-    expect(await softDeleteKitchen(supabase, 'k1')).toBeNull()
-    expect(await restoreKitchen(supabase, 'k1')).toBeNull()
-    expect(spy).toHaveBeenCalledTimes(2)
-    spy.mockRestore()
+  it('reject with the error when the RPC errors', async () => {
+    const error = { code: 'XX000', message: 'boom' }
+    const { supabase } = clientReturning({ data: null, error })
+    await expect(softDeleteKitchen(supabase, 'k1')).rejects.toBe(error)
+    await expect(restoreKitchen(supabase, 'k1')).rejects.toBe(error)
   })
 })
