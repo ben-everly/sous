@@ -112,8 +112,8 @@ describe('KitchensManager', () => {
     await waitFor(() => expect(screen.queryByText('Beach House')).not.toBeInTheDocument())
     expect(mocks.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
     expect(mocks.toast).toHaveBeenCalledWith(
-      'Kitchen moved to trash',
-      expect.objectContaining({ duration: 8000 }),
+      '"Beach House" moved to trash',
+      expect.objectContaining({ id: 'trash-k1', duration: 8000 }),
     )
   })
 
