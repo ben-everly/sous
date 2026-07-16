@@ -75,7 +75,8 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.kitchens).toEqual([]))
     expect(mocks.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
     const [message, opts] = mocks.toast.mock.calls[0]
-    expect(message).toBe('Kitchen moved to trash')
+    expect(message).toBe('"Beach House" moved to trash')
+    expect(opts.id).toBe('trash-k1')
     expect(opts.duration).toBe(8000)
     expect(opts.action.label).toBe('Undo')
   })
@@ -297,6 +298,9 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.kitchens).toEqual([]))
     expect(mocks.rpcSpy).toHaveBeenCalledTimes(2)
     expect(mocks.toast.error).not.toHaveBeenCalled()
+    // Both success toasts share one id, so sonner collapses them into a single undo affordance.
+    const ids = mocks.toast.mock.calls.map(([, opts]) => opts.id)
+    expect(ids).toEqual(['trash-k1', 'trash-k1'])
   })
 
   it('a stale undo after a trash-panel restore fires a harmless no-op restore', async () => {

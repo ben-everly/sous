@@ -127,8 +127,11 @@ export function useKitchens() {
       await upsertItem(trashed)
       return { prev, trashed }
     },
-    onSuccess: (_data, _kitchen, ctx) =>
-      toast('Kitchen moved to trash', {
+    onSuccess: (_data, kitchen, ctx) =>
+      // Stable per-kitchen id so a double-tap collapses to one toast (both idempotent RPCs still run),
+      // while deletes of different kitchens keep distinct ids and stack, each naming its own kitchen.
+      toast(`"${kitchenLabel(kitchen.name)}" moved to trash`, {
+        id: `trash-${kitchen.id}`,
         duration: 8000,
         action: { label: 'Undo', onClick: () => restore(ctx.trashed) },
       }),
