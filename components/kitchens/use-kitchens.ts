@@ -77,13 +77,12 @@ export function useKitchens() {
 
   const create = async (name: string) => {
     try {
-      const inserted = await insert.mutateAsync([{ name }])
-      if (inserted?.[0]) return true
+      await insert.mutateAsync([{ name }])
+      return true
     } catch {
-      // fall through to the shared failure path
+      toast.error("Couldn't create the kitchen. Try again.")
+      return false
     }
-    toast.error("Couldn't create the kitchen. Try again.")
-    return false
   }
 
   const rename = async (id: string, name: string) => {
