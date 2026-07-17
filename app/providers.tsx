@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { reportClientError } from '@/lib/data/report-client-error'
 
@@ -17,7 +17,11 @@ const ReactQueryDevtools =
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
-    () => new QueryClient({ mutationCache: new MutationCache({ onError: reportClientError }) }),
+    () =>
+      new QueryClient({
+        queryCache: new QueryCache({ onError: reportClientError }),
+        mutationCache: new MutationCache({ onError: reportClientError }),
+      }),
   )
   const [supabase] = useState(createClient)
 
