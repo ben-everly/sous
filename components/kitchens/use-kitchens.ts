@@ -103,12 +103,10 @@ export function useKitchens() {
     mutationFn: (kitchen: Kitchen) => restoreKitchen(supabase, kitchen.id),
     onMutate: async (kitchen: Kitchen) => {
       await queryClient.cancelQueries({ queryKey })
-      const prev = queryClient.getQueryData(queryKey)
       await upsertItem({ ...kitchen, deleted_at: null })
-      return { prev }
     },
-    onError: (_e, kitchen, ctx) => {
-      queryClient.setQueryData(queryKey, ctx?.prev)
+    onError: async (_e, kitchen) => {
+      await upsertItem(kitchen)
       toast.error(`Couldn't restore "${kitchenLabel(kitchen.name)}". Try again.`)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
@@ -119,13 +117,12 @@ export function useKitchens() {
     mutationFn: (kitchen: Kitchen) => softDeleteKitchen(supabase, kitchen.id),
     onMutate: async (kitchen: Kitchen) => {
       await queryClient.cancelQueries({ queryKey })
-      const prev = queryClient.getQueryData(queryKey)
       // Client stamp so an open trash list shows "deleted now" without waiting for the settle refetch,
       // which replaces it with the DB's authoritative deleted_at. Carried to onSuccess so the undo
       // toast restores a row that still reads as trashed if the undo itself fails.
       const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
       await upsertItem(trashed)
-      return { prev, trashed }
+      return { trashed }
     },
     onSuccess: (_data, kitchen, ctx) =>
       // Stable per-kitchen id so a double-tap collapses to one toast (both idempotent RPCs still run),
@@ -135,8 +132,8 @@ export function useKitchens() {
         duration: 8000,
         action: { label: 'Undo', onClick: () => restore(ctx.trashed) },
       }),
-    onError: (_e, kitchen, ctx) => {
-      queryClient.setQueryData(queryKey, ctx?.prev)
+    onError: async (_e, kitchen) => {
+      await upsertItem(kitchen)
       toast.error(`Couldn't delete "${kitchenLabel(kitchen.name)}". Try again.`)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
@@ -147,12 +144,10 @@ export function useKitchens() {
     mutationFn: (kitchen: Kitchen) => purgeKitchen(supabase, kitchen.id),
     onMutate: async (kitchen: Kitchen) => {
       await queryClient.cancelQueries({ queryKey })
-      const prev = queryClient.getQueryData(queryKey)
       await deleteItem(kitchen)
-      return { prev }
     },
-    onError: (_e, kitchen, ctx) => {
-      queryClient.setQueryData(queryKey, ctx?.prev)
+    onError: async (_e, kitchen) => {
+      await upsertItem(kitchen)
       toast.error(`Couldn't permanently delete "${kitchenLabel(kitchen.name)}". Try again.`)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
