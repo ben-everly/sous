@@ -22,8 +22,6 @@ const mocks = vi.hoisted(() => ({
   insertSpy: vi.fn(),
   // sonner's toast is both a function (the undo toast) and an object with .error.
   toast: Object.assign(vi.fn(), { error: vi.fn() }),
-  deferSelect: false,
-  selectResolvers: [] as Array<() => void>,
 }))
 
 vi.mock('sonner', () => ({ toast: mocks.toast }))
@@ -49,8 +47,6 @@ beforeEach(() => {
   mocks.insertSpy.mockReset()
   mocks.toast.mockReset()
   mocks.toast.error.mockReset()
-  mocks.deferSelect = false
-  mocks.selectResolvers = []
 })
 
 afterEach(() => vi.restoreAllMocks())

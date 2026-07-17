@@ -19,10 +19,6 @@ export type MockState = {
   }
   rpcSpy: (name: string, args: unknown) => void
   insertSpy: (obj: unknown) => void
-  // When true, GET reads park their resolver in `selectResolvers` instead of resolving, so a test can
-  // drain them in any order to exercise out-of-order fetch resolution.
-  deferSelect: boolean
-  selectResolvers: Array<() => void>
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -52,13 +48,7 @@ export function createMockClient(state: MockState): SupabaseClient<Database> {
       const r = typeof rpc === 'function' ? rpc(body as { kitchen_id: string }) : rpc
       return toResponse(r, 'single')
     }
-    if (method === 'GET') {
-      if (state.deferSelect)
-        return new Promise<Response>((resolve) =>
-          state.selectResolvers.push(() => resolve(toResponse(state.results.select, 'array'))),
-        )
-      return toResponse(state.results.select, 'array')
-    }
+    if (method === 'GET') return toResponse(state.results.select, 'array')
     if (method === 'POST') {
       state.insertSpy(Array.isArray(body) ? body[0] : body)
       // The insert fetcher requests representation without .single(), so it expects an array.
