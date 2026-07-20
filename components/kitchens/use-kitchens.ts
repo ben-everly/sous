@@ -64,7 +64,11 @@ export function useKitchens() {
   const deleted = useMemo(() => rows.filter((k) => k.deleted_at).sort(byDeletedAtDesc), [rows])
 
   const status: KitchensStatus =
-    query.data === undefined ? (query.isError ? 'error' : 'loading') : 'ready'
+    query.data === undefined
+      ? query.isError && !query.isFetching
+        ? 'error'
+        : 'loading'
+      : 'ready'
 
   const retry = () => void query.refetch()
 

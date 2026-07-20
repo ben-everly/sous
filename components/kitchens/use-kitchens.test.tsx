@@ -58,6 +58,12 @@ describe('useKitchens', () => {
     expect(result.current.kitchens).toEqual([beach])
   })
 
+  it('surfaces error status when the initial load fails', async () => {
+    mocks.results.select = { data: null, error: { message: 'offline' } }
+    const { result } = renderUseKitchens()
+    await waitFor(() => expect(result.current.status).toBe('error'))
+  })
+
   it('softDelete removes the row and fires an 8s undo toast', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
