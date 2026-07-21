@@ -15,8 +15,6 @@ const trashed: Kitchen = {
 function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash>> = {}) {
   const props = {
     deleted: [trashed],
-    status: 'ready' as const,
-    count: null as number | null,
     onLoad: vi.fn(),
     onRestore: vi.fn(),
     onPurge: vi.fn(),
@@ -28,23 +26,19 @@ function renderTrash(overrides: Partial<React.ComponentProps<typeof KitchenTrash
 
 describe('KitchenTrash', () => {
   it('shows a count and un-mutes the label when trash is non-empty', () => {
-    renderTrash({ count: 2 })
+    renderTrash({ deleted: [trashed, { ...trashed, id: 'k2', name: 'Cabin' }] })
     const btn = screen.getByRole('button', { name: 'Trash (2)' })
     expect(btn).toHaveClass('text-foreground')
     expect(btn).not.toHaveClass('text-muted-foreground')
   })
 
-  it('shows a bare, muted label when trash is empty or the count is unknown', () => {
-    renderTrash({ count: 0 })
-    const empty = screen.getByRole('button', { name: 'Trash' })
-    expect(empty).toHaveClass('text-muted-foreground')
-    cleanup()
-    renderTrash({ count: null })
+  it('shows a bare, muted label when trash is empty', () => {
+    renderTrash({ deleted: [] })
     expect(screen.getByRole('button', { name: 'Trash' })).toHaveClass('text-muted-foreground')
   })
 
   it('is collapsed by default and lazy-loads on first expand', () => {
-    const { onLoad } = renderTrash({ status: 'idle', deleted: null })
+    const { onLoad } = renderTrash({ deleted: [] })
     const btn = screen.getByRole('button', { name: 'Trash' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('Beach House')).not.toBeInTheDocument()
@@ -55,21 +49,21 @@ describe('KitchenTrash', () => {
 
   it('lists trashed kitchens when expanded', () => {
     renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash (1)' }))
     expect(screen.getByText('Beach House')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Restore Beach House' })).toBeInTheDocument()
   })
 
   it('restores a kitchen via the callback', () => {
     const { onRestore } = renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash (1)' }))
     fireEvent.click(screen.getByRole('button', { name: 'Restore Beach House' }))
     expect(onRestore).toHaveBeenCalledWith(trashed)
   })
 
   it('purges only after confirming the dialog', () => {
     const { onPurge } = renderTrash()
-    fireEvent.click(screen.getByRole('button', { name: 'Trash' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trash (1)' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House permanently' }))
     expect(onPurge).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Delete permanently' }))
@@ -77,8 +71,8 @@ describe('KitchenTrash', () => {
   })
 
   it('refetches on each expand so a reopen sees fresh trash', () => {
-    const { onLoad } = renderTrash({ status: 'ready', deleted: [trashed] })
-    const btn = screen.getByRole('button', { name: 'Trash' })
+    const { onLoad } = renderTrash({ deleted: [trashed] })
+    const btn = screen.getByRole('button', { name: 'Trash (1)' })
     fireEvent.click(btn) // open
     fireEvent.click(btn) // close
     fireEvent.click(btn) // open again
@@ -91,12 +85,11 @@ describe('KitchenTrash', () => {
     expect(screen.getByText('Trash is empty.')).toBeInTheDocument()
   })
 
-  it('links the disclosure to its panel and announces transient status', () => {
-    renderTrash({ status: 'loading', deleted: null })
+  it('links the disclosure to its panel', () => {
+    renderTrash({ deleted: [] })
     const btn = screen.getByRole('button', { name: 'Trash' })
     expect(btn).toHaveAttribute('aria-controls', 'kitchen-trash-panel')
     fireEvent.click(btn)
     expect(document.getElementById('kitchen-trash-panel')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
   })
 })

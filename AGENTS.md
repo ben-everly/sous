@@ -49,6 +49,20 @@ This document serves as the core set of instructions and architectural rules for
 - **AI**: Vercel AI SDK with strict Zod schemas for structured extraction.
 - **Testing**: Vitest (unit/integration), Playwright (E2E), pgTAP (database).
 
+### 2.1 Client data layer (TanStack Query + @supabase-cache-helpers)
+
+Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/queries.ts` (query builder + RPC wrappers). Follow this shape for new entity cards rather than re-deriving it.
+
+- **Query keys**: never hand-roll one. `useQuery`/`encode` derive the key from the query builder itself.
+- **Reads**: export a builder factory (e.g. `allKitchensQuery(supabase)`) returning a PostgREST query — not an awaited promise — and pass it straight to `useQuery(...)`. A reopen/refresh is `queryClient.invalidateQueries({ queryKey })`, not a manual refetch.
+- **Read shape**: one unfiltered query as the sole source, partitioned client-side (live/trash/count from a single `kitchens` read), is preferred when the read is cheap — it avoids racing a separate count/filtered query. Reach for separate live-filtered and trash-filtered queries instead when returning every row to derive a subset is unacceptable (large tables). cache-helpers keeps multiple filtered lists consistent on a write by evaluating each list's PostgREST filter (`PostgrestFilter.apply` + `orderBy`) against the mutated row — no manual invalidation needed across lists.
+- **Plain writes**: table inserts/updates with no side invariants use cache-helpers' `useInsertMutation` / `useUpdateMutation` directly against `supabase.from(table)` — they reconcile the cache from the mutation's returned representation by primary key, no manual invalidation.
+- **RPC writes**: when invariants (state guards, authz) live in a `security-invoker` RPC, drive it with a plain `useMutation` on the optimistic lifecycle: `onMutate` awaits `queryClient.cancelQueries({ queryKey })`, then writes the optimistic row by PK (`upsertItem` for an update/restore, `deleteItem` for a destructive call), projected to the cached columns (`COLUMNS` in `queries.ts`); `onError` reverses that single by-PK write and toasts; `onSettled` calls `invalidateQueries({ queryKey })` to reconcile to server truth. Reverse only the mutated row, so a concurrent mutation on another row survives the rollback.
+- **Trust DB-enforced idempotency, no in-flight guard**: an RPC wrapper rejects only when `error != null` — a non-erroring response, including a zero-row no-op, is success. There is no per-row in-flight registry gating concurrent calls. Two concurrent calls on the same row are both harmless idempotent successes; a cross-type race (e.g. a restore firing while a delete is in flight) is last-write-wins, corrected by the losing mutation's settle-time `invalidateQueries` refetch.
+- **Error reporting**: mutation rejections surface through the root `MutationCache.onError` sink (`reportClientError`, wired in `app/providers.tsx`) — don't hand-log at the call site.
+- **Exceptions**: fall back to separate filtered reads only when returning every row to derive a subset is genuinely too costly (large tables); reach for a hand-rolled reconcile only where invalidate-on-settle's extra read or its brief eventual-consistency window is unacceptable, and document the reason at the call site.
+- **Realtime — extension point, not yet shipped (SIDE-177)**: cache-helpers' `useSubscription` / `useSubscriptionQuery` are where a future realtime feed attaches, writing into the same query-key-derived cache entries reads already populate. No realtime subscription exists yet.
+
 ## 3. Supabase & Database Rules
 
 - **Strict Typing**: You must _always_ use the generated Supabase types from `types/database.types.ts` when interacting with the database.

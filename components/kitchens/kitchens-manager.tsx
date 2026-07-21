@@ -9,20 +9,8 @@ import { KitchenNameForm } from './kitchen-name-form'
 import { KitchenTrash } from './kitchen-trash'
 
 export function KitchensManager() {
-  const {
-    kitchens,
-    status,
-    retry,
-    create,
-    rename,
-    softDelete,
-    deleted,
-    trashStatus,
-    trashCount,
-    loadTrash,
-    restore,
-    purge,
-  } = useKitchens()
+  const { kitchens, status, retry, create, rename, softDelete, deleted, refresh, restore, purge } =
+    useKitchens()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftOpen, setDraftOpen] = useState(false)
 
@@ -106,14 +94,7 @@ export function KitchensManager() {
         </>
       )}
 
-      <KitchenTrash
-        deleted={deleted}
-        status={trashStatus}
-        count={trashCount}
-        onLoad={loadTrash}
-        onRestore={restore}
-        onPurge={purge}
-      />
+      <KitchenTrash deleted={deleted} onLoad={refresh} onRestore={restore} onPurge={purge} />
     </div>
   )
 }

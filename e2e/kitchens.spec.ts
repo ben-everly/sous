@@ -21,19 +21,25 @@ test.describe('kitchens', () => {
     await page.getByRole('button', { name: 'Rename Beach House' }).click()
     await page.getByLabel('Kitchen name', { exact: true }).fill('Lake House')
     await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByText('Lake House')).toBeVisible()
+    await expect(page.getByText('Lake House', { exact: true })).toBeVisible()
     await expect(page.getByText('Beach House')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
-    await expect(page.getByText('Lake House')).toHaveCount(0)
+    // Soft delete fires a named undo toast ("Lake House" moved to trash) that contains the
+    // kitchen name, so name checks use exact text (or the row's button) to avoid matching it.
+    await expect(page.getByRole('button', { name: 'Delete Lake House', exact: true })).toHaveCount(
+      0,
+    )
     await page.getByRole('button', { name: 'Undo' }).click()
-    await expect(page.getByText('Lake House')).toBeVisible()
+    await expect(page.getByText('Lake House', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
-    await expect(page.getByText('Lake House')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Delete Lake House', exact: true })).toHaveCount(
+      0,
+    )
     await page.getByRole('button', { name: 'Trash' }).click()
     await page.getByRole('button', { name: 'Restore Lake House' }).click()
-    await expect(page.getByText('Lake House')).toBeVisible()
+    await expect(page.getByText('Lake House', { exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Delete Lake House' }).click()
     // The trash is already open, so "Lake House" text remains visible there.
