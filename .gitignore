@@ -41,6 +41,10 @@ yarn-error.log*
 
 supabase/signing_keys.json
 
+# per-machine list of extra files to symlink into new worktrees (see
+# scripts/worktree-init.sh). one relative path per line
+/.worktree-links.local
+
 # vercel
 .vercel
 

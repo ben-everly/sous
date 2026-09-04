@@ -68,3 +68,14 @@ teardown() {
   [[ "$output" == *"signing_keys.json"* ]]
   [ ! -L supabase/signing_keys.json ]
 }
+
+@test "links extra files listed in .worktree-links.local, skipping blanks/comments/missing entries" {
+  printf '# comment\n\nCLAUDE.local.md\nnonexistent.txt\n' >"$primary/.worktree-links.local"
+  printf 'notes\n' >"$primary/CLAUDE.local.md"
+  cd "$wt"
+  run bash scripts/worktree-init.sh
+  [ "$status" -eq 0 ]
+  [ -L CLAUDE.local.md ]
+  [ "$(cat CLAUDE.local.md)" = "notes" ]
+  [[ "$output" == *"skip nonexistent.txt"* ]]
+}

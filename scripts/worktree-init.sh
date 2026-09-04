@@ -15,11 +15,21 @@ link() {
     echo "WARNING: $rel is not symlinked from the primary checkout. Delete it and rerun to link" >&2
     return
   fi
+  mkdir -p "$(dirname "$dst")"
   ln -sfn "$src" "$dst"
   echo "linked $rel -> $src"
 }
 
 link .env
+
+# per-machine extra files (CLAUDE.local.md, .claude/settings.local.json, ...).
+# one relative path per line, blank lines and #-comments skipped.
+if [ -f "$primary/.worktree-links.local" ]; then
+  while IFS= read -r rel || [ -n "$rel" ]; do
+    case "$rel" in '' | '#'*) continue ;; esac
+    link "$rel"
+  done <"$primary/.worktree-links.local"
+fi
 
 # Warn loudly instead of relying on link's quiet skip: a missing key doesn't fail
 # the build, it silently breaks auth.
