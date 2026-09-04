@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Refuse a destructive Supabase command when run from a linked worktree: the local
-# stack is shared across all worktrees, so reset/stop here disrupts every checkout.
-# Override with FORCE_SHARED_SUPABASE=1 when that is genuinely the intent.
 set -euo pipefail
-# Nothing to guard outside a git checkout.
 toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$toplevel"
 . scripts/worktree.sh
