@@ -51,3 +51,6 @@ supabase/signing_keys.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# captured corpora, re-creatable via npm run myplate:capture
+/data/myplate/
