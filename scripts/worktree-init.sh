@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-# Link gitignored local-dev files from the primary checkout into this worktree, so a
-# fresh worktree boots against the same shared Supabase stack. signing_keys.json MUST
-# match the running instance — a divergent key silently invalidates every session — so
-# we symlink rather than copy, keeping all worktrees on one source of truth.
 set -euo pipefail
 toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "worktree:init: not inside a git checkout — nothing to link" >&2; exit 0; }
 cd "$toplevel"
 . scripts/worktree.sh
 
-# Silent no-op in the primary checkout: nothing to link to.
 in_primary_worktree && exit 0
 
 primary=$(primary_worktree)
@@ -20,16 +15,24 @@ link() {
     echo "WARNING: $rel is not symlinked from the primary checkout. Delete it and rerun to link" >&2
     return
   fi
+  mkdir -p "$(dirname "$dst")"
   ln -sfn "$src" "$dst"
   echo "linked $rel -> $src"
 }
 
-# Only .env is shared deliberately; .env.local and any future .env.* stay per-worktree
-# so a stray secret file never auto-fans-out across checkouts.
 link .env
 
-# A missing signing key is the one silent footgun: the app still boots, but every session
-# silently invalidates. Warn loudly instead of relying on link's quiet stdout skip.
+# per-machine extra files (CLAUDE.local.md, .claude/settings.local.json, ...).
+# one relative path per line, blank lines and #-comments skipped.
+if [ -f "$primary/.worktree-links.local" ]; then
+  while IFS= read -r rel || [ -n "$rel" ]; do
+    case "$rel" in '' | '#'*) continue ;; esac
+    link "$rel"
+  done <"$primary/.worktree-links.local"
+fi
+
+# Warn loudly instead of relying on link's quiet skip: a missing key doesn't fail
+# the build, it silently breaks auth.
 if has_signing_key "$primary/supabase/signing_keys.json"; then
   link supabase/signing_keys.json
 else
