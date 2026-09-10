@@ -1,5 +1,5 @@
-export const CDX_ENDPOINT = 'https://web.archive.org/cdx/search/cdx'
-export const RECIPE_PREFIX = 'myplate.gov/recipes/*'
+const CDX_ENDPOINT = 'https://web.archive.org/cdx/search/cdx'
+const RECIPE_PREFIX = 'myplate.gov/recipes/*'
 
 // Content is good through 2026-02-17; later captures are byte-identical empty shells.
 export const CUTOFF = '20260217235959'

@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { type Capture } from './captures'
-import { classifyHtml, classifyPlayback, readManifest } from './manifest'
-
-describe('classifyHtml', () => {
-  it('names whichever ingredient field schema the page uses', () => {
-    expect(classifyHtml('<div class="field-mp-ingredients">')).toBe('field-mp-ingredients')
-    expect(classifyHtml('<div class="field-ingredients">')).toBe('field-ingredients')
-  })
-
-  it('returns null for a shell with no ingredient markup', () => {
-    expect(classifyHtml('<html><body>Page not found</body></html>')).toBeNull()
-  })
-})
+import { classifyPlayback, readManifest } from './manifest'
 
 describe('classifyPlayback', () => {
   const capture: Capture = {
@@ -86,6 +75,17 @@ describe('classifyPlayback', () => {
       servedTimestamp: '20260217120000',
     })
     expect(record.sha256).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('names whichever ingredient field schema the page uses', () => {
+    for (const template of ['field-mp-ingredients', 'field-ingredients'])
+      expect(
+        classifyPlayback(capture, {
+          httpStatus: 200,
+          servedTimestamp: served,
+          body: `<div class="${template}">1 apple</div>`,
+        }).record,
+      ).toMatchObject({ status: 'ok', template })
   })
 
   it('marks a page it cannot verify unverified but still writes it', () => {

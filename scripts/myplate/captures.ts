@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 
 import { type CdxRow } from './cdx.ts'
 
-export const PLAYBACK_ORIGIN = 'https://web.archive.org'
+const PLAYBACK_ORIGIN = 'https://web.archive.org'
 
 export type Capture = {
   url: string

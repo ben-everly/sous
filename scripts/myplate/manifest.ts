@@ -26,10 +26,9 @@ export type ManifestRecord = Capture & {
   error?: string
 }
 
-export const TEMPLATES = ['field-mp-ingredients', 'field-ingredients'] as const
+const TEMPLATES = ['field-mp-ingredients', 'field-ingredients'] as const
 
-export const classifyHtml = (html: string) =>
-  TEMPLATES.find((template) => html.includes(template)) ?? null
+const classifyHtml = (html: string) => TEMPLATES.find((template) => html.includes(template)) ?? null
 
 export type Fetched =
   | { failure: string }
