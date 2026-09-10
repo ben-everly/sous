@@ -10,7 +10,6 @@ export type Store = {
   readManifestFile: () => Promise<string>
   appendManifestLine: (line: string) => Promise<void>
   writePage: (capture: Capture, html: string) => Promise<void>
-  pageName: (capture: Capture) => string
   where: { pages: string; manifest: string; cdx: (cutoff: string) => string }
 }
 
@@ -50,7 +49,6 @@ export const diskStore = (out: string): Store => {
     readManifestFile: async () => (await readOrNull(manifest)) ?? '',
     appendManifestLine: (line) => appendFile(manifest, line),
     writePage: (capture, html) => writeFile(join(pages, pageName(capture)), html),
-    pageName,
     where: { pages, manifest, cdx },
   }
 }
@@ -87,7 +85,6 @@ export const memoryStore = ({
     writePage: async (capture, html) => {
       pages.set(pageName(capture), html)
     },
-    pageName,
     where: {
       pages: 'memory:pages',
       manifest: 'memory:manifest.jsonl',

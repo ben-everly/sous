@@ -2,7 +2,7 @@ import { fetchFromArchive } from './archive.ts'
 import { groupCounts, playbackUrl, type Capture } from './captures.ts'
 import { cdxUrl, parseCdx } from './cdx.ts'
 import { type Config } from './config.ts'
-import { type Store } from './corpus.ts'
+import { pageName, type Store } from './corpus.ts'
 import { classifyPlayback, readManifest, type ManifestRecord } from './manifest.ts'
 import { abortReason, advance, NOTHING_YET, summary } from './progress.ts'
 
@@ -79,7 +79,7 @@ export const run = async (captures: Capture[], { delayMs, limit, force }: Config
       record.error ??
       `${record.bytes} bytes${record.template ? ` ${record.template}` : ' NO-INGREDIENTS'}`
     console.log(
-      `[${index + 1}/${pending.length}] ${record.status.padEnd(10)} ${store.pageName(capture)} — ${detail}`,
+      `[${index + 1}/${pending.length}] ${record.status.padEnd(10)} ${pageName(capture)} — ${detail}`,
     )
 
     const abort = abortReason(progress)
