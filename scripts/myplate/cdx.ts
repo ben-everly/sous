@@ -11,20 +11,15 @@ const CDX_FIELDS = ['original', 'timestamp', 'statuscode', 'digest', 'length'] a
 
 export type CdxRow = Record<(typeof CDX_FIELDS)[number], string>
 
-export const cdxUrl = ({
-  prefix = RECIPE_PREFIX,
-  cutoff = CUTOFF,
-  limit,
-}: { prefix?: string; cutoff?: string; limit?: number } = {}) => {
+export const cdxUrl = (cutoff: string) => {
   const params = new URLSearchParams({
-    url: prefix,
+    url: RECIPE_PREFIX,
     output: 'json',
     fl: CDX_FIELDS.join(','),
     to: cutoff,
   })
   params.append('filter', 'statuscode:200')
   params.append('filter', 'mimetype:text/html')
-  if (limit) params.append('limit', String(limit))
   return `${CDX_ENDPOINT}?${params}`
 }
 

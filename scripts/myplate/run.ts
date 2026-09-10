@@ -24,7 +24,7 @@ export const enumerate = async ({ cutoff, refetchCdx }: Config, store: Store) =>
     }
   }
   console.log('CDX: enumerating /recipes (this endpoint is slow — minutes, not seconds)')
-  const fetched = await fetchFromArchive(cdxUrl({ cutoff }), 600_000)
+  const fetched = await fetchFromArchive(cdxUrl(cutoff), 600_000)
   if ('failure' in fetched) throw new Error(`CDX enumeration failed: ${fetched.failure}`)
   if (fetched.httpStatus !== 200)
     throw new Error(`CDX enumeration failed: HTTP ${fetched.httpStatus}`)

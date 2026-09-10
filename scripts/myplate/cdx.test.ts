@@ -4,7 +4,7 @@ import { cdxUrl, CUTOFF, cutoffCeiling, parseCdx, type CdxRow } from './cdx'
 
 describe('cdxUrl', () => {
   it('requests the recipe prefix as JSON with both filters and the cutoff', () => {
-    const params = new URL(cdxUrl()).searchParams
+    const params = new URL(cdxUrl(CUTOFF)).searchParams
     expect(params.get('url')).toBe('myplate.gov/recipes/*')
     expect(params.get('output')).toBe('json')
     expect(params.get('to')).toBe(CUTOFF)
