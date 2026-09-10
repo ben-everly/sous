@@ -66,9 +66,9 @@ export const selectCaptures = (rows: CdxRow[], cutoff: string): Capture[] => {
       continue
     }
     if (url.search || !RECIPE_PATH.test(url.pathname)) continue
-    const key = safeDecode(url.pathname).replace(/\/$/, '').toLowerCase()
-    const previous = newest.get(key)
-    if (!previous || row.timestamp > previous.timestamp) newest.set(key, row)
+    const pathKey = safeDecode(url.pathname).replace(/\/$/, '').toLowerCase()
+    const previous = newest.get(pathKey)
+    if (!previous || row.timestamp > previous.timestamp) newest.set(pathKey, row)
   }
   return disambiguate([...newest.values()].map(toCapture)).sort((a, b) =>
     key(a).localeCompare(key(b)),
