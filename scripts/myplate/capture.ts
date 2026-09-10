@@ -21,8 +21,7 @@ const main = async () => {
   const store = diskStore(config.out)
   const captures = selectCaptures(await enumerate(config, store), config.cutoff)
   console.log(`Selected ${captures.length} recipe URLs at or before ${config.cutoff}:`)
-  for (const [group, count] of Object.entries(groupCounts(captures)).sort(([, a], [, b]) => b - a))
-    console.log(`  ${group.padEnd(20)} ${count}`)
+  for (const [group, count] of groupCounts(captures)) console.log(`  ${group.padEnd(20)} ${count}`)
 
   if (!config.dryRun) await run(captures, config, store)
 }

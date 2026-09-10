@@ -75,11 +75,13 @@ export const selectCaptures = (rows: CdxRow[], cutoff: string): Capture[] => {
   )
 }
 
-export const groupCounts = (captures: Capture[]) =>
-  captures.reduce<Record<string, number>>((counts, { group }) => {
-    counts[group] = (counts[group] ?? 0) + 1
-    return counts
-  }, {})
+export const groupCounts = (captures: Capture[]): [string, number][] =>
+  Object.entries(
+    captures.reduce<Record<string, number>>((counts, { group }) => {
+      counts[group] = (counts[group] ?? 0) + 1
+      return counts
+    }, {}),
+  ).sort(([, a], [, b]) => b - a)
 
 // `id_` serves the archived bytes unrewritten — no Wayback banner, no rewritten URLs.
 export const playbackUrl = ({ timestamp, url }: Pick<Capture, 'timestamp' | 'url'>) =>

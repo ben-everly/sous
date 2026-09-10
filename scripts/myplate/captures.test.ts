@@ -117,19 +117,26 @@ describe('selectCaptures', () => {
 })
 
 describe('groupCounts', () => {
-  it('counts captures per group', () => {
-    expect(
-      groupCounts(
-        selectCaptures(
-          [
-            row('https://www.myplate.gov/recipes/a', '20250101000000'),
-            row('https://www.myplate.gov/recipes/b', '20250101000000'),
-            row('https://www.myplate.gov/recipes/snap/c', '20250101000000'),
-          ],
-          CUTOFF,
-        ),
+  const counts = (paths: string[]) =>
+    groupCounts(
+      selectCaptures(
+        paths.map((path) => row(`https://www.myplate.gov/recipes/${path}`, '20250101000000')),
+        CUTOFF,
       ),
-    ).toEqual({ flat: 2, snap: 1 })
+    )
+
+  it('counts captures per group', () => {
+    expect(counts(['a', 'b', 'snap/c'])).toEqual([
+      ['flat', 2],
+      ['snap', 1],
+    ])
+  })
+
+  it('puts the largest group first, whatever order the captures arrive in', () => {
+    expect(counts(['a', 'snap/b', 'snap/c', 'snap/d'])).toEqual([
+      ['snap', 3],
+      ['flat', 1],
+    ])
   })
 })
 

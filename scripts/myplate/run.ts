@@ -1,5 +1,5 @@
 import { fetchFromArchive } from './archive.ts'
-import { groupCounts, playbackUrl, type Capture } from './captures.ts'
+import { playbackUrl, type Capture } from './captures.ts'
 import { cdxUrl, parseCdx } from './cdx.ts'
 import { type Config } from './config.ts'
 import { pageName, type Store } from './corpus.ts'
@@ -65,7 +65,7 @@ export const run = async (captures: Capture[], { delayMs, limit, force }: Config
       withoutPage ? `, ${withoutPage} of them with no page on disk` : ''
     }), ~${delayMs}ms apart\n`,
   )
-  await store.ensureTree(Object.keys(groupCounts(pending)))
+  await store.ensureTree([...new Set(pending.map(({ group }) => group))])
 
   let progress = NOTHING_YET
 
