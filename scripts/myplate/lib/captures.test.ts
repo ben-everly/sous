@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { groupCounts, playbackUrl, selectCaptures } from './captures'
-import { CUTOFF, type CdxRow } from './cdx'
+import { type CdxRow } from './cdx'
+import { CUTOFF } from './config'
 
 const row = (original: string, timestamp: string, overrides: Partial<CdxRow> = {}): CdxRow => ({
   original,

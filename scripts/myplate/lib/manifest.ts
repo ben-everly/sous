@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 
 import { type Capture } from './captures.ts'
+import { pageName } from './store.ts'
 
 // Only `deferred` is retryable: every other status is an answer the Archive already gave.
 const STATUSES = {
@@ -98,8 +99,10 @@ export type ManifestSummary = {
 
 const parseRecord = (text: string) => {
   try {
-    const { url, status } = JSON.parse(text) as ManifestRecord
-    return url && status in STATUSES ? { url, status } : null
+    const { group, slug, status } = JSON.parse(text) as ManifestRecord
+    return group && slug && Object.hasOwn(STATUSES, status)
+      ? { page: pageName({ group, slug }), status }
+      : null
   } catch {
     return null
   }
@@ -111,15 +114,15 @@ export const readManifest = (manifest: string): ManifestSummary => {
   manifest.split('\n').forEach((text, index) => {
     if (!text) return
     const record = parseRecord(text)
-    // --force appends a second record per url, so the last one describes the file on disk.
-    if (record) latest.set(record.url, record.status)
+    // --force appends a second record per page, so the last one describes the file on disk.
+    if (record) latest.set(record.page, record.status)
     else malformed.push(index + 1)
   })
 
   const terminal = [...latest].filter(([, status]) => !STATUSES[status].retryable)
   return {
     malformed,
-    captured: new Set(terminal.map(([url]) => url)),
+    captured: new Set(terminal.map(([page]) => page)),
     withoutPage: terminal.filter(([, status]) => !STATUSES[status].wrotePage).length,
   }
 }

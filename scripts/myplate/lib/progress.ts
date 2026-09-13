@@ -1,4 +1,4 @@
-import { CUTOFF } from './cdx.ts'
+import { CUTOFF } from './config.ts'
 import { type CaptureStatus } from './manifest.ts'
 
 // Only statuses meaning nothing is progressing belong here — a run of 404s is progress the

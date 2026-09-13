@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { type Capture } from './captures'
-import { diskStore, pageName } from './corpus'
+import { diskStore, pageName } from './store'
 
 const capture: Capture = {
   url: 'https://www.myplate.gov/recipes/snap/apple-cake',

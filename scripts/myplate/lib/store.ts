@@ -13,7 +13,8 @@ export type Store = {
   where: { pages: string; manifest: string; cdx: (cutoff: string) => string }
 }
 
-export const pageName = ({ group, slug }: Capture) => `${group}/${slug}.html`
+export const pageName = ({ group, slug }: Pick<Capture, 'group' | 'slug'>) =>
+  `${group}/${slug}.html`
 
 const readOrNull = async (path: string) => {
   try {

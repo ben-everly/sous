@@ -1,7 +1,9 @@
-import { selectCaptures, groupCounts } from './captures.ts'
-import { configure, HELP } from './config.ts'
-import { diskStore } from './corpus.ts'
-import { enumerate, run } from './run.ts'
+import { selectCaptures, groupCounts } from './lib/captures.ts'
+import { enumerate } from './lib/cdx.ts'
+import { configure, HELP } from './lib/config.ts'
+import { message } from './lib/errors.ts'
+import { run } from './lib/run.ts'
+import { diskStore } from './lib/store.ts'
 
 // Returns rather than calling process.exit, which does not flush a piped stdout — `--help`
 // and `--dry-run | tee` would lose their output.
@@ -26,4 +28,9 @@ const main = async () => {
   if (!config.dryRun) await run(captures, config, store)
 }
 
-await main()
+try {
+  await main()
+} catch (error) {
+  console.error(message(error))
+  process.exitCode = 1
+}

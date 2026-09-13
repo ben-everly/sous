@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type Capture } from './captures'
-import { CUTOFF } from './cdx'
+import { CUTOFF } from './config'
 import { type Config } from './config'
-import { memoryStore } from './corpus'
+import { memoryStore } from './store'
 import { run } from './run'
 
 const capture = (slug: string): Capture => ({
@@ -54,8 +54,8 @@ afterEach(() => {
 })
 
 describe('run', () => {
-  it('skips a url the manifest already recorded, and --force fetches it again', async () => {
-    const manifest = `${JSON.stringify({ url: capture('a').url, status: 'ok' })}\n`
+  it('skips a page the manifest already recorded, and --force fetches it again', async () => {
+    const manifest = `${JSON.stringify({ ...capture('a'), status: 'ok' })}\n`
     globalThis.fetch = serve(RECIPE)
 
     const resumed = memoryStore({ manifest })
@@ -65,6 +65,14 @@ describe('run', () => {
     const forced = memoryStore({ manifest })
     await run([capture('a'), capture('b')], config({ force: true }), forced)
     expect([...forced.pages.keys()]).toEqual(['flat/a.html', 'flat/b.html'])
+  })
+
+  it('skips a page recorded under a different url variant of the same path', async () => {
+    const manifest = `${JSON.stringify({ ...capture('a'), url: 'http://www.myplate.gov/recipes/a/', status: 'ok' })}\n`
+    globalThis.fetch = serve(RECIPE)
+    const store = memoryStore({ manifest })
+    await run([capture('a'), capture('b')], config(), store)
+    expect([...store.pages.keys()]).toEqual(['flat/b.html'])
   })
 
   it('stops after --limit pages', async () => {

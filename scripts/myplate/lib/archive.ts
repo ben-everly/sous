@@ -1,9 +1,8 @@
+import { message } from './errors.ts'
 import { backoffMs, mementoTimestamp, parseRetryAfter } from './http.ts'
 import { type Fetched } from './manifest.ts'
 
 const MAX_ATTEMPTS = 4
-
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 

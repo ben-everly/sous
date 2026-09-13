@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { type Capture } from './captures'
+import { pageName } from './store'
 import { classifyPlayback, readManifest } from './manifest'
 
 describe('classifyPlayback', () => {
@@ -109,9 +110,11 @@ describe('classifyPlayback', () => {
   })
 })
 
+const line = (slug: string, status: string, group = 'flat') =>
+  JSON.stringify({ url: `https://www.myplate.gov/recipes/${slug}`, group, slug, status })
+
 describe('readManifest malformed lines', () => {
-  const good = (i: number) =>
-    JSON.stringify({ url: `https://www.myplate.gov/recipes/r${i}`, status: 'ok' })
+  const good = (i: number) => line(`r${i}`, 'ok')
 
   it('names a truncated last line by its file line number', () => {
     expect(readManifest([good(0), good(1), '{"url":"x","stat'].join('\n')).malformed).toEqual([3])
@@ -125,13 +128,22 @@ describe('readManifest malformed lines', () => {
     expect(readManifest(['', good(1), '', 'nope', good(4)].join('\n')).malformed).toEqual([4])
   })
 
-  it('names a line whose status the table does not recognise', () => {
+  it.each(['pending', 'constructor'])(
+    'names a line whose status the table does not recognise: %s',
+    (status) => {
+      const manifest = [good(0), line('r1', status)].join('\n')
+      expect(readManifest(manifest).malformed).toEqual([2])
+      expect(readManifest(manifest).captured).toEqual(new Set(['flat/r0.html']))
+    },
+  )
+
+  it('names a line with no page to key on', () => {
     const manifest = [
       good(0),
-      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r1', status: 'pending' }),
+      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r1', status: 'ok' }),
     ].join('\n')
     expect(readManifest(manifest).malformed).toEqual([2])
-    expect(readManifest(manifest).captured).toEqual(new Set(['https://www.myplate.gov/recipes/r0']))
+    expect(readManifest(manifest).captured).toEqual(new Set(['flat/r0.html']))
   })
 
   it('reports nothing for a clean or empty manifest', () => {
@@ -140,30 +152,48 @@ describe('readManifest malformed lines', () => {
   })
 })
 
-describe('readManifest captured urls', () => {
+describe('readManifest captured pages', () => {
   it('treats every record but a deferred one as done so a resume skips it', () => {
     const manifest = ['ok', 'unverified', 'shell', 'mismatch', 'missing', 'refused', 'deferred']
-      .map((status, i) => JSON.stringify({ url: `https://www.myplate.gov/recipes/r${i}`, status }))
+      .map((status, i) => line(`r${i}`, status))
       .join('\n')
     expect(readManifest(manifest).captured).toEqual(
       new Set([
-        'https://www.myplate.gov/recipes/r0',
-        'https://www.myplate.gov/recipes/r1',
-        'https://www.myplate.gov/recipes/r2',
-        'https://www.myplate.gov/recipes/r3',
-        'https://www.myplate.gov/recipes/r4',
-        'https://www.myplate.gov/recipes/r5',
+        'flat/r0.html',
+        'flat/r1.html',
+        'flat/r2.html',
+        'flat/r3.html',
+        'flat/r4.html',
+        'flat/r5.html',
       ]),
     )
   })
 
-  it('lets a later record supersede an earlier one for the same url', () => {
-    const line = (status: string) =>
-      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r', status })
-    expect(readManifest([line('ok'), line('deferred')].join('\n')).captured).toEqual(new Set())
-    expect(readManifest([line('deferred'), line('ok')].join('\n')).captured).toEqual(
-      new Set(['https://www.myplate.gov/recipes/r']),
+  it('lets a later record supersede an earlier one for the same page', () => {
+    expect(readManifest([line('r', 'ok'), line('r', 'deferred')].join('\n')).captured).toEqual(
+      new Set(),
     )
+    expect(readManifest([line('r', 'deferred'), line('r', 'ok')].join('\n')).captured).toEqual(
+      new Set(['flat/r.html']),
+    )
+  })
+
+  it('keys a page by its file, so a later url variant of it still resumes as captured', () => {
+    const recorded = readManifest(
+      JSON.stringify({
+        url: 'http://www.myplate.gov/recipes/r',
+        group: 'flat',
+        slug: 'r',
+        status: 'ok',
+      }),
+    ).captured
+    expect(recorded.has(pageName({ group: 'flat', slug: 'r' }))).toBe(true)
+  })
+
+  it('separates same-slug pages in different groups', () => {
+    expect(
+      readManifest([line('r', 'ok', 'snap'), line('r', 'ok', 'cnpp')].join('\n')).captured,
+    ).toEqual(new Set(['snap/r.html', 'cnpp/r.html']))
   })
 
   it('handles an absent manifest', () => {
@@ -172,36 +202,32 @@ describe('readManifest captured urls', () => {
 
   it('keeps the surviving records when a line will not parse', () => {
     const manifest = [
-      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r0', status: 'ok' }),
+      line('r0', 'ok'),
       '{"url":"https://www.myplate.gov/recipes/r1","stat',
-      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r2', status: 'ok' }),
+      line('r2', 'ok'),
     ].join('\n')
-    expect(readManifest(manifest).captured).toEqual(
-      new Set(['https://www.myplate.gov/recipes/r0', 'https://www.myplate.gov/recipes/r2']),
-    )
+    expect(readManifest(manifest).captured).toEqual(new Set(['flat/r0.html', 'flat/r2.html']))
   })
 })
 
 describe('readManifest pages missing from disk', () => {
   it('counts the terminal records that wrote no file, ignoring deferred ones', () => {
     const manifest = ['ok', 'unverified', 'mismatch', 'missing', 'refused', 'deferred']
-      .map((status, i) => JSON.stringify({ url: `https://www.myplate.gov/recipes/r${i}`, status }))
+      .map((status, i) => line(`r${i}`, status))
       .join('\n')
     expect(readManifest(manifest).withoutPage).toBe(3)
   })
 
   it('does not count a shell, which wrote a page even though it has no ingredients', () => {
     const manifest = ['ok', 'shell', 'shell', 'missing']
-      .map((status, i) => JSON.stringify({ url: `https://www.myplate.gov/recipes/r${i}`, status }))
+      .map((status, i) => line(`r${i}`, status))
       .join('\n')
     expect(readManifest(manifest).withoutPage).toBe(1)
   })
 
-  it('counts a url once, by its latest record', () => {
-    const line = (status: string) =>
-      JSON.stringify({ url: 'https://www.myplate.gov/recipes/r', status })
-    expect(readManifest([line('mismatch'), line('ok')].join('\n')).withoutPage).toBe(0)
-    expect(readManifest([line('ok'), line('mismatch')].join('\n')).withoutPage).toBe(1)
+  it('counts a page once, by its latest record', () => {
+    expect(readManifest([line('r', 'mismatch'), line('r', 'ok')].join('\n')).withoutPage).toBe(0)
+    expect(readManifest([line('r', 'ok'), line('r', 'mismatch')].join('\n')).withoutPage).toBe(1)
   })
 
   it('handles an absent manifest', () => {

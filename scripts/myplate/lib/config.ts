@@ -1,5 +1,10 @@
 import { parseArgs } from 'node:util'
-import { CUTOFF, cutoffCeiling } from './cdx.ts'
+
+// Content is good through 2026-02-17; later captures are byte-identical empty shells.
+export const CUTOFF = '20260217235959'
+
+export const cutoffCeiling = (raw: string) =>
+  /^\d{4}(?:\d{2}){0,5}$/.test(raw) ? raw + '99991231235959'.slice(raw.length) : null
 
 export const DEFAULTS = { out: 'data/myplate', cutoff: CUTOFF, delay: '1000' }
 
