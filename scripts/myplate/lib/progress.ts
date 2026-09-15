@@ -10,6 +10,12 @@ const ABORTS: { status: CaptureStatus; max: number; reason: (count: number) => s
     reason: (count) => `${count} consecutive pages the Archive did not answer. Re-run to resume.`,
   },
   {
+    status: 'mismatch',
+    max: 10,
+    reason: (count) =>
+      `${count} consecutive pages played back a neighbouring snapshot rather than the one requested. Re-run to resume.`,
+  },
+  {
     status: 'shell',
     max: 10,
     reason: (count) =>

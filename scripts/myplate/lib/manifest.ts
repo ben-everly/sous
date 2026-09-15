@@ -3,12 +3,13 @@ import { createHash } from 'node:crypto'
 import { type Capture } from './captures.ts'
 import { pageName } from './store.ts'
 
-// Only `deferred` is retryable: every other status is an answer the Archive already gave.
+// Retryable means the Archive never served this capture's bytes — the request failed, or
+// playback substituted a neighbouring snapshot. Every other status is an answer it gave.
 const STATUSES = {
   ok: { retryable: false, wrotePage: true },
   unverified: { retryable: false, wrotePage: true },
   shell: { retryable: false, wrotePage: true },
-  mismatch: { retryable: false, wrotePage: false },
+  mismatch: { retryable: true, wrotePage: false },
   missing: { retryable: false, wrotePage: false },
   refused: { retryable: false, wrotePage: false },
   deferred: { retryable: true, wrotePage: false },

@@ -153,20 +153,17 @@ describe('readManifest malformed lines', () => {
 })
 
 describe('readManifest captured pages', () => {
-  it('treats every record but a deferred one as done so a resume skips it', () => {
+  it('treats every record the Archive answered as done so a resume skips it', () => {
     const manifest = ['ok', 'unverified', 'shell', 'mismatch', 'missing', 'refused', 'deferred']
       .map((status, i) => line(`r${i}`, status))
       .join('\n')
     expect(readManifest(manifest).captured).toEqual(
-      new Set([
-        'flat/r0.html',
-        'flat/r1.html',
-        'flat/r2.html',
-        'flat/r3.html',
-        'flat/r4.html',
-        'flat/r5.html',
-      ]),
+      new Set(['flat/r0.html', 'flat/r1.html', 'flat/r2.html', 'flat/r4.html', 'flat/r5.html']),
     )
+  })
+
+  it('leaves a mismatch pending, so a resume asks for the wanted snapshot again', () => {
+    expect(readManifest(line('r', 'mismatch')).captured).toEqual(new Set())
   })
 
   it('lets a later record supersede an earlier one for the same page', () => {
@@ -215,7 +212,7 @@ describe('readManifest pages missing from disk', () => {
     const manifest = ['ok', 'unverified', 'mismatch', 'missing', 'refused', 'deferred']
       .map((status, i) => line(`r${i}`, status))
       .join('\n')
-    expect(readManifest(manifest).withoutPage).toBe(3)
+    expect(readManifest(manifest).withoutPage).toBe(2)
   })
 
   it('does not count a shell, which wrote a page even though it has no ingredients', () => {
@@ -226,8 +223,8 @@ describe('readManifest pages missing from disk', () => {
   })
 
   it('counts a page once, by its latest record', () => {
-    expect(readManifest([line('r', 'mismatch'), line('r', 'ok')].join('\n')).withoutPage).toBe(0)
-    expect(readManifest([line('r', 'ok'), line('r', 'mismatch')].join('\n')).withoutPage).toBe(1)
+    expect(readManifest([line('r', 'missing'), line('r', 'ok')].join('\n')).withoutPage).toBe(0)
+    expect(readManifest([line('r', 'ok'), line('r', 'missing')].join('\n')).withoutPage).toBe(1)
   })
 
   it('handles an absent manifest', () => {

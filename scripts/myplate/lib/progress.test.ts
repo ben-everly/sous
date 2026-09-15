@@ -26,10 +26,15 @@ describe('abortReason', () => {
     expect(abortReason(NOTHING_YET)).toBeNull()
     expect(abortReason(fold(repeat('shell', 9)))).toBeNull()
     expect(abortReason(fold(repeat('deferred', 9)))).toBeNull()
+    expect(abortReason(fold(repeat('mismatch', 9)))).toBeNull()
   })
 
   it('aborts on ten unanswered requests', () => {
     expect(abortReason(fold(repeat('deferred', 10)))).toMatch(/10 consecutive pages the Archive/)
+  })
+
+  it('aborts on ten pages played back from the wrong snapshot', () => {
+    expect(abortReason(fold(repeat('mismatch', 10)))).toMatch(/10 consecutive pages played back/)
   })
 
   it('aborts on ten pages with no ingredient markup, naming both likely causes', () => {
@@ -39,7 +44,7 @@ describe('abortReason', () => {
   })
 
   it('never aborts on a terminal status a re-run would only see again', () => {
-    for (const status of ['ok', 'unverified', 'mismatch', 'missing', 'refused'] as CaptureStatus[])
+    for (const status of ['ok', 'unverified', 'missing', 'refused'] as CaptureStatus[])
       expect(abortReason(fold(repeat(status, 50)))).toBeNull()
   })
 
