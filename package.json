@@ -22,7 +22,8 @@
     "db:stop": "bash scripts/db-stop.sh",
     "db:reset": "bash scripts/db-reset.sh",
     "db:types": "supabase gen types typescript --local > types/database.types.ts",
-    "db:advisors": "supabase db advisors --local"
+    "db:advisors": "supabase db advisors --local",
+    "myplate:capture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/myplate/capture.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
