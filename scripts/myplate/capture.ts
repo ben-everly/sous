@@ -1,9 +1,9 @@
-import { selectCaptures, groupCounts } from './lib/captures.ts'
-import { enumerate } from './lib/cdx.ts'
-import { configure, HELP } from './lib/config.ts'
-import { message } from './lib/errors.ts'
-import { run } from './lib/run.ts'
-import { diskStore } from './lib/store.ts'
+import { selectCaptures, groupCounts } from './capture/captures.ts'
+import { enumerate } from './capture/cdx.ts'
+import { configure, HELP } from './capture/config.ts'
+import { message } from './shared/errors.ts'
+import { run } from './capture/run.ts'
+import { diskStore } from './capture/store.ts'
 
 // Returns rather than calling process.exit, which does not flush a piped stdout — `--help`
 // and `--dry-run | tee` would lose their output.

@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { CORPUS_ROOT } from '../shared/paths.ts'
 
 // Content is good through 2026-02-17; later captures are byte-identical empty shells.
 export const CUTOFF = '20260217235959'
@@ -6,7 +7,7 @@ export const CUTOFF = '20260217235959'
 export const cutoffCeiling = (raw: string) =>
   /^\d{4}(?:\d{2}){0,5}$/.test(raw) ? raw + '99991231235959'.slice(raw.length) : null
 
-export const DEFAULTS = { out: 'data/myplate', cutoff: CUTOFF, delay: '1000' }
+export const DEFAULTS = { out: CORPUS_ROOT, cutoff: CUTOFF, delay: '1000' }
 
 const OPTIONS = {
   out: { type: 'string', default: DEFAULTS.out },

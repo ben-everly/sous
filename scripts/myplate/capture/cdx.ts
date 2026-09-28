@@ -1,6 +1,6 @@
 import { fetchFromArchive } from './archive.ts'
 import { type Config } from './config.ts'
-import { message } from './errors.ts'
+import { message } from '../shared/errors.ts'
 import { type Store } from './store.ts'
 
 // CDX is the Internet Archive's capture index: one line per archived snapshot, columns named by
