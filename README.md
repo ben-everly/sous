@@ -28,22 +28,22 @@ npm run db:types
 
 ## Scripts
 
-| Command                           | What it does                                 |
-| --------------------------------- | -------------------------------------------- |
-| `npm run dev`                     | Start the Next.js dev server                 |
-| `npm run build`                   | Production build                             |
-| `npm run start`                   | Serve the production build                   |
-| `npm run lint`                    | ESLint                                       |
-| `npm run typecheck`               | TypeScript (no emit)                         |
-| `npm run format` / `format:check` | Prettier write / check                       |
-| `npm run test:unit`               | Vitest (unit + integration)                  |
-| `npm run test:e2e`                | Playwright (E2E)                             |
-| `npm run test:db`                 | pgTAP database tests                         |
-| `npm run db:start` / `db:stop`    | Start / stop local Supabase                  |
-| `npm run db:reset`                | Reset the local database                     |
-| `npm run db:types`                | Regenerate `types/database.types.ts`         |
-| `npm run db:advisors`             | Run Supabase security/performance advisors   |
-| `npm run worktree:init`           | Link shared dev files into a linked worktree |
+| Command                           | What it does                                   |
+| --------------------------------- | ---------------------------------------------- |
+| `npm run dev`                     | Start the Next.js dev server                   |
+| `npm run build`                   | Production build                               |
+| `npm run start`                   | Serve the production build                     |
+| `npm run lint`                    | ESLint                                         |
+| `npm run typecheck`               | TypeScript (no emit)                           |
+| `npm run format` / `format:check` | Prettier write / check                         |
+| `npm run test:unit`               | Vitest (unit + integration)                    |
+| `npm run test:e2e`                | Playwright (E2E)                               |
+| `npm run test:db`                 | pgTAP database tests                           |
+| `npm run db:start` / `db:stop`    | Start / stop local Supabase                    |
+| `npm run db:reset`                | Reset the local database                       |
+| `npm run db:types`                | Regenerate `types/database-generated.types.ts` |
+| `npm run db:advisors`             | Run Supabase security/performance advisors     |
+| `npm run worktree:init`           | Link shared dev files into a linked worktree   |
 
 ## Working with git worktrees
 
