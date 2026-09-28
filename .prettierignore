@@ -3,3 +3,4 @@ types/database-generated.types.ts
 .claude/worktrees/
 docs/superpowers/
 .superpowers/
+scripts/myplate/parse/fixtures/

@@ -44,7 +44,7 @@ export type Config = {
   dryRun: boolean
 }
 
-export type Configured = { help: true } | { errors: string[] } | { config: Config }
+type Configured = { help: true } | { errors: string[] } | { config: Config }
 
 const nonNegative = (name: string, raw: string, errors: string[]) => {
   const value = Number(raw)
