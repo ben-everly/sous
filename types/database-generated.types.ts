@@ -88,6 +88,7 @@ export type Database = {
       recipes: {
         Row: {
           contributor: string | null
+          created_at: string
           description: string | null
           directions: Json
           id: string
@@ -97,10 +98,12 @@ export type Database = {
           nutrition: Json | null
           slug: string
           source_url: string | null
+          updated_at: string
           yield: string | null
         }
         Insert: {
           contributor?: string | null
+          created_at?: string
           description?: string | null
           directions: Json
           id?: string
@@ -110,10 +113,12 @@ export type Database = {
           nutrition?: Json | null
           slug: string
           source_url?: string | null
+          updated_at?: string
           yield?: string | null
         }
         Update: {
           contributor?: string | null
+          created_at?: string
           description?: string | null
           directions?: Json
           id?: string
@@ -123,6 +128,7 @@ export type Database = {
           nutrition?: Json | null
           slug?: string
           source_url?: string | null
+          updated_at?: string
           yield?: string | null
         }
         Relationships: []
