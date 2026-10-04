@@ -65,8 +65,8 @@ Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/que
 
 ## 3. Supabase & Database Rules
 
-- **Strict Typing**: You must _always_ use the generated Supabase types from `types/database.types.ts` when interacting with the database.
-- **Regenerate Types**: Run `npm run db:types` after any schema change to keep `types/database.types.ts` in sync, and commit the result alongside the migration.
+- **Strict Typing**: You must _always_ use the Supabase types from `types/database.types.ts` when interacting with the database. It merges overrides over the generated `types/database-generated.types.ts`, which is never imported directly and never hand-edited.
+- **Regenerate Types**: Run `npm run db:types` after any schema change to keep `types/database-generated.types.ts` in sync, and commit the result alongside the migration.
 - **Table Naming**: The schema uses `snake_case` lowercase identifiers (Postgres convention). Do not hallucinate PascalCase or quoted variants.
 - **Plan schema changes as their own branch**: All worktrees share one local Supabase stack, so do them first on a dedicated branch (migration + `npm run db:types` + RLS/pgTAP tests), separate from feature-code branches. Don't start a feature-code branch until the schema branch has landed in `main`.
 

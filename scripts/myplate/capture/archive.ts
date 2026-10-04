@@ -1,4 +1,4 @@
-import { message } from './errors.ts'
+import { message } from '../shared/errors.ts'
 import { backoffMs, mementoTimestamp, parseRetryAfter } from './http.ts'
 import { type Fetched } from './manifest.ts'
 

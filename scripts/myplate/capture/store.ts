@@ -1,6 +1,7 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { type Capture } from './captures.ts'
+import { pagesDir } from '../shared/paths.ts'
 
 export type Store = {
   ensureTree: (groups: string[]) => Promise<void>
@@ -26,7 +27,7 @@ const readOrNull = async (path: string) => {
 
 export const diskStore = (out: string): Store => {
   const cdxDir = join(out, 'cdx')
-  const pages = join(out, 'pages')
+  const pages = pagesDir(out)
   const manifest = join(out, 'manifest.jsonl')
   const cdx = (cutoff: string) => join(cdxDir, `recipes-${cutoff}.json`)
 

@@ -1,0 +1,2 @@
+# Archived pages are parser input: keep their bytes, CRLF included, exactly as captured.
+scripts/myplate/parse/fixtures/*.html -text
