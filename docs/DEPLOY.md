@@ -41,6 +41,7 @@ Set on the host:
 
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` — Project URL from §1
 - [ ] `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — publishable key from §1
+- [ ] `SITE_URL` — public origin, e.g. `https://app.example.com`, no trailing slash
 
 ## 7. Deploy the app
 
