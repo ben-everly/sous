@@ -14,7 +14,8 @@ select is(
   'created_at and updated_at supplied on insert are overwritten with now()'
 );
 
--- now() is frozen for the transaction, so backdate (bypassing triggers) to make a bump visible.
+-- now() is fixed for the whole transaction, so a bump is only visible from a backdated row,
+-- and the update trigger would overwrite a plain backdating update.
 set local session_replication_role = replica;
 update public.recipes set created_at = '2000-01-01', updated_at = '2000-01-01'
   where slug = 'zz-test-oat-bars';
