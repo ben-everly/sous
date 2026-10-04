@@ -65,6 +65,7 @@
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.3",
+    "schema-dts": "^2.1.0",
     "shadcn": "^3.8.5",
     "shellcheck": "^4.1.0",
     "supabase": "^2.98.2",
