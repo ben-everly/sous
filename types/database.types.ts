@@ -1,5 +1,5 @@
 import type { MergeDeep } from 'type-fest'
-import type { Directions, Ingredients } from '@/lib/recipes/types'
+import type { Directions, Ingredients, Nutrition } from '@/lib/recipes/types'
 import type { Database as Generated } from './database-generated.types'
 
 export type Database = MergeDeep<
@@ -8,9 +8,13 @@ export type Database = MergeDeep<
     public: {
       Tables: {
         recipes: {
-          Row: { ingredients: Ingredients; directions: Directions }
-          Insert: { ingredients: Ingredients; directions: Directions }
-          Update: { ingredients?: Ingredients; directions?: Directions }
+          Row: { ingredients: Ingredients; directions: Directions; nutrition: Nutrition | null }
+          Insert: { ingredients: Ingredients; directions: Directions; nutrition?: Nutrition | null }
+          Update: {
+            ingredients?: Ingredients
+            directions?: Directions
+            nutrition?: Nutrition | null
+          }
         }
       }
     }
