@@ -61,6 +61,58 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plan_slots: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          kitchen_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          recipe_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          kitchen_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          recipe_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          kitchen_id?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          recipe_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_slots_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plan_slots_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "live_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plan_slots_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -135,7 +187,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      live_kitchens: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string | null
+          name: string | null
+          owner_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          name?: string | null
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          name?: string | null
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       purge_kitchen: {
@@ -199,7 +277,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      meal_type: "breakfast" | "lunch" | "dinner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -329,7 +407,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      meal_type: ["breakfast", "lunch", "dinner"],
+    },
   },
 } as const
 
