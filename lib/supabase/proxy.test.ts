@@ -135,11 +135,11 @@ describe('Supabase proxy (updateSession)', () => {
   })
 
   it('preserves the attempted path (and query) as ?next on the login redirect', async () => {
-    const request = makeRequest({ pathname: '/recipes/1', search: '?sort=new' })
+    const request = makeRequest({ pathname: '/dashboard', search: '?sort=new' })
     await updateSession(request as unknown as NextRequest)
 
     const url = mockedRedirect.mock.calls[0][0] as unknown as { searchParams: URLSearchParams }
-    expect(url.searchParams.get('next')).toBe('/recipes/1?sort=new')
+    expect(url.searchParams.get('next')).toBe('/dashboard?sort=new')
   })
 
   it('omits ?next when the attempted path is /', async () => {

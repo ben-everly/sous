@@ -1,6 +1,6 @@
 begin;
 
-select plan(26);
+select plan(32);
 
 insert into public.recipes (slug, name, ingredients, directions)
 values ('zz-test-mango-salsa1', 'Mango Salsa', '[{"name": null, "items": ["2 mangoes"]}]'::jsonb, '[{"name": null, "steps": ["Dice."]}]'::jsonb);
@@ -186,6 +186,47 @@ select throws_ok(
   '23514',
   null,
   'a non-string direction section name is rejected'
+);
+
+select lives_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-ok', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '{"@type": "NutritionInformation", "calories": "100 kcal", "servingSize": ["1/6 of recipe", "1 cup"]}'::jsonb)$$,
+  'a NutritionInformation object with string and string-array values is accepted'
+);
+select throws_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-array', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '[{"@type": "NutritionInformation"}]'::jsonb)$$,
+  '23514',
+  null,
+  'nutrition as an array rather than an object is rejected'
+);
+select throws_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-type-missing', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '{"calories": "100 kcal"}'::jsonb)$$,
+  '23514',
+  null,
+  'nutrition with no @type is rejected'
+);
+select throws_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-type-wrong', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '{"@type": "Recipe", "calories": "100 kcal"}'::jsonb)$$,
+  '23514',
+  null,
+  'nutrition whose @type is not NutritionInformation is rejected'
+);
+select throws_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-number', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '{"@type": "NutritionInformation", "calories": 100}'::jsonb)$$,
+  '23514',
+  null,
+  'a non-string nutrition value is rejected'
+);
+select throws_ok(
+  $$insert into public.recipes (slug, name, ingredients, directions, nutrition)
+      values ('zz-test-nut-blank', 'Nutrition', '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["s"]}]'::jsonb, '{"@type": "NutritionInformation", "servingSize": ["1 cup", "  "]}'::jsonb)$$,
+  '23514',
+  null,
+  'a whitespace-only nutrition value is rejected'
 );
 
 select * from finish();

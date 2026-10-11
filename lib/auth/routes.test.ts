@@ -39,6 +39,18 @@ describe('isPublicPath', () => {
   it('still gates a protected route', () => {
     expect(isPublicPath('/kitchen')).toBe(false)
   })
+
+  it('treats /recipes as public (exact match)', () => {
+    expect(isPublicPath('/recipes')).toBe(true)
+  })
+
+  it('treats /recipes/* as public (prefix)', () => {
+    expect(isPublicPath('/recipes/abc')).toBe(true)
+  })
+
+  it('does not treat /recipesfoo as public (not a recipe path)', () => {
+    expect(isPublicPath('/recipesfoo')).toBe(false)
+  })
 })
 
 describe('loginRedirectPath', () => {

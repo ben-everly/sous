@@ -11,7 +11,12 @@ export const AUTH_PATHS = {
 const PUBLIC_PATHS = new Set<string>(Object.values(AUTH_PATHS))
 
 export function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/auth/')
+  return (
+    PUBLIC_PATHS.has(pathname) ||
+    pathname.startsWith('/auth/') ||
+    pathname === '/recipes' ||
+    pathname.startsWith('/recipes/')
+  )
 }
 
 export function withNext(path: string, next: string | null | undefined): string {

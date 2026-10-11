@@ -18,7 +18,12 @@ export const directionSectionSchema = z.object({
 
 export const directionsSchema = z.tuple([directionSectionSchema], directionSectionSchema)
 
+export const nutritionSchema = z
+  .object({ '@type': z.literal('NutritionInformation') })
+  .catchall(z.union([z.string(), nonEmptyStrings]))
+
 export type IngredientSection = z.infer<typeof ingredientSectionSchema>
 export type Ingredients = z.infer<typeof ingredientsSchema>
 export type DirectionSection = z.infer<typeof directionSectionSchema>
 export type Directions = z.infer<typeof directionsSchema>
+export type Nutrition = z.infer<typeof nutritionSchema>

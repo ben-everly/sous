@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { directionsSchema, ingredientsSchema } from '../../../lib/recipes/types.ts'
+import { directionsSchema, ingredientsSchema, nutritionSchema } from '../../../lib/recipes/types.ts'
 
 export const recordSchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
@@ -9,7 +9,7 @@ export const recordSchema = z.object({
   ingredients: ingredientsSchema,
   directions: directionsSchema,
   yield: z.string().min(1).nullable(),
-  nutrition: z.record(z.string(), z.unknown()).nullable(),
+  nutrition: nutritionSchema.nullable(),
   notes: z.string().min(1).nullable(),
   contributor: z.string().min(1).nullable(),
 })

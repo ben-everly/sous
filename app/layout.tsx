@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { env } from '@/lib/env'
 import { Toaster } from '@/components/ui/sonner'
 import { Providers } from './providers'
 import './globals.css'
@@ -15,7 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Sous - Home Kitchen Management',
+  metadataBase: new URL(env.SITE_URL),
+  title: { default: 'Sous - Home Kitchen Management', template: '%s | Sous' },
   description: 'Manage your kitchen inventory, recipes, and meal plans.',
 }
 

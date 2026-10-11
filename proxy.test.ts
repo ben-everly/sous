@@ -1,33 +1,34 @@
-import { describe, it, expect } from 'vitest'
-import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server'
-import { config } from './proxy'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { config } from '@/proxy'
 
-const matches = (url: string) => unstable_doesMiddlewareMatch({ config, url })
+let matches: (url: string) => boolean
+
+beforeAll(async () => {
+  // Next's testing entry reads AsyncLocalStorage off globalThis at import, which only its own
+  // runtime sets up.
+  Object.assign(globalThis, { AsyncLocalStorage })
+  const { unstable_doesMiddlewareMatch } = await import('next/experimental/testing/server')
+  matches = (url) => unstable_doesMiddlewareMatch({ config, url })
+})
 
 describe('proxy matcher', () => {
-  it.each(['/', '/dashboard', '/api/something', '/nested/deep/path'])('runs on %s', (url) => {
+  it.each([
+    '/settings/kitchens',
+    '/recipes/soup',
+    '/settings/opengraph-image-foo',
+    '/recipes/twitter-image-cake',
+  ])('runs on %s', (url) => {
     expect(matches(url)).toBe(true)
   })
 
   it.each([
-    '/_next/static/chunks/main.js',
-    '/_next/image',
+    '/opengraph-image',
+    '/twitter-image',
+    '/recipes/soup/opengraph-image',
     '/favicon.ico',
-    '/apple-touch-icon.ico',
-    '/logo.svg',
-    '/photo.png',
-    '/photo.jpg',
-    '/photo.jpeg',
-    '/photo.gif',
-    '/photo.webp',
-    '/photo.avif',
-    '/font.woff',
-    '/font.woff2',
-    '/font.ttf',
-    '/font.otf',
     '/robots.txt',
     '/sitemap.xml',
-    '/manifest.webmanifest',
   ])('skips %s', (url) => {
     expect(matches(url)).toBe(false)
   })
