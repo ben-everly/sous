@@ -172,6 +172,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      search_recipes: {
+        Args: { query: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+        }[]
+      }
       soft_delete_kitchen: {
         Args: { kitchen_id: string }
         Returns: {
