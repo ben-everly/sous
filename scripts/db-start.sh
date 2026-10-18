@@ -9,4 +9,4 @@ if [ -z "${WITH_SUPABASE_LOCK:-}" ]; then
 fi
 
 bash "$dir/db-keys.sh"
-exec supabase start
+exec supabase start "$@"

@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  SUPABASE_EXCLUDE: studio,postgres-meta,logflare,vector
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -77,7 +80,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Start Supabase
-        run: npm run db:start
+        run: npm run db:start -- -x "$SUPABASE_EXCLUDE"
       - name: Run pgTAP tests
         run: npm run test:db
       - name: Run database advisors
@@ -108,7 +111,7 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Start Supabase
-        run: npm run db:start
+        run: npm run db:start -- -x "$SUPABASE_EXCLUDE"
       - name: Export the local service-role key
         run: |
           eval "$(npx supabase status -o env)"
