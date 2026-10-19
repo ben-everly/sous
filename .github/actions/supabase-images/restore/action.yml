@@ -1,0 +1,25 @@
+name: Restore Supabase images
+description: Restore and load cached Supabase Docker images
+outputs:
+  key:
+    value: ${{ steps.sb.outputs.key }}
+  cache-hit:
+    value: ${{ steps.sb-cache.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - name: Get Supabase image cache key
+      id: sb
+      shell: bash
+      # Cache keys can't contain commas.
+      run: echo "key=${{ runner.os }}-supabase-$(node -p "require('supabase/package.json').version")-${{ hashFiles('supabase/config.toml') }}-${SUPABASE_EXCLUDE//,/-}" >> "$GITHUB_OUTPUT"
+    - name: Restore Supabase images
+      id: sb-cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/supabase-images
+        key: ${{ steps.sb.outputs.key }}
+    - name: Load Supabase images
+      if: steps.sb-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: docker load -i ~/supabase-images/images.tar
