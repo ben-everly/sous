@@ -79,12 +79,22 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Restore Supabase images
+        id: sb
+        uses: ./.github/actions/supabase-images/restore
       - name: Start Supabase
         run: npm run db:start -- -x "$SUPABASE_EXCLUDE"
       - name: Run pgTAP tests
         run: npm run test:db
       - name: Run database advisors
         run: npm run db:advisors
+      # Only db saves, and last: test:db pulls pg_prove, making its image set a
+      # superset of e2e's.
+      - name: Save Supabase images
+        uses: ./.github/actions/supabase-images/save
+        with:
+          key: ${{ steps.sb.outputs.key }}
+          cache-hit: ${{ steps.sb.outputs.cache-hit }}
 
   e2e:
     name: E2E tests
@@ -110,6 +120,9 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+      - name: Restore Supabase images
+        id: sb
+        uses: ./.github/actions/supabase-images/restore
       - name: Start Supabase
         run: npm run db:start -- -x "$SUPABASE_EXCLUDE"
       - name: Export the local service-role key

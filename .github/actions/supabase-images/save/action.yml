@@ -1,0 +1,23 @@
+name: Save Supabase images
+description: Save the job's pulled Supabase Docker images to the cache
+inputs:
+  key:
+    required: true
+  cache-hit:
+    required: true
+runs:
+  using: composite
+  steps:
+    # Main only: a PR's cache is invisible to main and other PRs.
+    - name: Save Supabase images
+      if: github.ref == 'refs/heads/main' && inputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/supabase-images
+        docker save -o ~/supabase-images/images.tar $(docker images --format '{{.Repository}}:{{.Tag}}' --filter reference='public.ecr.aws/supabase/*')
+    - name: Cache Supabase images
+      if: github.ref == 'refs/heads/main' && inputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: ~/supabase-images
+        key: ${{ inputs.key }}
