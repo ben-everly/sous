@@ -10,6 +10,8 @@ permissions:
 
 env:
   SUPABASE_EXCLUDE: studio,postgres-meta,logflare,vector
+  # ECR Public's anonymous quota is per IP, and runners share IPs.
+  SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
 
 concurrency:
   group: ci-${{ github.ref }}

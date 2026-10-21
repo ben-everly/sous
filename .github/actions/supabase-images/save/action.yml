@@ -14,7 +14,7 @@ runs:
       shell: bash
       run: |
         mkdir -p ~/supabase-images
-        docker save -o ~/supabase-images/images.tar $(docker images --format '{{.Repository}}:{{.Tag}}' --filter reference='public.ecr.aws/supabase/*')
+        docker save -o ~/supabase-images/images.tar $(docker images --format '{{.Repository}}:{{.Tag}}' --filter reference="${SUPABASE_INTERNAL_IMAGE_REGISTRY:-public.ecr.aws}/supabase/*")
     - name: Cache Supabase images
       if: github.ref == 'refs/heads/main' && inputs.cache-hit != 'true'
       uses: actions/cache/save@v5

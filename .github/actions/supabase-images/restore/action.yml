@@ -12,7 +12,7 @@ runs:
       id: sb
       shell: bash
       # Cache keys can't contain commas.
-      run: echo "key=${{ runner.os }}-supabase-$(node -p "require('supabase/package.json').version")-${{ hashFiles('supabase/config.toml') }}-${SUPABASE_EXCLUDE//,/-}" >> "$GITHUB_OUTPUT"
+      run: echo "key=${{ runner.os }}-supabase-${SUPABASE_INTERNAL_IMAGE_REGISTRY:-public.ecr.aws}-$(node -p "require('supabase/package.json').version")-${{ hashFiles('supabase/config.toml') }}-${SUPABASE_EXCLUDE//,/-}" >> "$GITHUB_OUTPUT"
     - name: Restore Supabase images
       id: sb-cache
       uses: actions/cache/restore@v5
