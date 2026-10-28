@@ -3,6 +3,7 @@
 @import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant mouse (@media (hover: hover) and (pointer: fine));
 
 @theme inline {
   --color-background: var(--background);
@@ -89,5 +90,78 @@
   button:not(:disabled),
   [role='button']:not(:disabled) {
     @apply cursor-pointer;
+  }
+}
+
+@property --scroll-fade-l {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --scroll-fade-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes scroll-fade-l {
+  to {
+    --scroll-fade-l: 2rem;
+  }
+}
+
+@keyframes scroll-fade-r {
+  from {
+    --scroll-fade-r: 2rem;
+  }
+}
+
+@utility scroll-fade-x {
+  @supports (animation-timeline: scroll()) {
+    mask-image: linear-gradient(
+      to right,
+      #000 var(--scroll-fade-inset, 0px),
+      transparent var(--scroll-fade-inset, 0px),
+      #000 calc(var(--scroll-fade-inset, 0px) + var(--scroll-fade-l)),
+      #000 calc(100% - var(--scroll-fade-r)),
+      transparent
+    );
+    animation:
+      scroll-fade-l linear both,
+      scroll-fade-r linear both;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    animation-range:
+      0 2rem,
+      calc(100% - 2rem) 100%;
+  }
+}
+
+@keyframes scroll-arrow-in {
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes scroll-arrow-out {
+  from {
+    visibility: visible;
+  }
+}
+
+/* Needs a sibling scroller with scroll-timeline: --strip, under a shared timeline-scope: --strip. */
+@utility scroll-arrow-left {
+  @supports (animation-timeline: scroll()) {
+    visibility: hidden;
+    animation: scroll-arrow-in linear both;
+    animation-timeline: --strip;
+  }
+}
+
+@utility scroll-arrow-right {
+  @supports (animation-timeline: scroll()) {
+    visibility: hidden;
+    animation: scroll-arrow-out linear both;
+    animation-timeline: --strip;
   }
 }
