@@ -117,7 +117,7 @@ export function useKitchens() {
     mutationFn: (kitchen: Kitchen) => softDeleteKitchen(supabase, kitchen.id),
     onMutate: async (kitchen: Kitchen) => {
       await queryClient.cancelQueries({ queryKey })
-      // Client stamp so an open trash list shows "deleted now" without waiting for the settle refetch,
+      // Client stamp so an open trash list shows it as just deleted without waiting for the settle refetch,
       // which replaces it with the DB's authoritative deleted_at. Carried to onSuccess so the undo
       // toast restores a row that still reads as trashed if the undo itself fails.
       const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
