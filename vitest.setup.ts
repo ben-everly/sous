@@ -8,5 +8,10 @@ import { MOCK_SUPABASE_URL, MOCK_SUPABASE_PUBLISHABLE_KEY } from '@/lib/supabase
 // so assertions can read the updated hook result immediately after the awaited call.
 notifyManager.setScheduler((cb) => cb())
 
+// A misspelled or unapplied TZ raises no error, and date tests would quietly run in another zone.
+const zone = new Intl.DateTimeFormat().resolvedOptions().timeZone
+if (zone !== 'America/Los_Angeles')
+  throw new Error(`Tests must run in America/Los_Angeles, not ${zone}`)
+
 vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', MOCK_SUPABASE_URL)
 vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', MOCK_SUPABASE_PUBLISHABLE_KEY)

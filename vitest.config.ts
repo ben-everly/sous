@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    // Away from UTC, so local-vs-UTC date mix-ups fail instead of passing by coincidence.
+    env: { TZ: 'America/Los_Angeles' },
     setupFiles: ['./vitest.setup.ts'],
     alias: {
       '@': path.resolve(__dirname, './'),
