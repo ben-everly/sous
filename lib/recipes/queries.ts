@@ -18,6 +18,12 @@ export async function recipeBySlug(supabase: SupabaseClient<Database>, slug: str
 
 export type PublicRecipe = NonNullable<Awaited<ReturnType<typeof recipeBySlug>>>
 
+export function searchRecipesQuery(supabase: SupabaseClient<Database>, query: string) {
+  return supabase.rpc('search_recipes', { query })
+}
+
+export type RecipeHit = Database['public']['Functions']['search_recipes']['Returns'][number]
+
 export async function allRecipeSitemapEntries(supabase: SupabaseClient<Database>) {
   const entries: Array<{ slug: string; updated_at: string }> = []
   for (;;) {
