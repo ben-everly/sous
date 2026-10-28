@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useKitchens } from './use-kitchens'
 import { Button } from '@/components/ui/button'
+import { Empty, EmptyContent, EmptyDescription } from '@/components/ui/empty'
+import { LoadError } from '@/components/load-error'
 import { KitchenRow } from './kitchen-row'
 import { KitchenNameForm } from './kitchen-name-form'
 import { KitchenTrash } from './kitchen-trash'
@@ -15,12 +17,7 @@ export function KitchensManager() {
   const [draftOpen, setDraftOpen] = useState(false)
 
   if (status === 'error') {
-    return (
-      <div className="mt-6 space-y-3 rounded-md border border-dashed p-6 text-center">
-        <p className="text-muted-foreground text-sm">Could not load your kitchens.</p>
-        <Button onClick={retry}>Try again</Button>
-      </div>
-    )
+    return <LoadError message="Could not load your kitchens." onRetry={retry} />
   }
 
   if (status === 'loading') {
@@ -44,12 +41,14 @@ export function KitchensManager() {
   return (
     <div className="mt-6 space-y-6">
       {kitchens.length === 0 && !draftOpen ? (
-        <div className="space-y-3 rounded-md border border-dashed p-6 text-center">
-          <p className="text-muted-foreground text-sm">You have no kitchens yet.</p>
-          <Button onClick={() => setDraftOpen(true)}>
-            <Plus /> Add kitchen
-          </Button>
-        </div>
+        <Empty className="border">
+          <EmptyDescription>You have no kitchens yet.</EmptyDescription>
+          <EmptyContent>
+            <Button onClick={() => setDraftOpen(true)}>
+              <Plus /> Add kitchen
+            </Button>
+          </EmptyContent>
+        </Empty>
       ) : (
         <>
           <ul className="divide-y rounded-md border">
