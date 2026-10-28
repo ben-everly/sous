@@ -12,13 +12,19 @@ type Result<T> = { data: T; error: Err | null }
 // PostgrestClient whose transport is this fetch, driven by `state`.
 export type MockState = {
   results: {
-    select: Result<Row[] | null>
-    insert: Result<Row | null>
-    update: Result<{ id: string } | Row | null>
-    rpc: Result<Row | null> | ((args: { kitchen_id: string }) => Result<Row | null>)
+    select: Result<unknown[] | null>
+    insert: Result<unknown>
+    update: Result<unknown>
+    delete?: Result<unknown[] | null>
+    rpc: Result<unknown> | ((args: never) => Result<unknown>)
   }
   rpcSpy: (name: string, args: unknown) => void
   insertSpy: (obj: unknown) => void
+  requestSpy?: (method: string, url: URL) => void | Promise<void>
+  upsertSpy?: (
+    rows: unknown,
+    opts: { prefer: string; onConflict: string | null },
+  ) => void | Promise<void>
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -40,17 +46,23 @@ export function createMockClient(state: MockState): SupabaseClient<Database> {
     const url = new URL(input.toString())
     const method = init?.method ?? 'GET'
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null
+    // Snapshot the read before a held request resumes, as a server answers at request time.
+    const select = state.results.select
+    await state.requestSpy?.(method, url)
 
     if (url.pathname.includes('/rpc/')) {
       const name = url.pathname.slice(url.pathname.indexOf('/rpc/') + 5)
       state.rpcSpy(name, body ?? {})
       const rpc = state.results.rpc
-      const r = typeof rpc === 'function' ? rpc(body as { kitchen_id: string }) : rpc
+      const r = typeof rpc === 'function' ? rpc(body as never) : rpc
       return toResponse(r, 'single')
     }
-    if (method === 'GET') return toResponse(state.results.select, 'array')
+    if (method === 'GET') return toResponse(select, 'array')
     if (method === 'POST') {
-      state.insertSpy(Array.isArray(body) ? body[0] : body)
+      const prefer = new Headers(init?.headers).get('Prefer') ?? ''
+      if (prefer.includes('resolution='))
+        await state.upsertSpy?.(body, { prefer, onConflict: url.searchParams.get('on_conflict') })
+      else state.insertSpy(Array.isArray(body) ? body[0] : body)
       // The insert fetcher requests representation without .single(), so it expects an array.
       return toResponse(state.results.insert, 'array')
     }
@@ -58,6 +70,8 @@ export function createMockClient(state: MockState): SupabaseClient<Database> {
       // The update fetcher is .single(), so it expects a bare object.
       return toResponse(state.results.update, 'single')
     }
+    if (method === 'DELETE')
+      return toResponse(state.results.delete ?? { data: [], error: null }, 'array')
     return jsonResponse([])
   }
 
