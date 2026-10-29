@@ -1,43 +1,18 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeWrapper } from '@/test/query-wrapper'
-import type { MockState, Row } from '@/test/supabase-mock'
-
-const mocks = vi.hoisted(() => ({
-  results: {
-    select: { data: [] as Row[] | null, error: null as null | { message: string } },
-    insert: { data: null as Row | null, error: null as null | { message: string; code?: string } },
-    update: {
-      data: null as { id: string } | Row | null,
-      error: null as null | { message: string },
-    },
-    rpc: { data: null as Row | null, error: null as null | { message: string } },
-  },
-  insertSpy: vi.fn(),
-  rpcSpy: vi.fn(),
-  toast: Object.assign(vi.fn(), { error: vi.fn() }),
-}))
-
-vi.mock('sonner', () => ({ toast: mocks.toast }))
-
-vi.mock('@/lib/supabase/client', async () => {
-  const { createMockClient } = await import('@/test/supabase-mock')
-  return { createClient: () => createMockClient(mocks as unknown as MockState) }
-})
-
+import { mockSupabase, resetMockSupabase, type Row } from '@/test/supabase-mock'
+import { mockToast } from '@/test/toast-mock'
 import { KitchensManager } from './kitchens-manager'
+
+vi.mock('sonner')
+vi.mock('@/lib/supabase/client')
 
 const renderManager = () => render(<KitchensManager />, { wrapper: makeWrapper().wrapper })
 
 beforeEach(() => {
-  mocks.results.select = { data: [], error: null }
-  mocks.results.insert = { data: null, error: null }
-  mocks.results.update = { data: null, error: null }
-  mocks.results.rpc = { data: null, error: null }
-  mocks.insertSpy.mockReset()
-  mocks.rpcSpy.mockReset()
-  mocks.toast.mockReset()
-  mocks.toast.error.mockReset()
+  vi.resetAllMocks()
+  resetMockSupabase()
 })
 
 afterEach(cleanup)
@@ -46,19 +21,19 @@ const beach: Row = { id: 'k1', name: 'Beach House', created_at: '2026-01-01', de
 
 describe('KitchensManager', () => {
   it('renders the owner kitchens after load', async () => {
-    mocks.results.select = { data: [beach], error: null }
+    mockSupabase.results.select = { data: [beach], error: null }
     renderManager()
     expect(await screen.findByText('Beach House')).toBeInTheDocument()
   })
 
   it('shows a retry view on load failure, then the list when retried', async () => {
-    mocks.results.select = { data: null, error: { message: 'network' } }
+    mockSupabase.results.select = { data: null, error: { message: 'network' } }
     renderManager()
 
     expect(await screen.findByText('Could not load your kitchens.')).toBeInTheDocument()
     expect(screen.queryByText(/you have no kitchens yet/i)).not.toBeInTheDocument()
 
-    mocks.results.select = { data: [beach], error: null }
+    mockSupabase.results.select = { data: [beach], error: null }
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText('Beach House')).toBeInTheDocument()
   })
@@ -69,8 +44,8 @@ describe('KitchensManager', () => {
   })
 
   it('creates a named kitchen through the draft row and appends it', async () => {
-    mocks.results.select = { data: [beach], error: null }
-    mocks.results.insert = {
+    mockSupabase.results.select = { data: [beach], error: null }
+    mockSupabase.results.insert = {
       data: { id: 'k2', name: 'Lake House', created_at: '2026-01-02', deleted_at: null },
       error: null,
     }
@@ -82,7 +57,7 @@ describe('KitchensManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(await screen.findByText('Lake House')).toBeInTheDocument()
-    expect(mocks.insertSpy).toHaveBeenCalledWith({ name: 'Lake House' })
+    expect(mockSupabase.insertSpy).toHaveBeenCalledWith({ name: 'Lake House' })
   })
 
   it('requires a name before a draft kitchen can be added', async () => {
@@ -98,16 +73,16 @@ describe('KitchensManager', () => {
   })
 
   it('soft-deletes immediately (no confirm) and shows an Undo toast', async () => {
-    mocks.results.select = { data: [beach], error: null }
-    mocks.results.rpc = { data: beach, error: null }
+    mockSupabase.results.select = { data: [beach], error: null }
+    mockSupabase.results.rpc = { data: beach, error: null }
     renderManager()
     await screen.findByText('Beach House')
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House' }))
 
     await waitFor(() => expect(screen.queryByText('Beach House')).not.toBeInTheDocument())
-    expect(mocks.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
-    expect(mocks.toast).toHaveBeenCalledWith(
+    expect(mockSupabase.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
+    expect(mockToast).toHaveBeenCalledWith(
       '"Beach House" moved to trash',
       expect.objectContaining({ id: 'trash-k1', duration: 8000 }),
     )
@@ -115,15 +90,15 @@ describe('KitchensManager', () => {
 
   it('rolls back the optimistic soft delete when the RPC fails', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mocks.results.select = { data: [beach], error: null }
-    mocks.results.rpc = { data: null, error: { message: 'network' } }
+    mockSupabase.results.select = { data: [beach], error: null }
+    mockSupabase.results.rpc = { data: null, error: { message: 'network' } }
     renderManager()
     await screen.findByText('Beach House')
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Beach House' }))
 
     await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
+      expect(mockToast.error).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
     )
     expect(screen.getByText('Beach House')).toBeInTheDocument()
     spy.mockRestore()

@@ -1,4 +1,5 @@
 import { PostgrestClient } from '@supabase/postgrest-js'
+import { vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 import { MOCK_SUPABASE_URL } from '@/lib/supabase/test-utils'
@@ -15,7 +16,7 @@ export type MockState = {
     select: Result<unknown[] | null>
     insert: Result<unknown>
     update: Result<unknown>
-    delete?: Result<unknown[] | null>
+    delete: Result<unknown[] | null>
     rpc: Result<unknown> | ((args: never) => Result<unknown>)
   }
   rpcSpy: (name: string, args: unknown) => void
@@ -70,8 +71,7 @@ export function createMockClient(state: MockState): SupabaseClient<Database> {
       // The update fetcher is .single(), so it expects a bare object.
       return toResponse(state.results.update, 'single')
     }
-    if (method === 'DELETE')
-      return toResponse(state.results.delete ?? { data: [], error: null }, 'array')
+    if (method === 'DELETE') return toResponse(state.results.delete, 'array')
     return jsonResponse([])
   }
 
@@ -79,4 +79,33 @@ export function createMockClient(state: MockState): SupabaseClient<Database> {
     schema: 'public',
     fetch,
   }) as unknown as SupabaseClient<Database>
+}
+
+const defaults = (): MockState['results'] => ({
+  select: { data: [], error: null },
+  insert: { data: null, error: null },
+  update: { data: null, error: null },
+  delete: { data: [], error: null },
+  rpc: { data: null, error: null },
+})
+
+// Backs lib/supabase/__mocks__/client.ts, so vi.mock('@/lib/supabase/client') drives the client from here.
+// Each test file gets its own module instance.
+export const mockSupabase = {
+  results: defaults(),
+  rpcSpy: vi.fn(),
+  insertSpy: vi.fn(),
+  upsertSpy: vi.fn(),
+  requestSpy: vi.fn(),
+} satisfies MockState
+
+export function resetMockSupabase() {
+  mockSupabase.results = defaults()
+  for (const spy of [
+    mockSupabase.rpcSpy,
+    mockSupabase.insertSpy,
+    mockSupabase.upsertSpy,
+    mockSupabase.requestSpy,
+  ])
+    spy.mockReset()
 }
