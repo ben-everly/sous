@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
-import { RECIPE_COLUMNS, allRecipeSitemapEntries, recipeBySlug } from './queries'
+import {
+  RECIPE_COLUMNS,
+  allRecipeSitemapEntries,
+  recipeBySlug,
+  searchRecipesQuery,
+} from './queries'
 
 type Resp = { data: unknown; error: { message: string } | null }
 
@@ -86,5 +91,18 @@ describe('allRecipeSitemapEntries', () => {
       { data: null, error },
     ])
     await expect(allRecipeSitemapEntries(supabase)).rejects.toBe(error)
+  })
+})
+
+describe('searchRecipesQuery', () => {
+  it('calls the search_recipes RPC with the query untouched', () => {
+    const calls: unknown[][] = []
+    const supabase = {
+      rpc: (...args: unknown[]) => (calls.push(args), {}),
+    } as unknown as SupabaseClient<Database>
+
+    searchRecipesQuery(supabase, '  pasta  ')
+
+    expect(calls).toEqual([['search_recipes', { query: '  pasta  ' }]])
   })
 })

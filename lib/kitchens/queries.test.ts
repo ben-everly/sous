@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
+import { builderClient, searchParams } from '@/test/postgrest'
 import {
   COLUMNS,
   allKitchensQuery,
@@ -46,23 +47,10 @@ function clientReturning(resp: Resp) {
 
 describe('allKitchensQuery', () => {
   it('reads every kitchen (live and trashed) selecting COLUMNS ordered by created_at then id', () => {
-    const calls: Array<[string, unknown]> = []
-    const chain = {
-      select: (c: unknown) => (calls.push(['select', c]), chain),
-      order: (c: unknown) => (calls.push(['order', c]), chain),
-    }
-    const supabase = {
-      from: (t: unknown) => (calls.push(['from', t]), chain),
-    } as unknown as SupabaseClient<Database>
-
-    allKitchensQuery(supabase)
-
-    expect(calls).toEqual([
-      ['from', 'kitchens'],
-      ['select', COLUMNS],
-      ['order', 'created_at'],
-      ['order', 'id'],
-    ])
+    const params = searchParams(allKitchensQuery(builderClient()))
+    expect(params.get('select')).toBe(COLUMNS.replaceAll(' ', ''))
+    expect([...params.keys()].sort()).toEqual(['order', 'select'])
+    expect(params.get('order')).toBe('created_at.asc,id.asc')
   })
 })
 

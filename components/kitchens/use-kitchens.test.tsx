@@ -1,37 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeWrapper } from '@/test/query-wrapper'
-import type { MockState, Row } from '@/test/supabase-mock'
-
-type RpcResult = { data: Row | null; error: null | { message: string } }
-
-const mocks = vi.hoisted(() => ({
-  results: {
-    select: { data: [] as Row[] | null, error: null as null | { message: string } },
-    insert: { data: null as Row | null, error: null as null | { message: string } },
-    update: {
-      data: null as { id: string } | Row | null,
-      error: null as null | { message: string },
-    },
-    // A function lets a single act() drive per-kitchen outcomes (one delete succeeds, one fails).
-    rpc: { data: null as Row | null, error: null as null | { message: string } } as
-      | RpcResult
-      | ((args: { kitchen_id: string }) => RpcResult),
-  },
-  rpcSpy: vi.fn(),
-  insertSpy: vi.fn(),
-  // sonner's toast is both a function (the undo toast) and an object with .error.
-  toast: Object.assign(vi.fn(), { error: vi.fn() }),
-}))
-
-vi.mock('sonner', () => ({ toast: mocks.toast }))
-
-vi.mock('@/lib/supabase/client', async () => {
-  const { createMockClient } = await import('@/test/supabase-mock')
-  return { createClient: () => createMockClient(mocks as unknown as MockState) }
-})
-
+import { mockSupabase, resetMockSupabase, type Row } from '@/test/supabase-mock'
+import { mockToast } from '@/test/toast-mock'
 import { useKitchens } from './use-kitchens'
+
+vi.mock('sonner')
+vi.mock('@/lib/supabase/client')
 
 const renderUseKitchens = () => renderHook(() => useKitchens(), { wrapper: makeWrapper().wrapper })
 
@@ -39,14 +14,10 @@ const beach: Row = { id: 'k1', name: 'Beach House', created_at: '2026-01-01', de
 const trashedBeach: Row = { ...beach, deleted_at: '2026-02-01' }
 
 beforeEach(() => {
-  mocks.results.select = { data: [beach], error: null }
-  mocks.results.insert = { data: null, error: null }
-  mocks.results.update = { data: null, error: null }
-  mocks.results.rpc = { data: beach, error: null }
-  mocks.rpcSpy.mockReset()
-  mocks.insertSpy.mockReset()
-  mocks.toast.mockReset()
-  mocks.toast.error.mockReset()
+  vi.resetAllMocks()
+  resetMockSupabase()
+  mockSupabase.results.select = { data: [beach], error: null }
+  mockSupabase.results.rpc = { data: beach, error: null }
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -59,7 +30,7 @@ describe('useKitchens', () => {
   })
 
   it('surfaces error status when the initial load fails', async () => {
-    mocks.results.select = { data: null, error: { message: 'offline' } }
+    mockSupabase.results.select = { data: null, error: { message: 'offline' } }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('error'))
   })
@@ -69,14 +40,14 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     // Server truth after the delete: beach is now trashed. The settle refetch reconciles to it.
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
 
     await waitFor(() => expect(result.current.kitchens).toEqual([]))
-    expect(mocks.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
-    const [message, opts] = mocks.toast.mock.calls[0]
+    expect(mockSupabase.rpcSpy).toHaveBeenCalledWith('soft_delete_kitchen', { kitchen_id: 'k1' })
+    const [message, opts] = mockToast.mock.calls[0]
     expect(message).toBe('"Beach House" moved to trash')
     expect(opts.id).toBe('trash-k1')
     expect(opts.duration).toBe(8000)
@@ -87,14 +58,14 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
     await waitFor(() => expect(result.current.kitchens).toEqual([]))
 
-    const undo = mocks.toast.mock.calls[0][1].action.onClick
-    mocks.results.select = { data: [beach], error: null }
+    const undo = mockToast.mock.calls[0][1].action.onClick
+    mockSupabase.results.select = { data: [beach], error: null }
     await act(async () => {
       undo()
     })
@@ -103,7 +74,7 @@ describe('useKitchens', () => {
   })
 
   it('rolls back softDelete and toasts an error when the RPC fails', async () => {
-    mocks.results.rpc = { data: null, error: { message: 'boom' } }
+    mockSupabase.results.rpc = { data: null, error: { message: 'boom' } }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
@@ -113,13 +84,13 @@ describe('useKitchens', () => {
 
     // The failed delete rolls back optimistically and the settle refetch confirms beach is still live.
     await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
+      expect(mockToast.error).toHaveBeenCalledWith('Couldn\'t delete "Beach House". Try again.'),
     )
     await waitFor(() => expect(result.current.kitchens).toEqual([beach]))
   })
 
   it('renames a kitchen in place', async () => {
-    mocks.results.update = { data: { ...beach, name: 'Lake House' }, error: null }
+    mockSupabase.results.update = { data: { ...beach, name: 'Lake House' }, error: null }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
@@ -146,7 +117,7 @@ describe('useKitchens', () => {
   })
 
   it('reports failure and toasts when a rename matches no row', async () => {
-    mocks.results.update = { data: null, error: { message: 'boom' } }
+    mockSupabase.results.update = { data: null, error: { message: 'boom' } }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
@@ -156,7 +127,7 @@ describe('useKitchens', () => {
     })
 
     expect(ok).toBe(false)
-    expect(mocks.toast.error).toHaveBeenCalledWith("Couldn't rename the kitchen. Try again.")
+    expect(mockToast.error).toHaveBeenCalledWith("Couldn't rename the kitchen. Try again.")
     expect(result.current.kitchens).toEqual([beach])
   })
 
@@ -164,7 +135,7 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
@@ -175,14 +146,14 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
     // Reopen: the item was purged elsewhere, so a refetch should reflect the now-empty trash.
-    mocks.results.select = { data: [], error: null }
+    mockSupabase.results.select = { data: [], error: null }
     await act(async () => {
       await result.current.refresh()
     })
@@ -193,14 +164,14 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
     // Reopen while offline: the refetch errors, but the already-loaded list must stay visible.
-    mocks.results.select = { data: null, error: { message: 'offline' } }
+    mockSupabase.results.select = { data: null, error: { message: 'offline' } }
     await act(async () => {
       await result.current.refresh()
     })
@@ -222,19 +193,19 @@ describe('useKitchens', () => {
       deleted_at: '2026-01-02',
     }
     // One read seeds both partitions, so the count is exact immediately — no separate query.
-    mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
+    mockSupabase.results.select = { data: [beach, trashedA, trashedB], error: null }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(result.current.deleted).toHaveLength(2)
 
-    mocks.results.select = { data: [trashedBeach, trashedA, trashedB], error: null }
+    mockSupabase.results.select = { data: [trashedBeach, trashedA, trashedB], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
     await waitFor(() => expect(result.current.deleted).toHaveLength(3))
 
-    const undo = mocks.toast.mock.calls[0][1].action.onClick
-    mocks.results.select = { data: [beach, trashedA, trashedB], error: null }
+    const undo = mockToast.mock.calls[0][1].action.onClick
+    mockSupabase.results.select = { data: [beach, trashedA, trashedB], error: null }
     await act(async () => {
       undo()
     })
@@ -246,7 +217,7 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     const serverStamp = '2026-02-01T00:00:00.000Z'
-    mocks.results.select = { data: [{ ...beach, deleted_at: serverStamp }], error: null }
+    mockSupabase.results.select = { data: [{ ...beach, deleted_at: serverStamp }], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
@@ -261,16 +232,16 @@ describe('useKitchens', () => {
   it('overlapping soft-deletes reconcile to server truth when one fails', async () => {
     const a: Row = { id: 'a', name: 'A', created_at: '2026-01-01', deleted_at: null }
     const b: Row = { id: 'b', name: 'B', created_at: '2026-01-02', deleted_at: null }
-    mocks.results.select = { data: [a, b], error: null }
+    mockSupabase.results.select = { data: [a, b], error: null }
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     // 'a' deletes cleanly; 'b' fails. Server truth: a trashed, b still live.
-    mocks.results.rpc = ({ kitchen_id }) =>
+    mockSupabase.results.rpc = ({ kitchen_id }) =>
       kitchen_id === 'b'
         ? { data: null, error: { message: 'boom' } }
         : { data: { ...a, deleted_at: '2026-03-01T00:00:00.000Z' }, error: null }
-    mocks.results.select = {
+    mockSupabase.results.select = {
       data: [{ ...a, deleted_at: '2026-03-01T00:00:00.000Z' }, b],
       error: null,
     }
@@ -290,7 +261,7 @@ describe('useKitchens', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
     // No in-flight guard now: both fire the (idempotent) RPC and the row still ends up trashed.
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     const softDelete = result.current.softDelete
     await act(async () => {
       softDelete(beach)
@@ -298,10 +269,10 @@ describe('useKitchens', () => {
     })
 
     await waitFor(() => expect(result.current.kitchens).toEqual([]))
-    expect(mocks.rpcSpy).toHaveBeenCalledTimes(2)
-    expect(mocks.toast.error).not.toHaveBeenCalled()
+    expect(mockSupabase.rpcSpy).toHaveBeenCalledTimes(2)
+    expect(mockToast.error).not.toHaveBeenCalled()
     // Both success toasts share one id, so sonner collapses them into a single undo affordance.
-    const ids = mocks.toast.mock.calls.map(([, opts]) => opts.id)
+    const ids = mockToast.mock.calls.map(([, opts]) => opts.id)
     expect(ids).toEqual(['trash-k1', 'trash-k1'])
   })
 
@@ -309,14 +280,14 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       result.current.softDelete(beach)
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
-    const undo = mocks.toast.mock.calls[0][1].action.onClick
+    const undo = mockToast.mock.calls[0][1].action.onClick
 
-    mocks.results.select = { data: [beach], error: null }
+    mockSupabase.results.select = { data: [beach], error: null }
     await act(async () => {
       result.current.restore(trashedBeach)
     })
@@ -324,37 +295,37 @@ describe('useKitchens', () => {
 
     // Beach is already live, so the DB's deleted_at guard makes this restore a no-op success. The RPC
     // still fires, but it does not resurrect anything or read as a failure.
-    mocks.results.rpc = { data: null, error: null }
-    mocks.rpcSpy.mockClear()
+    mockSupabase.results.rpc = { data: null, error: null }
+    mockSupabase.rpcSpy.mockClear()
     await act(async () => {
       undo()
     })
 
     await waitFor(() =>
-      expect(mocks.rpcSpy).toHaveBeenCalledWith('restore_kitchen', { kitchen_id: 'k1' }),
+      expect(mockSupabase.rpcSpy).toHaveBeenCalledWith('restore_kitchen', { kitchen_id: 'k1' }),
     )
     expect(result.current.kitchens).toEqual([beach])
     expect(result.current.deleted).toEqual([])
-    expect(mocks.toast.error).not.toHaveBeenCalled()
+    expect(mockToast.error).not.toHaveBeenCalled()
   })
 
   it('restore failure rolls back and toasts an error', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
-    mocks.results.rpc = { data: null, error: { message: 'boom' } }
+    mockSupabase.results.rpc = { data: null, error: { message: 'boom' } }
     await act(async () => {
       result.current.restore(trashedBeach)
     })
 
     await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith('Couldn\'t restore "Beach House". Try again.'),
+      expect(mockToast.error).toHaveBeenCalledWith('Couldn\'t restore "Beach House". Try again.'),
     )
     await waitFor(() => expect(result.current.deleted.some((k) => k.id === 'k1')).toBe(true))
     expect(result.current.kitchens.some((k) => k.id === 'k1')).toBe(false)
@@ -364,42 +335,42 @@ describe('useKitchens', () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
-    mocks.results.select = { data: [], error: null }
+    mockSupabase.results.select = { data: [], error: null }
     await act(async () => {
       result.current.purge(trashedBeach)
     })
 
     await waitFor(() => expect(result.current.deleted).toEqual([]))
-    expect(mocks.rpcSpy).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
+    expect(mockSupabase.rpcSpy).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
   })
 
   it('purge failure rolls back and toasts a permanent-delete error', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    mocks.results.select = { data: [trashedBeach], error: null }
+    mockSupabase.results.select = { data: [trashedBeach], error: null }
     await act(async () => {
       await result.current.refresh()
     })
     await waitFor(() => expect(result.current.deleted).toEqual([trashedBeach]))
 
-    mocks.results.rpc = { data: null, error: { message: 'boom' } }
+    mockSupabase.results.rpc = { data: null, error: { message: 'boom' } }
     await act(async () => {
       result.current.purge(trashedBeach)
     })
 
     await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith(
+      expect(mockToast.error).toHaveBeenCalledWith(
         'Couldn\'t permanently delete "Beach House". Try again.',
       ),
     )
     await waitFor(() => expect(result.current.deleted.some((k) => k.id === 'k1')).toBe(true))
-    expect(mocks.rpcSpy).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
+    expect(mockSupabase.rpcSpy).toHaveBeenCalledWith('purge_kitchen', { kitchen_id: 'k1' })
   })
 })

@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { formatDistanceToNowStrict } from 'date-fns'
 import { ChevronRight } from 'lucide-react'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
-import { relativeTime } from '@/lib/kitchens/relative-time'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -73,7 +73,10 @@ export function KitchenTrash({
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">{label}</span>
                       <span className="text-muted-foreground text-xs">
-                        deleted {k.deleted_at ? relativeTime(k.deleted_at) : ''}
+                        deleted{' '}
+                        {k.deleted_at
+                          ? formatDistanceToNowStrict(k.deleted_at, { addSuffix: true })
+                          : ''}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

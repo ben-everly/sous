@@ -12,6 +12,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { queryStatus } from '@/lib/data/query-status'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import {
   COLUMNS,
@@ -21,8 +22,6 @@ import {
   softDeleteKitchen,
 } from '@/lib/kitchens/queries'
 import type { Kitchen } from '@/lib/kitchens/types'
-
-export type KitchensStatus = 'loading' | 'error' | 'ready'
 
 // Matches the DB's order so a restored kitchen lands back in its original slot, not at the end.
 const byCreatedThenId = (a: Kitchen, b: Kitchen) =>
@@ -63,8 +62,7 @@ export function useKitchens() {
   const kitchens = useMemo(() => rows.filter((k) => !k.deleted_at).sort(byCreatedThenId), [rows])
   const deleted = useMemo(() => rows.filter((k) => k.deleted_at).sort(byDeletedAtDesc), [rows])
 
-  const status: KitchensStatus =
-    query.data === undefined ? (query.isError && !query.isFetching ? 'error' : 'loading') : 'ready'
+  const status = queryStatus(query)
 
   const retry = () => void query.refetch()
 
@@ -117,7 +115,7 @@ export function useKitchens() {
     mutationFn: (kitchen: Kitchen) => softDeleteKitchen(supabase, kitchen.id),
     onMutate: async (kitchen: Kitchen) => {
       await queryClient.cancelQueries({ queryKey })
-      // Client stamp so an open trash list shows "deleted now" without waiting for the settle refetch,
+      // Client stamp so an open trash list shows it as just deleted without waiting for the settle refetch,
       // which replaces it with the DB's authoritative deleted_at. Carried to onSuccess so the undo
       // toast restores a row that still reads as trashed if the undo itself fails.
       const trashed = { ...kitchen, deleted_at: new Date().toISOString() }
