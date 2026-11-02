@@ -75,14 +75,27 @@ describe('Providers auth-boundary cache isolation', () => {
     expect(clients.size).toBe(2)
   })
 
-  it('swaps to a fresh client on the first sign-in after a sign-out', () => {
+  it('invalidates in place instead of swapping when an anon visitor signs in', () => {
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+    renderProviders()
+    emit('INITIAL_SESSION', null)
+
+    emit('SIGNED_IN', sessionFor('user-a'))
+
+    expect(invalidateSpy).toHaveBeenCalledTimes(1)
+    expect(clients.size).toBe(1)
+  })
+
+  it('invalidates in place on the first sign-in after a sign-out', () => {
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
     renderProviders()
     emit('INITIAL_SESSION', sessionFor('user-a'))
     emit('SIGNED_OUT', null)
 
     emit('SIGNED_IN', sessionFor('user-b'))
 
-    expect(clients.size).toBe(2)
+    expect(invalidateSpy).toHaveBeenCalledTimes(1)
+    expect(clients.size).toBe(1)
   })
 
   it('does not swap on a token refresh for the same user', () => {

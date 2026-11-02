@@ -43,6 +43,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         // A fresh client would refetch as anon; clear() is safe because refresh redirects to /login.
         client.clear()
         router.refresh()
+      } else if (baselined.current && currentUserId.current === undefined && userId) {
+        // Anon holds no user data to isolate, and a remount would re-run in-page sign-ins
+        // like the recovery form's single-use verifyOtp.
+        void client.invalidateQueries()
       } else if (baselined.current && userId !== currentUserId.current) {
         setQueryState((s) => ({ client: newClient(), generation: s.generation + 1 }))
       }
