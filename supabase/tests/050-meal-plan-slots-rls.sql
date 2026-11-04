@@ -22,7 +22,7 @@ select 'zz-mps-lim-' || lpad(i::text, 2, '0'), 'Zzmps Lim ' || i,
   '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["x"]}]'::jsonb
 from generate_series(1, 21) i;
 
-select plan(36);
+select plan(38);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.meal_plan_slots'::regclass),
@@ -128,27 +128,44 @@ select is((select count(*) from public.meal_plan_slots), 2::bigint, 'Restoring b
 
 select lives_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date - 7, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
-  'A slot 7 days back can be inserted'
-);
-select throws_ok(
-  $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date - 8, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
-  '42501',
-  null,
-  'A slot 8 days back cannot be inserted'
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date - 3650, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  'A slot 10 years back can be inserted'
 );
 select lives_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 182, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
-  'A slot 182 days ahead can be inserted'
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 3650, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  'A slot 10 years ahead can be inserted'
+);
+select lives_ok(
+  $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '0001-01-01', 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  'A slot on 0001-01-01 can be inserted'
+);
+select lives_ok(
+  $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '9999-12-31', 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  'A slot on 9999-12-31 can be inserted'
 );
 select throws_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 183, 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
-  '42501',
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '0001-12-31 BC', 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  '23514',
   null,
-  'A slot 183 days ahead cannot be inserted'
+  'A slot on 0001-12-31 BC fails'
+);
+select throws_ok(
+  $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10000-01-01', 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  '23514',
+  null,
+  'A slot on 10000-01-01 fails'
+);
+select throws_ok(
+  $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'infinity', 'lunch', 'cccccccc-cccc-cccc-cccc-cccccccccccc')$$,
+  '23514',
+  null,
+  'A slot on infinity fails'
 );
 
 select lives_ok(
@@ -173,18 +190,8 @@ select lives_ok(
   'Re-adding a recipe to a full meal with ON CONFLICT DO NOTHING succeeds'
 );
 
-reset role;
-insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date - 30, 'breakfast', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
-set local role authenticated;
-
-select is(
-  (select count(*) from public.meal_plan_slots where date = current_date - 30),
-  1::bigint,
-  'A slot older than the insert window stays visible'
-);
-with d as (delete from public.meal_plan_slots where date = current_date - 30 returning 1)
-select is((select count(*) from d), 1::bigint, 'A slot older than the insert window can be deleted');
+with d as (delete from public.meal_plan_slots where date = current_date - 3650 returning 1)
+select is((select count(*) from d), 1::bigint, 'A slot 10 years back can be deleted');
 
 reset role;
 select set_config('request.jwt.claims', null, true);
