@@ -3,9 +3,10 @@ import type * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Slot } from '@/lib/plan/queries'
 
-const mocks = vi.hoisted(() => ({ kitchens: vi.fn(), plan: vi.fn() }))
+const mocks = vi.hoisted(() => ({ kitchens: vi.fn(), plan: vi.fn(), search: '' }))
 
 vi.mock('@/components/kitchens/use-kitchens', () => ({ useKitchens: mocks.kitchens }))
+vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(mocks.search) }))
 vi.mock('./use-meal-plan', () => ({ useMealPlan: mocks.plan }))
 vi.mock('./recipe-picker', () => ({
   RecipePicker: ({
@@ -48,6 +49,7 @@ const slot = (i: number): Slot => ({
 })
 
 beforeEach(() => {
+  mocks.search = ''
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 9, 16, 12))
   plan()
@@ -122,9 +124,16 @@ describe('MealPlanner', () => {
     expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-11')
   })
 
+  it('queries the week from ?week', () => {
+    mocks.search = 'week=2026-10-25'
+    render(<MealPlanner kitchenId="k1" />)
+    expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-25')
+  })
+
   it('moves today at midnight but keeps the week it opened on', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 9, 17, 23, 59, 30))
+    mocks.search = 'week=2026-10-11'
     render(<MealPlanner kitchenId="k1" />)
     act(() => void vi.advanceTimersByTime(60_000))
 

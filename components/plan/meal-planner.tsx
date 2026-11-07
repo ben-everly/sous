@@ -11,8 +11,8 @@ import { Empty, EmptyContent, EmptyDescription } from '@/components/ui/empty'
 import { LoadError } from '@/components/load-error'
 import { currentKitchen } from '@/lib/kitchens/current-kitchen'
 import { useToday } from '@/lib/hooks/use-today'
-import { parseISO } from 'date-fns'
-import { MEAL_TYPES, dayLabel, weekOf, weekRange, weekdayName } from '@/lib/plan/week'
+import { useWeek } from './use-week'
+import { MEAL_TYPES, dayLabel, weekRange, weekdayName } from '@/lib/plan/week'
 import { cn } from '@/lib/utils'
 
 const DAY = 'bg-card ring-foreground/8 flex min-w-0 rounded-xl p-2.5 ring-1'
@@ -176,8 +176,8 @@ function ScrollArrow({
 
 export function MealPlanner({ kitchenId }: { kitchenId: string }) {
   const today = useToday()
-  const [dates] = useState(() => weekOf(parseISO(today)))
-  const plan = useMealPlan(kitchenId, dates[0])
+  const { start, dates } = useWeek(today)
+  const plan = useMealPlan(kitchenId, start)
   const [opened, setOpened] = useState<string[]>([])
 
   if (plan.status !== 'ready')
@@ -265,8 +265,7 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
 // Stands in for kitchen routing until there's a kitchen switcher.
 export function CurrentKitchenPlanner() {
   const { kitchens, status, retry } = useKitchens()
-  // Only labels the header until MealPlanner pins its own week.
-  const dates = weekOf(parseISO(useToday()))
+  const { dates } = useWeek(useToday())
 
   if (status !== 'ready')
     return (
