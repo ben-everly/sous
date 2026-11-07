@@ -1,4 +1,4 @@
-import { addDays, formatISO, parseISO, startOfWeek, type Day } from 'date-fns'
+import { addDays, formatISO, isValid, parseISO, startOfWeek, type Day } from 'date-fns'
 import type { Database } from '@/types/database.types'
 
 export type MealType = Database['public']['Enums']['meal_type']
@@ -43,3 +43,20 @@ export const weekRange = (dates: string[]) =>
   monthDay.formatRange(parseISO(dates[0]), parseISO(dates.at(-1)!))
 
 export const weekdayName = (date: string) => longWeekday.format(parseISO(date))
+
+const inRange = (start: Date) => start.getFullYear() >= 1 && addDays(start, 6).getFullYear() <= 9999
+
+const iso = (d: Date) => formatISO(d, { representation: 'date' })
+
+export const parseWeek = (param: string | null) => {
+  const d = param && /^\d{4}-\d{2}-\d{2}$/.test(param) ? parseISO(param) : null
+  return d && isValid(d) && iso(d) === param && inRange(d) ? param : null
+}
+
+export const weekFrom = (start: string) =>
+  Array.from({ length: 7 }, (_, i) => iso(addDays(parseISO(start), i)))
+
+export const shiftWeek = (start: string, weeks: number) => {
+  const d = addDays(parseISO(start), weeks * 7)
+  return inRange(d) ? iso(d) : null
+}
