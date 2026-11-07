@@ -2,8 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import Link from 'next/link'
-import { parseISO } from 'date-fns'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2 } from 'lucide-react'
 import { CARD, MealCell } from './meal-cell'
 import { useMealPlan } from './use-meal-plan'
 import { useKitchens } from '@/components/kitchens/use-kitchens'
@@ -18,7 +17,8 @@ import {
   dayLabel,
   shiftWeek,
   weekHeading,
-  weekOf,
+  weekDates,
+  weekStart,
   weekRange,
   weekdayName,
 } from '@/lib/plan/week'
@@ -57,17 +57,17 @@ const noop = () => () => {}
 
 function Header({
   start,
-  dates,
   today,
   go,
   note,
+  busy,
   children,
 }: {
   start: string
-  dates: string[]
   today: string
   go: (start: string) => void
   note?: ReactNode
+  busy?: boolean
   children: ReactNode
 }) {
   const mounted = useSyncExternalStore(
@@ -76,9 +76,9 @@ function Header({
     () => false,
   )
   const heading = mounted ? weekHeading(start, today) : null
-  const range = mounted ? weekRange(dates, today) : null
+  const range = mounted ? weekRange(weekDates(start), today) : null
   const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
-  const current = weekOf(parseISO(today))[0]
+  const current = weekStart(today)
   return (
     <>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -87,6 +87,13 @@ function Header({
           {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
         </h1>
         {heading && <span className="text-muted-foreground text-lg">{range}</span>}
+        {busy && (
+          <Loader2 aria-hidden className="text-muted-foreground size-5 animate-spin self-center" />
+        )}
+        {/* Mounted before it's needed: a live region inserted with its text often goes unannounced. */}
+        <span role="status" className="sr-only">
+          {busy && 'Loading week'}
+        </span>
         <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
           {mounted && (
             <>
@@ -121,7 +128,17 @@ function Header({
             </>
           )}
         </nav>
-        {note && <p className="text-muted-foreground basis-full text-sm">{note}</p>}
+        {note && (
+          <p
+            aria-hidden={busy || undefined}
+            className={cn(
+              'text-muted-foreground basis-full text-sm transition-opacity',
+              busy && 'opacity-50',
+            )}
+          >
+            {note}
+          </p>
+        )}
       </div>
       {children}
     </>
@@ -224,18 +241,21 @@ function ScrollArrow({
 
 export function MealPlanner({ kitchenId }: { kitchenId: string }) {
   const today = useToday()
-  const { start, dates, go } = useWeek(today)
+  const { start, go } = useWeek(today)
   const plan = useMealPlan(kitchenId, start)
   const [opened, setOpened] = useState<string[]>([])
+  const [shown, setShown] = useState(start)
+  if (!plan.stale && shown !== start) setShown(start)
 
   if (plan.status !== 'ready')
     return (
-      <Header start={start} dates={dates} today={today} go={go}>
+      <Header start={start} today={today} go={go}>
         <NotReady status={plan.status} message="Could not load your plan." onRetry={plan.retry} />
       </Header>
     )
 
-  const planned = dates.flatMap((date) =>
+  const shownDates = weekDates(shown)
+  const planned = shownDates.flatMap((date) =>
     MEAL_TYPES.filter((meal) => plan.slotsFor(date, meal).length),
   ).length
   const toggle = (date: string) =>
@@ -244,14 +264,18 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
   return (
     <Header
       start={start}
-      dates={dates}
       today={today}
       go={go}
-      note={`${planned} of ${dates.length * MEAL_TYPES.length} meals planned`}
+      note={`${planned} of ${shownDates.length * MEAL_TYPES.length} meals planned`}
+      busy={plan.stale}
     >
-      <div className="mt-6 grid gap-2">
-        {dates.map((date) => {
-          const foldable = date < today && dates.includes(today)
+      <div
+        inert={plan.stale}
+        aria-busy={plan.stale}
+        className={cn('mt-6 grid gap-2 transition-opacity', plan.stale && 'opacity-50')}
+      >
+        {shownDates.map((date) => {
+          const foldable = date < today && shownDates.includes(today)
           if (foldable && !opened.includes(date)) {
             const names = MEAL_TYPES.flatMap((meal) =>
               plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
@@ -320,11 +344,11 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
 export function CurrentKitchenPlanner() {
   const { kitchens, status, retry } = useKitchens()
   const today = useToday()
-  const { start, dates, go } = useWeek(today)
+  const { start, go } = useWeek(today)
 
   if (status !== 'ready')
     return (
-      <Header start={start} dates={dates} today={today} go={go}>
+      <Header start={start} today={today} go={go}>
         <NotReady status={status} message="Could not load your kitchens." onRetry={retry} />
       </Header>
     )
@@ -332,7 +356,7 @@ export function CurrentKitchenPlanner() {
   const kitchen = currentKitchen(kitchens)
   if (!kitchen)
     return (
-      <Header start={start} dates={dates} today={today} go={go}>
+      <Header start={start} today={today} go={go}>
         <Empty className="mt-6 border">
           <EmptyDescription>Create a kitchen to start planning.</EmptyDescription>
           <EmptyContent>

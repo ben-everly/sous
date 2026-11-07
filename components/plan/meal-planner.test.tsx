@@ -32,6 +32,7 @@ const kitchen = { id: 'k1', name: 'Home', created_at: '2026-01-01T00:00:00Z', de
 const plan = (over = {}) =>
   mocks.plan.mockReturnValue({
     status: 'ready',
+    stale: false,
     retry: vi.fn(),
     slotsFor: () => [] as Slot[],
     add: vi.fn(),
@@ -69,7 +70,7 @@ describe('CurrentKitchenPlanner', () => {
   it('shows the skeleton while kitchens load, without the kitchens link', () => {
     mocks.kitchens.mockReturnValue({ kitchens: [], status: 'loading', retry: vi.fn() })
     render(<CurrentKitchenPlanner />)
-    expect(screen.getByRole('status')).toHaveTextContent('Loading plan')
+    expect(screen.getByText('Loading plan')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /kitchens/i })).toBeNull()
   })
 
@@ -98,7 +99,7 @@ describe('MealPlanner', () => {
   it('shows the skeleton while slots load', () => {
     plan({ status: 'loading' })
     render(<MealPlanner kitchenId="k1" />)
-    expect(screen.getByRole('status')).toHaveTextContent('Loading plan')
+    expect(screen.getByText('Loading plan')).toBeInTheDocument()
   })
 
   it('retries the plan on error', () => {
@@ -202,6 +203,51 @@ describe('MealPlanner', () => {
       plan({ status: 'loading' })
       render(<MealPlanner kitchenId="k1" />)
       expect(screen.getByRole('button', { name: 'Next week' })).toBeEnabled()
+    })
+  })
+
+  describe('while the next week loads', () => {
+    const old = (d: string, m: string) => (d === '2026-10-12' && m === 'dinner' ? [slot(1)] : [])
+
+    it('keeps the previous week, inert, with a loading status', () => {
+      const { container, rerender } = render(<MealPlanner kitchenId="k1" />)
+      const status = screen.getByRole('status')
+      expect(status).toBeEmptyDOMElement()
+      mocks.search = 'week=2026-10-18'
+      plan({ stale: true, slotsFor: old })
+      rerender(<MealPlanner kitchenId="k1" />)
+      expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-18')
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Next week')
+      expect(screen.getByRole('status')).toBe(status)
+      expect(status).toHaveTextContent('Loading week')
+      expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveTextContent('October 11')
+      expect(screen.getByRole('button', { name: 'Show Monday' })).toHaveTextContent('Pie 1')
+      const grid = container.querySelector('[aria-busy="true"]')
+      expect(grid).toHaveAttribute('inert')
+      expect(grid).toContainElement(screen.getByRole('button', { name: 'Show Monday' }))
+    })
+
+    it("hides the previous week's count from assistive tech and dims it", () => {
+      const { rerender } = render(<MealPlanner kitchenId="k1" />)
+      mocks.search = 'week=2026-10-18'
+      plan({ stale: true, slotsFor: old })
+      rerender(<MealPlanner kitchenId="k1" />)
+      const note = screen.getByText('1 of 21 meals planned')
+      expect(note).toHaveAttribute('aria-hidden', 'true')
+      expect(note).toHaveClass('opacity-50')
+    })
+
+    it('shows the new week and empties the status once fresh', () => {
+      const { container, rerender } = render(<MealPlanner kitchenId="k1" />)
+      mocks.search = 'week=2026-10-18'
+      plan({ stale: true, slotsFor: old })
+      rerender(<MealPlanner kitchenId="k1" />)
+      plan({ stale: false })
+      rerender(<MealPlanner kitchenId="k1" />)
+      expect(screen.getByRole('status')).toBeEmptyDOMElement()
+      expect(container.querySelector('[inert]')).toBeNull()
+      expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveTextContent('October 18')
+      expect(screen.getAllByRole('button', { name: /^Add recipe to / })).toHaveLength(21)
     })
   })
 

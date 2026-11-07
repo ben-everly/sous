@@ -1,37 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { dayLabel, parseWeek, shiftWeek, weekFrom, weekHeading, weekOf, weekRange } from './week'
+import {
+  dayLabel,
+  parseWeek,
+  shiftWeek,
+  weekHeading,
+  weekDates,
+  weekRange,
+  weekStart,
+} from './week'
 
 afterEach(() => vi.restoreAllMocks())
 
 describe('week helpers', () => {
-  it.each([11, 12, 13, 14, 15, 16, 17])(
-    'a Sunday-first weekOf Oct %i starts on Sunday Oct 11',
-    (day) => {
-      expect(weekOf(new Date(2026, 9, day, 23, 59), 0)).toEqual([
-        '2026-10-11',
-        '2026-10-12',
-        '2026-10-13',
-        '2026-10-14',
-        '2026-10-15',
-        '2026-10-16',
-        '2026-10-17',
-      ])
-    },
+  it.each([11, 12, 13, 14, 15, 16, 17])('a Sunday-first week of Oct %i starts on Oct 11', (day) =>
+    expect(weekStart(`2026-10-${day}`, 0)).toBe('2026-10-11'),
   )
 
-  it.each([12, 13, 14, 15, 16, 17, 18])(
-    'a Monday-first weekOf Oct %i starts on Monday Oct 12',
-    (day) => {
-      expect(weekOf(new Date(2026, 9, day, 23, 59), 1)).toEqual([
-        '2026-10-12',
-        '2026-10-13',
-        '2026-10-14',
-        '2026-10-15',
-        '2026-10-16',
-        '2026-10-17',
-        '2026-10-18',
-      ])
-    },
+  it.each([12, 13, 14, 15, 16, 17, 18])('a Monday-first week of Oct %i starts on Oct 12', (day) =>
+    expect(weekStart(`2026-10-${day}`, 1)).toBe('2026-10-12'),
   )
 
   it.each([
@@ -39,60 +25,21 @@ describe('week helpers', () => {
     ['en-GB', '2026-10-12'],
     ['de-DE', '2026-10-12'],
     ['ar-EG', '2026-10-10'],
-  ])('weekOf defaults to the %s week start', (locale, start) => {
+  ])('weekStart defaults to the %s week start', (locale, start) => {
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
       locale,
     } as Intl.ResolvedDateTimeFormatOptions)
-    expect(weekOf(new Date(2026, 9, 14))[0]).toBe(start)
+    expect(weekStart('2026-10-14')).toBe(start)
   })
 
-  it('crosses a month boundary', () => {
-    expect(weekOf(new Date(2026, 8, 30), 0)).toEqual([
-      '2026-09-27',
-      '2026-09-28',
-      '2026-09-29',
-      '2026-09-30',
-      '2026-10-01',
-      '2026-10-02',
-      '2026-10-03',
-    ])
-  })
-
-  it('crosses a year boundary', () => {
-    expect(weekOf(new Date(2026, 11, 31), 0)).toEqual([
-      '2026-12-27',
-      '2026-12-28',
-      '2026-12-29',
-      '2026-12-30',
-      '2026-12-31',
-      '2027-01-01',
-      '2027-01-02',
-    ])
-  })
-
-  it('does not skip or repeat a day across spring-forward', () => {
-    expect(weekOf(new Date(2026, 2, 11), 0)).toEqual([
-      '2026-03-08',
-      '2026-03-09',
-      '2026-03-10',
-      '2026-03-11',
-      '2026-03-12',
-      '2026-03-13',
-      '2026-03-14',
-    ])
-  })
-
-  it('does not skip or repeat a day across fall-back', () => {
-    expect(weekOf(new Date(2026, 10, 4), 0)).toEqual([
-      '2026-11-01',
-      '2026-11-02',
-      '2026-11-03',
-      '2026-11-04',
-      '2026-11-05',
-      '2026-11-06',
-      '2026-11-07',
-    ])
-  })
+  it.each([
+    ['2026-10-01', '2026-09-27'],
+    ['2027-01-01', '2026-12-27'],
+    ['2026-03-11', '2026-03-08'],
+    ['2026-11-04', '2026-11-01'],
+  ])('weekStart of %s reaches back to %s across a month, year or DST boundary', (date, start) =>
+    expect(weekStart(date, 0)).toBe(start),
+  )
 
   it('dayLabel formats from the date parts', () => {
     const { weekday, day, full } = dayLabel('2026-10-11')
@@ -103,7 +50,7 @@ describe('week helpers', () => {
   })
 
   it('weekRange spans the first to the last date without a year in the current year', () => {
-    const range = weekRange(weekOf(new Date(2026, 9, 19), 0), '2026-10-20')
+    const range = weekRange(weekDates('2026-10-18'), '2026-10-20')
     expect(range).toMatch(/Oct/)
     expect(range).toMatch(/18/)
     expect(range).toMatch(/24/)
@@ -111,13 +58,13 @@ describe('week helpers', () => {
   })
 
   it('weekRange shows the year across a year boundary', () => {
-    const range = weekRange(weekOf(new Date(2026, 11, 31), 0), '2026-12-31')
+    const range = weekRange(weekDates('2026-12-27'), '2026-12-31')
     expect(range).toMatch(/2026/)
     expect(range).toMatch(/2027/)
   })
 
   it('weekRange shows the year for a past-year week', () => {
-    expect(weekRange(weekOf(new Date(2025, 5, 4), 0), '2026-11-06')).toMatch(/2025/)
+    expect(weekRange(weekDates('2025-06-01'), '2026-11-06')).toMatch(/2025/)
   })
 })
 
@@ -152,9 +99,9 @@ describe('parseWeek', () => {
   )
 })
 
-describe('weekFrom', () => {
+describe('weekDates', () => {
   it('runs seven days from an unaligned start', () =>
-    expect(weekFrom('2026-11-04')).toEqual([
+    expect(weekDates('2026-11-04')).toEqual([
       '2026-11-04',
       '2026-11-05',
       '2026-11-06',
@@ -165,15 +112,15 @@ describe('weekFrom', () => {
     ]))
 
   it('crosses a month boundary', () =>
-    expect(weekFrom('2026-01-29').slice(2, 4)).toEqual(['2026-01-31', '2026-02-01']))
+    expect(weekDates('2026-01-29').slice(2, 4)).toEqual(['2026-01-31', '2026-02-01']))
 
   it('crosses a year boundary', () =>
-    expect(weekFrom('2026-12-29').slice(2, 4)).toEqual(['2026-12-31', '2027-01-01']))
+    expect(weekDates('2026-12-29').slice(2, 4)).toEqual(['2026-12-31', '2027-01-01']))
 
   it('crosses DST boundaries without skipping or repeating a day', () => {
-    expect(weekFrom('2026-03-06')).toContain('2026-03-08')
-    expect(new Set(weekFrom('2026-03-06')).size).toBe(7)
-    expect(weekFrom('2026-10-30').at(-1)).toBe('2026-11-05')
+    expect(weekDates('2026-03-06')).toContain('2026-03-08')
+    expect(new Set(weekDates('2026-03-06')).size).toBe(7)
+    expect(weekDates('2026-10-30').at(-1)).toBe('2026-11-05')
   })
 })
 

@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { queryStatus } from '@/lib/data/query-status'
 import { SLOT_COLUMNS, mealPlanQuery, type Slot } from '@/lib/plan/queries'
-import { shiftWeek, weekFrom, weekdayName, type MealType } from '@/lib/plan/week'
+import { shiftWeek, weekdayName, type MealType } from '@/lib/plan/week'
 
 const FRESH = Infinity
 
@@ -23,7 +23,7 @@ export function useMealPlan(kitchenId: string, start: string) {
   const queryClient = useQueryClient()
 
   const builder = useMemo(
-    () => mealPlanQuery(supabase, kitchenId, start, weekFrom(start)[6]),
+    () => mealPlanQuery(supabase, kitchenId, start),
     [supabase, kitchenId, start],
   )
   const query = useQuery(builder, {
@@ -35,7 +35,7 @@ export function useMealPlan(kitchenId: string, start: string) {
     ;[-1, 1].forEach((n) => {
       const s = shiftWeek(start, n)
       if (s)
-        void prefetchQuery(queryClient, mealPlanQuery(supabase, kitchenId, s, weekFrom(s)[6]), {
+        void prefetchQuery(queryClient, mealPlanQuery(supabase, kitchenId, s), {
           staleTime: FRESH,
         })
     })

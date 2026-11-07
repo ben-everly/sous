@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({ search: '' }))
 
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(mocks.search) }))
 
+import { weekStart } from '@/lib/plan/week'
 import { useWeek } from './use-week'
 
 const TODAY = '2026-10-16'
@@ -24,15 +25,6 @@ describe('useWeek', () => {
     mocks.search = 'week=2026-10-14'
     const { result } = renderHook(() => useWeek(TODAY))
     expect(result.current.start).toBe('2026-10-14')
-    expect(result.current.dates).toEqual([
-      '2026-10-14',
-      '2026-10-15',
-      '2026-10-16',
-      '2026-10-17',
-      '2026-10-18',
-      '2026-10-19',
-      '2026-10-20',
-    ])
     expect(window.history.replaceState).not.toHaveBeenCalled()
   })
 
@@ -41,8 +33,7 @@ describe('useWeek', () => {
     (search) => {
       mocks.search = `x=1${search}`
       const { result } = renderHook(() => useWeek(TODAY))
-      expect(result.current.dates).toHaveLength(7)
-      expect(result.current.dates).toContain(TODAY)
+      expect(result.current.start).toBe(weekStart(TODAY))
       expect(window.history.replaceState).toHaveBeenCalledWith(
         null,
         '',

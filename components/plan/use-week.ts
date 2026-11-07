@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { parseISO } from 'date-fns'
-import { parseWeek, weekFrom, weekOf } from '@/lib/plan/week'
+import { parseWeek, weekStart } from '@/lib/plan/week'
 
 const url = (params: URLSearchParams, start: string) => {
   const next = new URLSearchParams(params)
@@ -14,7 +13,7 @@ const url = (params: URLSearchParams, start: string) => {
 export function useWeek(today: string) {
   const params = useSearchParams()
   const param = params.get('week')
-  const start = parseWeek(param) ?? weekOf(parseISO(today))[0]
+  const start = parseWeek(param) ?? weekStart(today)
 
   useEffect(() => {
     if (param !== start) window.history.replaceState(null, '', url(params, start))
@@ -22,7 +21,6 @@ export function useWeek(today: string) {
 
   return {
     start,
-    dates: weekFrom(start),
     go: (to: string) => window.history.pushState(null, '', url(params, to)),
   }
 }

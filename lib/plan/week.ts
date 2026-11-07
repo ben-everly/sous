@@ -18,13 +18,6 @@ const firstDayOfWeek = (): Day => {
   return (((l.getWeekInfo?.() ?? l.weekInfo)?.firstDay ?? 7) % 7) as Day
 }
 
-export const weekOf = (today: Date, firstDay: Day = firstDayOfWeek()) => {
-  const start = startOfWeek(today, { weekStartsOn: firstDay })
-  return Array.from({ length: 7 }, (_, i) =>
-    formatISO(addDays(start, i), { representation: 'date' }),
-  )
-}
-
 const shortWeekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' })
 const longWeekday = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
 const monthDay = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
@@ -64,7 +57,10 @@ export const parseWeek = (param: string | null) => {
   return d && isValid(d) && iso(d) === param && inRange(d) ? param : null
 }
 
-export const weekFrom = (start: string) =>
+export const weekStart = (today: string, firstDay: Day = firstDayOfWeek()) =>
+  iso(startOfWeek(parseISO(today), { weekStartsOn: firstDay }))
+
+export const weekDates = (start: string) =>
   Array.from({ length: 7 }, (_, i) => iso(addDays(parseISO(start), i)))
 
 export const shiftWeek = (start: string, weeks: number) => {
@@ -79,6 +75,6 @@ const HEADINGS = [
 ] as const
 
 export const weekHeading = (start: string, today: string, firstDay?: Day) => {
-  const base = weekOf(parseISO(today), firstDay)[0]
+  const base = weekStart(today, firstDay)
   return HEADINGS.find(([n]) => shiftWeek(base, n) === start)?.[1] ?? null
 }
