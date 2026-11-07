@@ -87,7 +87,7 @@ describe('CurrentKitchenPlanner', () => {
 
   it('plans the current kitchen', () => {
     render(<CurrentKitchenPlanner />)
-    expect(mocks.plan).toHaveBeenCalledWith('k1', expect.any(String), expect.any(String))
+    expect(mocks.plan).toHaveBeenCalledWith('k1', expect.any(String))
   })
 })
 
@@ -119,7 +119,7 @@ describe('MealPlanner', () => {
       'date',
       null,
     ])
-    expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-11', '2026-10-17')
+    expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-11')
   })
 
   it('moves today at midnight but keeps the week it opened on', () => {

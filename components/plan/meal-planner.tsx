@@ -177,7 +177,7 @@ function ScrollArrow({
 export function MealPlanner({ kitchenId }: { kitchenId: string }) {
   const today = useToday()
   const [dates] = useState(() => weekOf(parseISO(today)))
-  const plan = useMealPlan(kitchenId, dates[0], dates[6])
+  const plan = useMealPlan(kitchenId, dates[0])
   const [opened, setOpened] = useState<string[]>([])
 
   if (plan.status !== 'ready')
