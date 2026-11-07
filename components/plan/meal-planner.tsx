@@ -12,7 +12,7 @@ import { LoadError } from '@/components/load-error'
 import { currentKitchen } from '@/lib/kitchens/current-kitchen'
 import { useToday } from '@/lib/hooks/use-today'
 import { useWeek } from './use-week'
-import { MEAL_TYPES, dayLabel, weekRange, weekdayName } from '@/lib/plan/week'
+import { MEAL_TYPES, dayLabel, weekHeading, weekRange, weekdayName } from '@/lib/plan/week'
 import { cn } from '@/lib/utils'
 
 const DAY = 'bg-card ring-foreground/8 flex min-w-0 rounded-xl p-2.5 ring-1'
@@ -47,11 +47,15 @@ function Skeleton() {
 const noop = () => () => {}
 
 function Header({
+  start,
   dates,
+  today,
   note,
   children,
 }: {
+  start: string
   dates: string[]
+  today: string
   note?: ReactNode
   children: ReactNode
 }) {
@@ -60,15 +64,16 @@ function Header({
     () => true,
     () => false,
   )
-  const today = useToday()
+  const heading = mounted ? weekHeading(start, today) : null
+  const range = mounted ? weekRange(dates, today) : null
   return (
     <>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">This week</h1>
-        {/* Browser-only: the server's locale and clock can format a different range. */}
-        {mounted && (
-          <span className="text-muted-foreground text-lg">{weekRange(dates, today)}</span>
-        )}
+        {/* Browser-only: the server's locale and clock can format a different heading or range. */}
+        <h1 className="min-h-9 text-3xl font-bold tracking-tight">
+          {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
+        </h1>
+        {heading && <span className="text-muted-foreground text-lg">{range}</span>}
         {note && (
           <p className="text-muted-foreground basis-full text-sm sm:ml-auto sm:basis-auto">
             {note}
@@ -182,7 +187,7 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
 
   if (plan.status !== 'ready')
     return (
-      <Header dates={dates}>
+      <Header start={start} dates={dates} today={today}>
         <NotReady status={plan.status} message="Could not load your plan." onRetry={plan.retry} />
       </Header>
     )
@@ -194,7 +199,12 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
     setOpened((o) => (o.includes(date) ? o.filter((d) => d !== date) : [...o, date]))
 
   return (
-    <Header dates={dates} note={`${planned} of ${dates.length * MEAL_TYPES.length} meals planned`}>
+    <Header
+      start={start}
+      dates={dates}
+      today={today}
+      note={`${planned} of ${dates.length * MEAL_TYPES.length} meals planned`}
+    >
       <div className="mt-6 grid gap-2">
         {dates.map((date) => {
           const past = date < today
@@ -265,11 +275,12 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
 // Stands in for kitchen routing until there's a kitchen switcher.
 export function CurrentKitchenPlanner() {
   const { kitchens, status, retry } = useKitchens()
-  const { dates } = useWeek(useToday())
+  const today = useToday()
+  const { start, dates } = useWeek(today)
 
   if (status !== 'ready')
     return (
-      <Header dates={dates}>
+      <Header start={start} dates={dates} today={today}>
         <NotReady status={status} message="Could not load your kitchens." onRetry={retry} />
       </Header>
     )
@@ -277,7 +288,7 @@ export function CurrentKitchenPlanner() {
   const kitchen = currentKitchen(kitchens)
   if (!kitchen)
     return (
-      <Header dates={dates}>
+      <Header start={start} dates={dates} today={today}>
         <Empty className="mt-6 border">
           <EmptyDescription>Create a kitchen to start planning.</EmptyDescription>
           <EmptyContent>

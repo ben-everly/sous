@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type * as React from 'react'
+import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Slot } from '@/lib/plan/queries'
 
@@ -108,6 +109,11 @@ describe('MealPlanner', () => {
     expect(retry).toHaveBeenCalled()
   })
 
+  it('names the page in the server-rendered heading', () => {
+    const html = renderToString(<MealPlanner kitchenId="k1" />)
+    expect(html).toMatch(/<h1[^>]*>.*Meal plan.*<\/h1>/)
+  })
+
   it('renders seven day headers with today marked', () => {
     render(<MealPlanner kitchenId="k1" />)
     const heads = screen.getAllByRole('heading', { level: 2 })
@@ -128,6 +134,29 @@ describe('MealPlanner', () => {
     mocks.search = 'week=2026-10-25'
     render(<MealPlanner kitchenId="k1" />)
     expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-25')
+  })
+
+  it.each([
+    ['2026-10-11', 'This week'],
+    ['2026-10-18', 'Next week'],
+    ['2026-10-04', 'Last week'],
+  ])('headlines ?week=%s as %s with its range beside it', (week, heading) => {
+    mocks.search = `week=${week}`
+    render(<MealPlanner kitchenId="k1" />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(heading)
+    expect(screen.getByRole('heading', { level: 1 }).nextElementSibling).toHaveTextContent(/^Oct/)
+  })
+
+  it.each(['2026-10-25', '2026-10-14'])('uses the range as the h1 for ?week=%s', (week) => {
+    mocks.search = `week=${week}`
+    render(<MealPlanner kitchenId="k1" />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Oct \d+\s*[–-]/)
+  })
+
+  it('shows the year for a week outside this year', () => {
+    mocks.search = 'week=2025-12-28'
+    render(<MealPlanner kitchenId="k1" />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2025')
   })
 
   it('moves today at midnight but keeps the week it opened on', () => {
