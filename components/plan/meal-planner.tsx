@@ -251,8 +251,8 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
     >
       <div className="mt-6 grid gap-2">
         {dates.map((date) => {
-          const past = date < today
-          if (past && !opened.includes(date)) {
+          const foldable = date < today && dates.includes(today)
+          if (foldable && !opened.includes(date)) {
             const names = MEAL_TYPES.flatMap((meal) =>
               plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
             )
@@ -277,8 +277,8 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
             )
           }
           return (
-            <section key={date} className={cn(DAY, 'relative pb-0', past && PAST)}>
-              {past && (
+            <section key={date} className={cn(DAY, 'relative pb-0', foldable && PAST)}>
+              {foldable && (
                 <Button
                   variant="ghost"
                   size="sm"

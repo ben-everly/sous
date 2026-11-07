@@ -223,7 +223,7 @@ describe('MealPlanner', () => {
     expect(screen.getByRole('button', { name: 'Add recipe to Friday dinner' })).toBeTruthy()
   })
 
-  it('collapses past days to their recipe names until shown', () => {
+  it('collapses past days in the current week until shown', () => {
     plan({
       slotsFor: (d: string, m: string) => (d === '2026-10-12' && m === 'dinner' ? [slot(1)] : []),
     })
@@ -236,6 +236,32 @@ describe('MealPlanner', () => {
     expect(screen.getByRole('button', { name: 'Add recipe to Monday dinner' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Hide Monday' }))
     expect(screen.queryByRole('button', { name: 'Add recipe to Monday dinner' })).toBeNull()
+  })
+
+  it('expands all past days in a past week with no fold buttons', () => {
+    mocks.search = 'week=2026-10-04'
+    plan({
+      slotsFor: (d: string, m: string) => (d === '2026-10-05' && m === 'dinner' ? [slot(1)] : []),
+    })
+    render(<MealPlanner kitchenId="k1" />)
+    const addButtons = screen.getAllByRole('button', { name: /^Add recipe to / })
+    expect(addButtons).toHaveLength(21)
+    expect(screen.queryByRole('button', { name: /^Show .+$/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Hide .+$/ })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Add recipe to Sunday dinner' })).toBeTruthy()
+  })
+
+  it('expands all days in a future week with no fold buttons', () => {
+    mocks.search = 'week=2026-10-25'
+    plan({
+      slotsFor: (d: string, m: string) => (d === '2026-10-26' && m === 'dinner' ? [slot(1)] : []),
+    })
+    render(<MealPlanner kitchenId="k1" />)
+    const addButtons = screen.getAllByRole('button', { name: /^Add recipe to / })
+    expect(addButtons).toHaveLength(21)
+    expect(screen.queryByRole('button', { name: /^Show .+$/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Hide .+$/ })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Add recipe to Monday dinner' })).toBeTruthy()
   })
 
   it('counts planned meals, not recipes', () => {
