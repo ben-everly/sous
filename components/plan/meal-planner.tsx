@@ -60,12 +60,15 @@ function Header({
     () => true,
     () => false,
   )
+  const today = useToday()
   return (
     <>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-3xl font-bold tracking-tight">This week</h1>
         {/* Browser-only: the server's locale and clock can format a different range. */}
-        {mounted && <span className="text-muted-foreground text-lg">{weekRange(dates)}</span>}
+        {mounted && (
+          <span className="text-muted-foreground text-lg">{weekRange(dates, today)}</span>
+        )}
         {note && (
           <p className="text-muted-foreground basis-full text-sm sm:ml-auto sm:basis-auto">
             {note}

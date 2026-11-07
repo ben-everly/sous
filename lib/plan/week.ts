@@ -39,8 +39,19 @@ export const dayLabel = (date: string) => {
   return { weekday: shortWeekday.format(d), day: d.getDate(), full: fullDay.format(d) }
 }
 
-export const weekRange = (dates: string[]) =>
-  monthDay.formatRange(parseISO(dates[0]), parseISO(dates.at(-1)!))
+const monthDayYear = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
+
+export const weekRange = (dates: string[], today: string) => {
+  const [a, b] = [dates[0], dates.at(-1)!].map((d) => parseISO(d))
+  const year = parseISO(today).getFullYear()
+  return (
+    a.getFullYear() === year && b.getFullYear() === year ? monthDay : monthDayYear
+  ).formatRange(a, b)
+}
 
 export const weekdayName = (date: string) => longWeekday.format(parseISO(date))
 
@@ -59,4 +70,15 @@ export const weekFrom = (start: string) =>
 export const shiftWeek = (start: string, weeks: number) => {
   const d = addDays(parseISO(start), weeks * 7)
   return inRange(d) ? iso(d) : null
+}
+
+const HEADINGS = [
+  [0, 'This week'],
+  [1, 'Next week'],
+  [-1, 'Last week'],
+] as const
+
+export const weekHeading = (start: string, today: string, firstDay?: Day) => {
+  const base = weekOf(parseISO(today), firstDay)[0]
+  return HEADINGS.find(([n]) => shiftWeek(base, n) === start)?.[1] ?? null
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { dayLabel, parseWeek, shiftWeek, weekFrom, weekOf, weekRange } from './week'
+import { dayLabel, parseWeek, shiftWeek, weekFrom, weekHeading, weekOf, weekRange } from './week'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -102,11 +102,41 @@ describe('week helpers', () => {
     expect(full).toMatch(/October/)
   })
 
-  it('weekRange spans the first to the last date', () => {
-    const range = weekRange(weekOf(new Date(2026, 9, 19), 0))
+  it('weekRange spans the first to the last date without a year in the current year', () => {
+    const range = weekRange(weekOf(new Date(2026, 9, 19), 0), '2026-10-20')
     expect(range).toMatch(/Oct/)
     expect(range).toMatch(/18/)
     expect(range).toMatch(/24/)
+    expect(range).not.toMatch(/2026/)
+  })
+
+  it('weekRange shows the year across a year boundary', () => {
+    const range = weekRange(weekOf(new Date(2026, 11, 31), 0), '2026-12-31')
+    expect(range).toMatch(/2026/)
+    expect(range).toMatch(/2027/)
+  })
+
+  it('weekRange shows the year for a past-year week', () => {
+    expect(weekRange(weekOf(new Date(2025, 5, 4), 0), '2026-11-06')).toMatch(/2025/)
+  })
+})
+
+describe('weekHeading', () => {
+  it.each([
+    [0, '2026-11-01'],
+    [1, '2026-11-02'],
+  ] as const)('labels This/Next/Last week with firstDay %i', (firstDay, start) => {
+    expect(weekHeading(start, '2026-11-04', firstDay)).toBe('This week')
+    expect(weekHeading(shiftWeek(start, 1)!, '2026-11-04', firstDay)).toBe('Next week')
+    expect(weekHeading(shiftWeek(start, -1)!, '2026-11-04', firstDay)).toBe('Last week')
+  })
+
+  it('is null for a misaligned week containing today', () =>
+    expect(weekHeading('2026-11-04', '2026-11-04', 0)).toBeNull())
+
+  it('is null two weeks away', () => {
+    expect(weekHeading('2026-11-15', '2026-11-04', 0)).toBeNull()
+    expect(weekHeading('2026-10-18', '2026-11-04', 0)).toBeNull()
   })
 })
 
