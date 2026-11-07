@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import Link from 'next/link'
+import { parseISO } from 'date-fns'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
 import { CARD, MealCell } from './meal-cell'
 import { useMealPlan } from './use-meal-plan'
@@ -12,7 +13,15 @@ import { LoadError } from '@/components/load-error'
 import { currentKitchen } from '@/lib/kitchens/current-kitchen'
 import { useToday } from '@/lib/hooks/use-today'
 import { useWeek } from './use-week'
-import { MEAL_TYPES, dayLabel, weekHeading, weekRange, weekdayName } from '@/lib/plan/week'
+import {
+  MEAL_TYPES,
+  dayLabel,
+  shiftWeek,
+  weekHeading,
+  weekOf,
+  weekRange,
+  weekdayName,
+} from '@/lib/plan/week'
 import { cn } from '@/lib/utils'
 
 const DAY = 'bg-card ring-foreground/8 flex min-w-0 rounded-xl p-2.5 ring-1'
@@ -50,12 +59,14 @@ function Header({
   start,
   dates,
   today,
+  go,
   note,
   children,
 }: {
   start: string
   dates: string[]
   today: string
+  go: (start: string) => void
   note?: ReactNode
   children: ReactNode
 }) {
@@ -66,6 +77,8 @@ function Header({
   )
   const heading = mounted ? weekHeading(start, today) : null
   const range = mounted ? weekRange(dates, today) : null
+  const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
+  const current = weekOf(parseISO(today))[0]
   return (
     <>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -74,11 +87,41 @@ function Header({
           {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
         </h1>
         {heading && <span className="text-muted-foreground text-lg">{range}</span>}
-        {note && (
-          <p className="text-muted-foreground basis-full text-sm sm:ml-auto sm:basis-auto">
-            {note}
-          </p>
-        )}
+        <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
+          {mounted && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="size-8 p-0"
+                aria-label="Previous week"
+                disabled={!prev}
+                onClick={() => prev && go(prev)}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={current === start}
+                onClick={() => go(current)}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="size-8 p-0"
+                aria-label="Next week"
+                disabled={!next}
+                onClick={() => next && go(next)}
+              >
+                <ChevronRight />
+              </Button>
+            </>
+          )}
+        </nav>
+        {note && <p className="text-muted-foreground basis-full text-sm">{note}</p>}
       </div>
       {children}
     </>
@@ -181,13 +224,13 @@ function ScrollArrow({
 
 export function MealPlanner({ kitchenId }: { kitchenId: string }) {
   const today = useToday()
-  const { start, dates } = useWeek(today)
+  const { start, dates, go } = useWeek(today)
   const plan = useMealPlan(kitchenId, start)
   const [opened, setOpened] = useState<string[]>([])
 
   if (plan.status !== 'ready')
     return (
-      <Header start={start} dates={dates} today={today}>
+      <Header start={start} dates={dates} today={today} go={go}>
         <NotReady status={plan.status} message="Could not load your plan." onRetry={plan.retry} />
       </Header>
     )
@@ -203,6 +246,7 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
       start={start}
       dates={dates}
       today={today}
+      go={go}
       note={`${planned} of ${dates.length * MEAL_TYPES.length} meals planned`}
     >
       <div className="mt-6 grid gap-2">
@@ -276,11 +320,11 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
 export function CurrentKitchenPlanner() {
   const { kitchens, status, retry } = useKitchens()
   const today = useToday()
-  const { start, dates } = useWeek(today)
+  const { start, dates, go } = useWeek(today)
 
   if (status !== 'ready')
     return (
-      <Header start={start} dates={dates} today={today}>
+      <Header start={start} dates={dates} today={today} go={go}>
         <NotReady status={status} message="Could not load your kitchens." onRetry={retry} />
       </Header>
     )
@@ -288,7 +332,7 @@ export function CurrentKitchenPlanner() {
   const kitchen = currentKitchen(kitchens)
   if (!kitchen)
     return (
-      <Header start={start} dates={dates} today={today}>
+      <Header start={start} dates={dates} today={today} go={go}>
         <Empty className="mt-6 border">
           <EmptyDescription>Create a kitchen to start planning.</EmptyDescription>
           <EmptyContent>

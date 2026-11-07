@@ -159,6 +159,52 @@ describe('MealPlanner', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('2025')
   })
 
+  describe('week navigation', () => {
+    const push = vi.fn()
+    beforeEach(() => void vi.spyOn(window.history, 'pushState').mockImplementation(push))
+    afterEach(() => void vi.restoreAllMocks())
+    const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
+
+    it.each([
+      ['Next week', '2026-10-28'],
+      ['Previous week', '2026-10-14'],
+    ])('%s pushes %s from a misaligned start', (name, week) => {
+      mocks.search = 'week=2026-10-21'
+      render(<MealPlanner kitchenId="k1" />)
+      click(name)
+      expect(push).toHaveBeenCalledWith(null, '', `?week=${week}`)
+    })
+
+    it('Today pushes the aligned start and is disabled on it', () => {
+      mocks.search = 'week=2026-10-21'
+      render(<MealPlanner kitchenId="k1" />)
+      click('Today')
+      expect(push).toHaveBeenCalledWith(null, '', '?week=2026-10-11')
+      cleanup()
+      mocks.search = 'week=2026-10-11'
+      render(<MealPlanner kitchenId="k1" />)
+      expect(screen.getByRole('button', { name: 'Today' })).toBeDisabled()
+    })
+
+    it('disables Previous at 0001-01-01 and Next at 9999-12-25', () => {
+      mocks.search = 'week=0001-01-01'
+      render(<MealPlanner kitchenId="k1" />)
+      expect(screen.getByRole('button', { name: 'Previous week' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Next week' })).toBeEnabled()
+      cleanup()
+      mocks.search = 'week=9999-12-25'
+      render(<MealPlanner kitchenId="k1" />)
+      expect(screen.getByRole('button', { name: 'Next week' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Previous week' })).toBeEnabled()
+    })
+
+    it('shows the nav while loading', () => {
+      plan({ status: 'loading' })
+      render(<MealPlanner kitchenId="k1" />)
+      expect(screen.getByRole('button', { name: 'Next week' })).toBeEnabled()
+    })
+  })
+
   it('moves today at midnight but keeps the week it opened on', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 9, 17, 23, 59, 30))
