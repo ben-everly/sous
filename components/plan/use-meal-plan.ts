@@ -26,11 +26,12 @@ export function useMealPlan(kitchenId: string, start: string) {
     () => mealPlanQuery(supabase, kitchenId, start),
     [supabase, kitchenId, start],
   )
+  const [loaded, setLoaded] = useState(kitchenId)
   const query = useQuery(builder, {
     staleTime: FRESH,
-    placeholderData: (prev) =>
-      prev?.data?.every((s) => s.kitchen_id === kitchenId) ? prev : undefined,
+    placeholderData: (prev) => (loaded === kitchenId ? prev : undefined),
   })
+  if (query.isSuccess && loaded !== kitchenId) setLoaded(kitchenId)
   useEffect(() => {
     ;[-1, 1].forEach((n) => {
       const s = shiftWeek(start, n)

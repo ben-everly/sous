@@ -110,15 +110,18 @@ describe('useMealPlan', () => {
     expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([])
   })
 
-  it("loads afresh instead of showing another kitchen's plan", async () => {
-    mockSupabase.results.select = { data: [slot('2026-10-12', 'dinner')], error: null }
+  it.each([
+    ['planned week', () => [slot('2026-10-12', 'dinner')]],
+    ['empty week', () => []],
+  ])("loads afresh instead of showing another kitchen's %s", async (_, rows) => {
+    mockSupabase.results.select = { data: rows(), error: null }
     const hook = await render()
     mockSupabase.requestSpy.mockImplementation(() => new Promise<void>(() => {}))
 
     hook.rerender({ kitchenId: 'k2', start: FROM })
 
     expect(hook.result.current.status).toBe('loading')
-    expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([])
+    expect(hook.result.current.stale).toBe(false)
   })
 
   it.each([

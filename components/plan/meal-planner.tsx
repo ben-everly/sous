@@ -1,15 +1,12 @@
 'use client'
 
 import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import Link from 'next/link'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2 } from 'lucide-react'
 import { CARD, MealCell } from './meal-cell'
 import { useMealPlan } from './use-meal-plan'
-import { useKitchens } from '@/components/kitchens/use-kitchens'
+import { useCurrentKitchen } from '@/components/kitchens/current-kitchen'
 import { Button } from '@/components/ui/button'
-import { Empty, EmptyContent, EmptyDescription } from '@/components/ui/empty'
 import { LoadError } from '@/components/load-error'
-import { currentKitchen } from '@/lib/kitchens/current-kitchen'
 import { useToday } from '@/lib/hooks/use-today'
 import { useWeek } from './use-week'
 import {
@@ -239,10 +236,10 @@ function ScrollArrow({
   )
 }
 
-export function MealPlanner({ kitchenId }: { kitchenId: string }) {
+export function MealPlanner() {
   const today = useToday()
   const { start, go } = useWeek(today)
-  const plan = useMealPlan(kitchenId, start)
+  const plan = useMealPlan(useCurrentKitchen(), start)
   const [opened, setOpened] = useState<string[]>([])
   const [shown, setShown] = useState(start)
   if (!plan.stale && shown !== start) setShown(start)
@@ -338,35 +335,4 @@ export function MealPlanner({ kitchenId }: { kitchenId: string }) {
       </div>
     </Header>
   )
-}
-
-// Stands in for kitchen routing until there's a kitchen switcher.
-export function CurrentKitchenPlanner() {
-  const { kitchens, status, retry } = useKitchens()
-  const today = useToday()
-  const { start, go } = useWeek(today)
-
-  if (status !== 'ready')
-    return (
-      <Header start={start} today={today} go={go}>
-        <NotReady status={status} message="Could not load your kitchens." onRetry={retry} />
-      </Header>
-    )
-
-  const kitchen = currentKitchen(kitchens)
-  if (!kitchen)
-    return (
-      <Header start={start} today={today} go={go}>
-        <Empty className="mt-6 border">
-          <EmptyDescription>Create a kitchen to start planning.</EmptyDescription>
-          <EmptyContent>
-            <Button asChild>
-              <Link href="/settings/kitchens">Go to kitchens</Link>
-            </Button>
-          </EmptyContent>
-        </Empty>
-      </Header>
-    )
-
-  return <MealPlanner kitchenId={kitchen.id} />
 }

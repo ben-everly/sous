@@ -13,6 +13,26 @@ function Empty({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
+function EmptyHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="empty-header"
+      className={cn('flex max-w-sm flex-col items-center gap-2 text-center', className)}
+      {...props}
+    />
+  )
+}
+
+function EmptyTitle({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="empty-title"
+      className={cn('text-lg font-medium tracking-tight', className)}
+      {...props}
+    />
+  )
+}
+
 function EmptyDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <div
@@ -39,4 +59,4 @@ function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-export { Empty, EmptyDescription, EmptyContent }
+export { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent }
