@@ -1,12 +1,13 @@
 'use client'
 
-import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2 } from 'lucide-react'
 import { CARD, MealCell } from './meal-cell'
 import { useMealPlan } from './use-meal-plan'
 import { useCurrentKitchen } from '@/components/kitchens/current-kitchen'
 import { Button } from '@/components/ui/button'
 import { LoadError } from '@/components/load-error'
+import { useIsClient } from '@/lib/hooks/use-is-client'
 import { useToday } from '@/lib/hooks/use-today'
 import { useWeek } from './use-week'
 import {
@@ -50,8 +51,6 @@ function Skeleton() {
   )
 }
 
-const noop = () => () => {}
-
 function Header({
   start,
   today,
@@ -63,20 +62,16 @@ function Header({
   go: (start: string) => void
   busy?: boolean
 }) {
-  const mounted = useSyncExternalStore(
-    noop,
-    () => true,
-    () => false,
-  )
-  const heading = mounted ? weekHeading(start, today) : null
-  const range = mounted ? weekRange(weekDates(start), today) : null
+  const isClient = useIsClient()
+  const heading = isClient ? weekHeading(start, today) : null
+  const range = isClient ? weekRange(weekDates(start), today) : null
   const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
   const current = weekStart(today)
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       {/* Browser-only: the server's locale and clock can format a different heading or range. */}
       <h1 className="min-h-9 text-3xl font-bold tracking-tight">
-        {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
+        {isClient ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
       </h1>
       {heading && <span className="text-muted-foreground text-lg">{range}</span>}
       {busy && (
@@ -87,7 +82,7 @@ function Header({
         {busy && 'Loading week'}
       </span>
       <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
-        {mounted && (
+        {isClient && (
           <>
             <Button
               variant="outline"
