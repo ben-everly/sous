@@ -58,14 +58,12 @@ function Header({
   go,
   note,
   busy,
-  children,
 }: {
   start: string
   today: string
   go: (start: string) => void
   note?: ReactNode
   busy?: boolean
-  children: ReactNode
 }) {
   const mounted = useSyncExternalStore(
     noop,
@@ -77,81 +75,66 @@ function Header({
   const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
   const current = weekStart(today)
   return (
-    <>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        {/* Browser-only: the server's locale and clock can format a different heading or range. */}
-        <h1 className="min-h-9 text-3xl font-bold tracking-tight">
-          {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
-        </h1>
-        {heading && <span className="text-muted-foreground text-lg">{range}</span>}
-        {busy && (
-          <Loader2 aria-hidden className="text-muted-foreground size-5 animate-spin self-center" />
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      {/* Browser-only: the server's locale and clock can format a different heading or range. */}
+      <h1 className="min-h-9 text-3xl font-bold tracking-tight">
+        {mounted ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
+      </h1>
+      {heading && <span className="text-muted-foreground text-lg">{range}</span>}
+      {busy && (
+        <Loader2 aria-hidden className="text-muted-foreground size-5 animate-spin self-center" />
+      )}
+      {/* Mounted before it's needed: a live region inserted with its text often goes unannounced. */}
+      <span role="status" className="sr-only">
+        {busy && 'Loading week'}
+      </span>
+      <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
+        {mounted && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="size-8 p-0"
+              aria-label="Previous week"
+              disabled={!prev}
+              onClick={() => prev && go(prev)}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={current === start}
+              onClick={() => go(current)}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="size-8 p-0"
+              aria-label="Next week"
+              disabled={!next}
+              onClick={() => next && go(next)}
+            >
+              <ChevronRight />
+            </Button>
+          </>
         )}
-        {/* Mounted before it's needed: a live region inserted with its text often goes unannounced. */}
-        <span role="status" className="sr-only">
-          {busy && 'Loading week'}
-        </span>
-        <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
-          {mounted && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="size-8 p-0"
-                aria-label="Previous week"
-                disabled={!prev}
-                onClick={() => prev && go(prev)}
-              >
-                <ChevronLeft />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={current === start}
-                onClick={() => go(current)}
-              >
-                Today
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="size-8 p-0"
-                aria-label="Next week"
-                disabled={!next}
-                onClick={() => next && go(next)}
-              >
-                <ChevronRight />
-              </Button>
-            </>
+      </nav>
+      {note && (
+        <p
+          aria-hidden={busy || undefined}
+          className={cn(
+            'text-muted-foreground basis-full text-sm transition-opacity',
+            busy && 'opacity-50',
           )}
-        </nav>
-        {note && (
-          <p
-            aria-hidden={busy || undefined}
-            className={cn(
-              'text-muted-foreground basis-full text-sm transition-opacity',
-              busy && 'opacity-50',
-            )}
-          >
-            {note}
-          </p>
-        )}
-      </div>
-      {children}
-    </>
+        >
+          {note}
+        </p>
+      )}
+    </div>
   )
-}
-
-function NotReady({
-  status,
-  message,
-  onRetry,
-}: {
-  status: 'loading' | 'error'
-  message: string
-  onRetry: () => void
-}) {
-  return status === 'loading' ? <Skeleton /> : <LoadError message={message} onRetry={onRetry} />
 }
 
 function DateLabel({ date, isToday, row }: { date: string; isToday?: boolean; row?: boolean }) {
@@ -242,13 +225,6 @@ export function MealPlanner() {
   const plan = useMealPlan(useCurrentKitchen(), start)
   const [opened, setOpened] = useState<string[]>([])
 
-  if (plan.status !== 'ready')
-    return (
-      <Header start={start} today={today} go={go}>
-        <NotReady status={plan.status} message="Could not load your plan." onRetry={plan.retry} />
-      </Header>
-    )
-
   const shownDates = weekDates(plan.week)
   const planned = shownDates.flatMap((date) =>
     MEAL_TYPES.filter((meal) => plan.slotsFor(date, meal).length),
@@ -257,80 +233,90 @@ export function MealPlanner() {
     setOpened((o) => (o.includes(date) ? o.filter((d) => d !== date) : [...o, date]))
 
   return (
-    <Header
-      start={start}
-      today={today}
-      go={go}
-      note={`${planned} of ${shownDates.length * MEAL_TYPES.length} meals planned`}
-      busy={plan.stale}
-    >
-      <div
-        inert={plan.stale}
-        aria-busy={plan.stale}
-        className={cn('mt-6 grid gap-2 transition-opacity', plan.stale && 'opacity-50')}
-      >
-        {shownDates.map((date) => {
-          const foldable = date < today && shownDates.includes(today)
-          if (foldable && !opened.includes(date)) {
-            const names = MEAL_TYPES.flatMap((meal) =>
-              plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
-            )
-            return (
-              <section
-                key={date}
-                className={cn(DAY, PAST, 'hover:ring-foreground/20 relative items-center gap-4')}
-              >
-                <DateLabel date={date} row />
-                {/* Its ::after stretches over the row, so the date expands it too. */}
-                <button
-                  type="button"
-                  aria-expanded={false}
-                  aria-label={`Show ${weekdayName(date)}`}
-                  onClick={() => toggle(date)}
-                  className="text-muted-foreground min-w-0 flex-1 truncate pr-6 text-left text-sm after:absolute after:inset-0 after:rounded-xl"
+    <>
+      <Header
+        start={start}
+        today={today}
+        go={go}
+        note={
+          plan.status === 'ready' &&
+          `${planned} of ${shownDates.length * MEAL_TYPES.length} meals planned`
+        }
+        busy={plan.stale}
+      />
+      {plan.status === 'loading' && <Skeleton />}
+      {plan.status === 'error' && (
+        <LoadError message="Could not load your plan." onRetry={plan.retry} />
+      )}
+      {plan.status === 'ready' && (
+        <div
+          inert={plan.stale}
+          aria-busy={plan.stale}
+          className={cn('mt-6 grid gap-2 transition-opacity', plan.stale && 'opacity-50')}
+        >
+          {shownDates.map((date) => {
+            const foldable = date < today && shownDates.includes(today)
+            if (foldable && !opened.includes(date)) {
+              const names = MEAL_TYPES.flatMap((meal) =>
+                plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
+              )
+              return (
+                <section
+                  key={date}
+                  className={cn(DAY, PAST, 'hover:ring-foreground/20 relative items-center gap-4')}
                 >
-                  {names.length ? names.join(', ') : 'Nothing planned'}
-                  <ChevronDown className={cn(TOGGLE, 'p-1')} />
-                </button>
+                  <DateLabel date={date} row />
+                  {/* Its ::after stretches over the row, so the date expands it too. */}
+                  <button
+                    type="button"
+                    aria-expanded={false}
+                    aria-label={`Show ${weekdayName(date)}`}
+                    onClick={() => toggle(date)}
+                    className="text-muted-foreground min-w-0 flex-1 truncate pr-6 text-left text-sm after:absolute after:inset-0 after:rounded-xl"
+                  >
+                    {names.length ? names.join(', ') : 'Nothing planned'}
+                    <ChevronDown className={cn(TOGGLE, 'p-1')} />
+                  </button>
+                </section>
+              )
+            }
+            return (
+              <section key={date} className={cn(DAY, 'relative pb-0', foldable && PAST)}>
+                {foldable && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded
+                    aria-label={`Hide ${weekdayName(date)}`}
+                    onClick={() => toggle(date)}
+                    className={cn(
+                      TOGGLE,
+                      'text-muted-foreground z-20 bg-inherit px-0 after:absolute after:-inset-x-1 after:-top-1 after:bottom-0',
+                    )}
+                  >
+                    <ChevronUp />
+                  </Button>
+                )}
+                <Strip>
+                  <div className="z-10 flex w-7 shrink-0 snap-start flex-col items-start justify-center bg-inherit md:sticky md:left-0 md:w-16.5 md:pl-2.5">
+                    <DateLabel date={date} isToday={date === today} />
+                  </div>
+                  {MEAL_TYPES.map((meal) => (
+                    <MealCell
+                      key={meal}
+                      date={date}
+                      mealType={meal}
+                      slots={plan.slotsFor(date, meal)}
+                      onAdd={(recipeId) => void plan.add(date, meal, recipeId)}
+                      onRemove={(slot) => void plan.remove(slot)}
+                    />
+                  ))}
+                </Strip>
               </section>
             )
-          }
-          return (
-            <section key={date} className={cn(DAY, 'relative pb-0', foldable && PAST)}>
-              {foldable && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-expanded
-                  aria-label={`Hide ${weekdayName(date)}`}
-                  onClick={() => toggle(date)}
-                  className={cn(
-                    TOGGLE,
-                    'text-muted-foreground z-20 bg-inherit px-0 after:absolute after:-inset-x-1 after:-top-1 after:bottom-0',
-                  )}
-                >
-                  <ChevronUp />
-                </Button>
-              )}
-              <Strip>
-                <div className="z-10 flex w-7 shrink-0 snap-start flex-col items-start justify-center bg-inherit md:sticky md:left-0 md:w-16.5 md:pl-2.5">
-                  <DateLabel date={date} isToday={date === today} />
-                </div>
-                {MEAL_TYPES.map((meal) => (
-                  <MealCell
-                    key={meal}
-                    date={date}
-                    mealType={meal}
-                    slots={plan.slotsFor(date, meal)}
-                    onAdd={(recipeId) => void plan.add(date, meal, recipeId)}
-                    onRemove={(slot) => void plan.remove(slot)}
-                  />
-                ))}
-              </Strip>
-            </section>
-          )
-        })}
-      </div>
-    </Header>
+          })}
+        </div>
+      )}
+    </>
   )
 }
