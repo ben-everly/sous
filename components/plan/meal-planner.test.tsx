@@ -193,16 +193,6 @@ describe('MealPlanner', () => {
       expect(grid).toContainElement(screen.getByRole('button', { name: 'Show Monday' }))
     })
 
-    it("hides the previous week's count from assistive tech and dims it", () => {
-      const { rerender } = render(<MealPlanner />)
-      mocks.search = 'week=2026-10-18'
-      plan({ stale: true, week: '2026-10-11', slotsFor: old })
-      rerender(<MealPlanner />)
-      const note = screen.getByText('1 of 21 meals planned')
-      expect(note).toHaveAttribute('aria-hidden', 'true')
-      expect(note).toHaveClass('opacity-50')
-    })
-
     it('shows the new week and empties the status once fresh', () => {
       const { container, rerender } = render(<MealPlanner />)
       mocks.search = 'week=2026-10-18'
@@ -274,15 +264,6 @@ describe('MealPlanner', () => {
     expect(screen.queryByRole('button', { name: /^Show .+$/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^Hide .+$/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Add recipe to Monday dinner' })).toBeTruthy()
-  })
-
-  it('counts planned meals, not recipes', () => {
-    plan({
-      slotsFor: (d: string, m: string) =>
-        d === '2026-10-16' && m === 'dinner' ? [slot(1), slot(2)] : [],
-    })
-    render(<MealPlanner />)
-    expect(screen.getByText('1 of 21 meals planned')).toBeTruthy()
   })
 
   it.each([

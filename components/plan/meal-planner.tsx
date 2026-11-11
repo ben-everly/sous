@@ -56,13 +56,11 @@ function Header({
   start,
   today,
   go,
-  note,
   busy,
 }: {
   start: string
   today: string
   go: (start: string) => void
-  note?: ReactNode
   busy?: boolean
 }) {
   const mounted = useSyncExternalStore(
@@ -122,17 +120,6 @@ function Header({
           </>
         )}
       </nav>
-      {note && (
-        <p
-          aria-hidden={busy || undefined}
-          className={cn(
-            'text-muted-foreground basis-full text-sm transition-opacity',
-            busy && 'opacity-50',
-          )}
-        >
-          {note}
-        </p>
-      )}
     </div>
   )
 }
@@ -226,24 +213,12 @@ export function MealPlanner() {
   const [opened, setOpened] = useState<string[]>([])
 
   const shownDates = weekDates(plan.week)
-  const planned = shownDates.flatMap((date) =>
-    MEAL_TYPES.filter((meal) => plan.slotsFor(date, meal).length),
-  ).length
   const toggle = (date: string) =>
     setOpened((o) => (o.includes(date) ? o.filter((d) => d !== date) : [...o, date]))
 
   return (
     <>
-      <Header
-        start={start}
-        today={today}
-        go={go}
-        note={
-          plan.status === 'ready' &&
-          `${planned} of ${shownDates.length * MEAL_TYPES.length} meals planned`
-        }
-        busy={plan.stale}
-      />
+      <Header start={start} today={today} go={go} busy={plan.stale} />
       {plan.status === 'loading' && <Skeleton />}
       {plan.status === 'error' && (
         <LoadError message="Could not load your plan." onRetry={plan.retry} />
