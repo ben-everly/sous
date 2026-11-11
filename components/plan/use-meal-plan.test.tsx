@@ -101,13 +101,28 @@ describe('useMealPlan', () => {
     hook.rerender({ kitchenId: 'k1', start: '2026-10-25' })
 
     expect(hook.result.current.stale).toBe(true)
+    expect(hook.result.current.week).toBe(FROM)
     expect(hook.result.current.status).toBe('ready')
     expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([a])
     await waitFor(() => expect(release).toBeDefined())
     release?.()
     await waitFor(() => expect(hook.result.current.stale).toBe(false))
+    expect(hook.result.current.week).toBe('2026-10-25')
     expect(hook.result.current.slotsFor('2026-10-26', 'dinner')).toEqual([b])
     expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([])
+  })
+
+  it('names the week whose data is shown after a failed read', async () => {
+    const hook = await render()
+    mockSupabase.results.select = { data: null, error: { message: 'offline' } }
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-25' })
+    await waitFor(() => expect(hook.result.current.status).toBe('error'))
+    mockSupabase.requestSpy.mockImplementation(() => new Promise<void>(() => {}))
+
+    hook.rerender({ kitchenId: 'k1', start: '2026-11-01' })
+
+    expect(hook.result.current.stale).toBe(true)
+    expect(hook.result.current.week).toBe(FROM)
   })
 
   it.each([

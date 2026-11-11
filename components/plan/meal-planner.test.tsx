@@ -28,7 +28,8 @@ vi.mock('./recipe-picker', () => ({
 import { MealPlanner } from './meal-planner'
 
 const plan = (over = {}) =>
-  mocks.plan.mockReturnValue({
+  mocks.plan.mockImplementation((_: string, start: string) => ({
+    week: start,
     status: 'ready',
     stale: false,
     retry: vi.fn(),
@@ -36,7 +37,7 @@ const plan = (over = {}) =>
     add: vi.fn(),
     remove: vi.fn(),
     ...over,
-  })
+  }))
 
 const slot = (i: number): Slot => ({
   id: `s${i}`,
@@ -179,7 +180,7 @@ describe('MealPlanner', () => {
       const status = screen.getByRole('status')
       expect(status).toBeEmptyDOMElement()
       mocks.search = 'week=2026-10-18'
-      plan({ stale: true, slotsFor: old })
+      plan({ stale: true, week: '2026-10-11', slotsFor: old })
       rerender(<MealPlanner />)
       expect(mocks.plan).toHaveBeenCalledWith('k1', '2026-10-18')
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Next week')
@@ -195,7 +196,7 @@ describe('MealPlanner', () => {
     it("hides the previous week's count from assistive tech and dims it", () => {
       const { rerender } = render(<MealPlanner />)
       mocks.search = 'week=2026-10-18'
-      plan({ stale: true, slotsFor: old })
+      plan({ stale: true, week: '2026-10-11', slotsFor: old })
       rerender(<MealPlanner />)
       const note = screen.getByText('1 of 21 meals planned')
       expect(note).toHaveAttribute('aria-hidden', 'true')
@@ -205,7 +206,7 @@ describe('MealPlanner', () => {
     it('shows the new week and empties the status once fresh', () => {
       const { container, rerender } = render(<MealPlanner />)
       mocks.search = 'week=2026-10-18'
-      plan({ stale: true, slotsFor: old })
+      plan({ stale: true, week: '2026-10-11', slotsFor: old })
       rerender(<MealPlanner />)
       plan({ stale: false })
       rerender(<MealPlanner />)

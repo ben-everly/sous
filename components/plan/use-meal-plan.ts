@@ -26,12 +26,14 @@ export function useMealPlan(kitchenId: string, start: string) {
     () => mealPlanQuery(supabase, kitchenId, start),
     [supabase, kitchenId, start],
   )
-  const [loaded, setLoaded] = useState(kitchenId)
+  const [shown, setShown] = useState({ kitchenId, week: start })
   const query = useQuery(builder, {
     staleTime: FRESH,
-    placeholderData: (prev) => (loaded === kitchenId ? prev : undefined),
+    placeholderData: (prev) => (shown.kitchenId === kitchenId ? prev : undefined),
   })
-  if (query.isSuccess && loaded !== kitchenId) setLoaded(kitchenId)
+  const landed = query.data !== undefined && !query.isPlaceholderData
+  const behind = shown.kitchenId !== kitchenId || shown.week !== start
+  if (landed && behind) setShown({ kitchenId, week: start })
   useEffect(() => {
     ;[-1, 1].forEach((n) => {
       const s = shiftWeek(start, n)
@@ -90,6 +92,7 @@ export function useMealPlan(kitchenId: string, start: string) {
 
   return {
     status: queryStatus(query),
+    week: query.isPlaceholderData ? shown.week : start,
     stale: query.isPlaceholderData,
     retry: () => void query.refetch(),
     slotsFor: (date: string, mealType: MealType) =>

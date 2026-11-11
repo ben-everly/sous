@@ -241,8 +241,6 @@ export function MealPlanner() {
   const { start, go } = useWeek(today)
   const plan = useMealPlan(useCurrentKitchen(), start)
   const [opened, setOpened] = useState<string[]>([])
-  const [shown, setShown] = useState(start)
-  if (!plan.stale && shown !== start) setShown(start)
 
   if (plan.status !== 'ready')
     return (
@@ -251,7 +249,7 @@ export function MealPlanner() {
       </Header>
     )
 
-  const shownDates = weekDates(shown)
+  const shownDates = weekDates(plan.week)
   const planned = shownDates.flatMap((date) =>
     MEAL_TYPES.filter((meal) => plan.slotsFor(date, meal).length),
   ).length
