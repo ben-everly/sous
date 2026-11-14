@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { formatISO } from 'date-fns'
 
-export function useToday() {
-  const [today, setToday] = useState(() => formatISO(new Date(), { representation: 'date' }))
-  useEffect(() => {
-    const check = () => setToday(formatISO(new Date(), { representation: 'date' }))
-    const id = setInterval(check, 60_000)
-    document.addEventListener('visibilitychange', check)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', check)
-    }
-  }, [])
-  return today
+const snapshot = () => formatISO(new Date(), { representation: 'date' })
+
+function subscribe(onChange: () => void) {
+  const id = setInterval(onChange, 60_000)
+  document.addEventListener('visibilitychange', onChange)
+  return () => {
+    clearInterval(id)
+    document.removeEventListener('visibilitychange', onChange)
+  }
 }
+
+export const useToday = (): string | null => useSyncExternalStore(subscribe, snapshot, () => null)

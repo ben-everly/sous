@@ -79,6 +79,7 @@ describe('MealPlanner', () => {
   it('names the page in the server-rendered heading', () => {
     const html = renderToString(<MealPlanner />)
     expect(html).toMatch(/<h1[^>]*>.*Meal plan.*<\/h1>/)
+    expect(html).not.toContain('<h2')
   })
 
   it('renders seven day headers with today marked', () => {

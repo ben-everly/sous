@@ -7,7 +7,6 @@ import { useMealPlan } from './use-meal-plan'
 import { useCurrentKitchen } from '@/components/kitchens/current-kitchen'
 import { Button } from '@/components/ui/button'
 import { LoadError } from '@/components/load-error'
-import { useIsClient } from '@/lib/hooks/use-is-client'
 import { useToday } from '@/lib/hooks/use-today'
 import { useWeek } from './use-week'
 import {
@@ -62,17 +61,13 @@ function Header({
   go: (start: string) => void
   busy?: boolean
 }) {
-  const isClient = useIsClient()
-  const heading = isClient ? weekHeading(start, today) : null
-  const range = isClient ? weekRange(weekDates(start), today) : null
+  const heading = weekHeading(start, today)
+  const range = weekRange(weekDates(start), today)
   const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
   const current = weekStart(today)
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      {/* Browser-only: the server's locale and clock can format a different heading or range. */}
-      <h1 className="min-h-9 text-3xl font-bold tracking-tight">
-        {isClient ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
-      </h1>
+      <h1 className="min-h-9 text-3xl font-bold tracking-tight">{heading ?? range}</h1>
       {heading && <span className="text-muted-foreground text-lg">{range}</span>}
       {busy && (
         <Loader2 aria-hidden className="text-muted-foreground size-5 animate-spin self-center" />
@@ -82,38 +77,34 @@ function Header({
         {busy && 'Loading week'}
       </span>
       <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
-        {isClient && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="size-8 p-0"
-              aria-label="Previous week"
-              disabled={!prev}
-              onClick={() => prev && go(prev)}
-            >
-              <ChevronLeft />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={current === start}
-              onClick={() => go(current)}
-            >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="size-8 p-0"
-              aria-label="Next week"
-              disabled={!next}
-              onClick={() => next && go(next)}
-            >
-              <ChevronRight />
-            </Button>
-          </>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="size-8 p-0"
+          aria-label="Previous week"
+          disabled={!prev}
+          onClick={() => prev && go(prev)}
+        >
+          <ChevronLeft />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={current === start}
+          onClick={() => go(current)}
+        >
+          Today
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="size-8 p-0"
+          aria-label="Next week"
+          disabled={!next}
+          onClick={() => next && go(next)}
+        >
+          <ChevronRight />
+        </Button>
       </nav>
     </div>
   )
@@ -203,6 +194,16 @@ function ScrollArrow({
 
 export function MealPlanner() {
   const today = useToday()
+  return today === null ? (
+    <h1 className="min-h-9 text-3xl font-bold tracking-tight">
+      <span className="sr-only">Meal plan</span>
+    </h1>
+  ) : (
+    <Planner today={today} />
+  )
+}
+
+function Planner({ today }: { today: string }) {
   const { start, go } = useWeek(today)
   const plan = useMealPlan(useCurrentKitchen(), start)
   const [opened, setOpened] = useState<string[]>([])
