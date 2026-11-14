@@ -28,17 +28,19 @@ const slot = (date: string, meal_type: MealType, over: Partial<Slot> = {}): Slot
   }
 }
 
+const PREFETCHES = 2
+const gets = () => mockSupabase.requestSpy.mock.calls.filter(([m]) => m === 'GET').length
+
 const render = async (until: 'ready' | 'error' = 'ready') => {
   const { queryClient, wrapper } = makeWrapper()
-  const hook = renderHook((p) => useMealPlan(p.kitchenId, p.from, p.to), {
+  const hook = renderHook((p) => useMealPlan(p.kitchenId, p.start), {
     wrapper,
-    initialProps: { kitchenId: 'k1', from: FROM, to: TO },
+    initialProps: { kitchenId: 'k1', start: FROM },
   })
   await waitFor(() => expect(hook.result.current.status).toBe(until))
+  await waitFor(() => expect(gets()).toBe(1 + PREFETCHES))
   return { ...hook, queryClient }
 }
-
-const gets = () => mockSupabase.requestSpy.mock.calls.filter(([m]) => m === 'GET').length
 
 beforeEach(() => {
   seq = 0
@@ -60,14 +62,132 @@ describe('useMealPlan', () => {
     await render('error')
   })
 
-  it("loads afresh instead of showing another kitchen's plan", async () => {
-    mockSupabase.results.select = { data: [slot('2026-10-12', 'dinner')], error: null }
-    const hook = await render()
-    mockSupabase.requestSpy.mockImplementationOnce(() => new Promise<void>(() => {}))
+  it('prefetches the weeks on either side', async () => {
+    await render()
+    const ranges = mockSupabase.requestSpy.mock.calls
+      .filter(([m]) => m === 'GET')
+      .map(([, url]) => url.searchParams.getAll('date'))
+    expect(ranges).toEqual(
+      expect.arrayContaining([
+        ['gte.2026-10-04', 'lte.2026-10-10'],
+        ['gte.2026-10-18', 'lte.2026-10-24'],
+      ]),
+    )
+  })
 
-    hook.rerender({ kitchenId: 'k2', from: FROM, to: TO })
+  it('moving to the next week reads only the newly adjacent week', async () => {
+    const hook = await render()
+    const before = gets()
+
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-18' })
+
+    await waitFor(() => expect(gets()).toBe(before + 1))
+    await act(() => new Promise((r) => setTimeout(r, 20)))
+    expect(gets()).toBe(before + 1)
+    const [, url] = mockSupabase.requestSpy.mock.calls.filter(([m]) => m === 'GET').at(-1)!
+    expect(url.searchParams.getAll('date')).toEqual(['gte.2026-10-25', 'lte.2026-10-31'])
+  })
+
+  it('keeps the previous week, flagged stale, until the new range resolves', async () => {
+    const a = slot('2026-10-12', 'dinner')
+    mockSupabase.results.select = { data: [a], error: null }
+    const hook = await render()
+    expect(hook.result.current.stale).toBe(false)
+    const b = slot('2026-10-26', 'dinner')
+    mockSupabase.results.select = { data: [b], error: null }
+    let release: (() => void) | undefined
+    mockSupabase.requestSpy.mockImplementationOnce(() => new Promise<void>((r) => (release = r)))
+
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-25' })
+
+    expect(hook.result.current.stale).toBe(true)
+    expect(hook.result.current.week).toBe(FROM)
+    expect(hook.result.current.status).toBe('ready')
+    expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([a])
+    await waitFor(() => expect(release).toBeDefined())
+    release?.()
+    await waitFor(() => expect(hook.result.current.stale).toBe(false))
+    expect(hook.result.current.week).toBe('2026-10-25')
+    expect(hook.result.current.slotsFor('2026-10-26', 'dinner')).toEqual([b])
+    expect(hook.result.current.slotsFor('2026-10-12', 'dinner')).toEqual([])
+  })
+
+  it('names the week whose data is shown after a failed read', async () => {
+    const hook = await render()
+    mockSupabase.results.select = { data: null, error: { message: 'offline' } }
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-25' })
+    await waitFor(() => expect(hook.result.current.status).toBe('error'))
+    mockSupabase.requestSpy.mockImplementation(() => new Promise<void>(() => {}))
+
+    hook.rerender({ kitchenId: 'k1', start: '2026-11-01' })
+
+    expect(hook.result.current.stale).toBe(true)
+    expect(hook.result.current.week).toBe(FROM)
+  })
+
+  it.each([
+    ['planned week', () => [slot('2026-10-12', 'dinner')]],
+    ['empty week', () => []],
+  ])("loads afresh instead of showing another kitchen's %s", async (_, rows) => {
+    mockSupabase.results.select = { data: rows(), error: null }
+    const hook = await render()
+    mockSupabase.requestSpy.mockImplementation(() => new Promise<void>(() => {}))
+
+    hook.rerender({ kitchenId: 'k2', start: FROM })
 
     expect(hook.result.current.status).toBe('loading')
+    expect(hook.result.current.stale).toBe(false)
+  })
+
+  it.each([
+    ['the next week', ['2026-10-18']],
+    ['an off-locale week', ['2026-10-18', '2026-10-14']],
+  ])("an undo from %s outlives the removal's refetch still in flight", async (_, weeks) => {
+    const a = slot('2026-10-12', 'dinner')
+    mockSupabase.results.select = { data: [a], error: null }
+    const hook = await render()
+    mockSupabase.results.delete = { data: [a], error: null }
+    mockSupabase.results.select = { data: [], error: null }
+    const gates: Array<() => void> = []
+    mockSupabase.requestSpy.mockImplementation((m, url) =>
+      m === 'GET' && url.searchParams.getAll('date')[0] === `gte.${FROM}`
+        ? new Promise<void>((r) => gates.push(r))
+        : undefined,
+    )
+
+    act(() => hook.result.current.remove(a))
+    await waitFor(() => expect(gates).toHaveLength(1))
+    weeks.forEach((start) => hook.rerender({ kitchenId: 'k1', start }))
+    mockSupabase.results.insert = { data: [a], error: null }
+    mockSupabase.results.select = { data: [a], error: null }
+    act(() => mockToast.mock.calls[0][1].action.onClick())
+    await waitFor(() => expect(hook.queryClient.isMutating()).toBe(0))
+    gates.reverse().forEach((open) => open())
+    await waitFor(() => expect(hook.queryClient.isFetching()).toBe(0))
+
+    hook.rerender({ kitchenId: 'k1', start: FROM })
+    expect(hook.result.current.slotsFor(a.date, 'dinner')).toEqual([a])
+  })
+
+  it("a write leaves another week's prefetch in flight", async () => {
+    const hook = await render()
+    const ahead = (url: URL) => url.searchParams.getAll('date')[0] === 'gte.2026-10-25'
+    let release: (() => void) | undefined
+    mockSupabase.requestSpy.mockImplementation((m, url) =>
+      m === 'GET' && ahead(url) ? new Promise<void>((r) => (release = r)) : undefined,
+    )
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-18' })
+    await waitFor(() => expect(release).toBeDefined())
+
+    act(() => hook.result.current.add('2026-10-19', 'dinner', 'r1'))
+    await waitFor(() => expect(hook.queryClient.isMutating()).toBe(0))
+    release?.()
+    await waitFor(() => expect(hook.queryClient.isFetching()).toBe(0))
+    hook.rerender({ kitchenId: 'k1', start: '2026-10-25' })
+
+    expect(hook.result.current.stale).toBe(false)
+    const reads = mockSupabase.requestSpy.mock.calls.filter(([m, url]) => m === 'GET' && ahead(url))
+    expect(reads).toHaveLength(1)
   })
 
   it('groups slots by meal in query order', async () => {

@@ -1,18 +1,25 @@
 'use client'
 
-import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import Link from 'next/link'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react'
+import { useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2 } from 'lucide-react'
 import { CARD, MealCell } from './meal-cell'
 import { useMealPlan } from './use-meal-plan'
-import { useKitchens } from '@/components/kitchens/use-kitchens'
+import { useCurrentKitchen } from '@/components/kitchens/current-kitchen'
 import { Button } from '@/components/ui/button'
-import { Empty, EmptyContent, EmptyDescription } from '@/components/ui/empty'
 import { LoadError } from '@/components/load-error'
-import { currentKitchen } from '@/lib/kitchens/current-kitchen'
+import { useIsClient } from '@/lib/hooks/use-is-client'
 import { useToday } from '@/lib/hooks/use-today'
-import { parseISO } from 'date-fns'
-import { MEAL_TYPES, dayLabel, weekOf, weekRange, weekdayName } from '@/lib/plan/week'
+import { useWeek } from './use-week'
+import {
+  MEAL_TYPES,
+  dayLabel,
+  shiftWeek,
+  weekHeading,
+  weekDates,
+  weekStart,
+  weekRange,
+  weekdayName,
+} from '@/lib/plan/week'
 import { cn } from '@/lib/utils'
 
 const DAY = 'bg-card ring-foreground/8 flex min-w-0 rounded-xl p-2.5 ring-1'
@@ -44,49 +51,72 @@ function Skeleton() {
   )
 }
 
-const noop = () => () => {}
-
 function Header({
-  dates,
-  note,
-  children,
+  start,
+  today,
+  go,
+  busy,
 }: {
-  dates: string[]
-  note?: ReactNode
-  children: ReactNode
+  start: string
+  today: string
+  go: (start: string) => void
+  busy?: boolean
 }) {
-  const mounted = useSyncExternalStore(
-    noop,
-    () => true,
-    () => false,
-  )
+  const isClient = useIsClient()
+  const heading = isClient ? weekHeading(start, today) : null
+  const range = isClient ? weekRange(weekDates(start), today) : null
+  const [prev, next] = [-1, 1].map((n) => shiftWeek(start, n))
+  const current = weekStart(today)
   return (
-    <>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">This week</h1>
-        {/* Browser-only: the server's locale and clock can format a different range. */}
-        {mounted && <span className="text-muted-foreground text-lg">{weekRange(dates)}</span>}
-        {note && (
-          <p className="text-muted-foreground basis-full text-sm sm:ml-auto sm:basis-auto">
-            {note}
-          </p>
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      {/* Browser-only: the server's locale and clock can format a different heading or range. */}
+      <h1 className="min-h-9 text-3xl font-bold tracking-tight">
+        {isClient ? (heading ?? range) : <span className="sr-only">Meal plan</span>}
+      </h1>
+      {heading && <span className="text-muted-foreground text-lg">{range}</span>}
+      {busy && (
+        <Loader2 aria-hidden className="text-muted-foreground size-5 animate-spin self-center" />
+      )}
+      {/* Mounted before it's needed: a live region inserted with its text often goes unannounced. */}
+      <span role="status" className="sr-only">
+        {busy && 'Loading week'}
+      </span>
+      <nav aria-label="Week" className="ml-auto flex h-8 w-36 items-center gap-2">
+        {isClient && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="size-8 p-0"
+              aria-label="Previous week"
+              disabled={!prev}
+              onClick={() => prev && go(prev)}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={current === start}
+              onClick={() => go(current)}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="size-8 p-0"
+              aria-label="Next week"
+              disabled={!next}
+              onClick={() => next && go(next)}
+            >
+              <ChevronRight />
+            </Button>
+          </>
         )}
-      </div>
-      {children}
-    </>
+      </nav>
+    </div>
   )
-}
-
-function NotReady({
-  status,
-  message,
-  onRetry,
-}: {
-  status: 'loading' | 'error'
-  message: string
-  onRetry: () => void
-}) {
-  return status === 'loading' ? <Skeleton /> : <LoadError message={message} onRetry={onRetry} />
 }
 
 function DateLabel({ date, isToday, row }: { date: string; isToday?: boolean; row?: boolean }) {
@@ -171,121 +201,92 @@ function ScrollArrow({
   )
 }
 
-export function MealPlanner({ kitchenId }: { kitchenId: string }) {
+export function MealPlanner() {
   const today = useToday()
-  const [dates] = useState(() => weekOf(parseISO(today)))
-  const plan = useMealPlan(kitchenId, dates[0], dates[6])
+  const { start, go } = useWeek(today)
+  const plan = useMealPlan(useCurrentKitchen(), start)
   const [opened, setOpened] = useState<string[]>([])
 
-  if (plan.status !== 'ready')
-    return (
-      <Header dates={dates}>
-        <NotReady status={plan.status} message="Could not load your plan." onRetry={plan.retry} />
-      </Header>
-    )
-
-  const planned = dates.flatMap((date) =>
-    MEAL_TYPES.filter((meal) => plan.slotsFor(date, meal).length),
-  ).length
+  const shownDates = weekDates(plan.week)
   const toggle = (date: string) =>
     setOpened((o) => (o.includes(date) ? o.filter((d) => d !== date) : [...o, date]))
 
   return (
-    <Header dates={dates} note={`${planned} of ${dates.length * MEAL_TYPES.length} meals planned`}>
-      <div className="mt-6 grid gap-2">
-        {dates.map((date) => {
-          const past = date < today
-          if (past && !opened.includes(date)) {
-            const names = MEAL_TYPES.flatMap((meal) =>
-              plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
-            )
-            return (
-              <section
-                key={date}
-                className={cn(DAY, PAST, 'hover:ring-foreground/20 relative items-center gap-4')}
-              >
-                <DateLabel date={date} row />
-                {/* Its ::after stretches over the row, so the date expands it too. */}
-                <button
-                  type="button"
-                  aria-expanded={false}
-                  aria-label={`Show ${weekdayName(date)}`}
-                  onClick={() => toggle(date)}
-                  className="text-muted-foreground min-w-0 flex-1 truncate pr-6 text-left text-sm after:absolute after:inset-0 after:rounded-xl"
+    <>
+      <Header start={start} today={today} go={go} busy={plan.stale} />
+      {plan.status === 'loading' && <Skeleton />}
+      {plan.status === 'error' && (
+        <LoadError message="Could not load your plan." onRetry={plan.retry} />
+      )}
+      {plan.status === 'ready' && (
+        <div
+          inert={plan.stale}
+          aria-busy={plan.stale}
+          className={cn('mt-6 grid gap-2 transition-opacity', plan.stale && 'opacity-50')}
+        >
+          {shownDates.map((date) => {
+            const foldable = date < today && shownDates.includes(today)
+            if (foldable && !opened.includes(date)) {
+              const names = MEAL_TYPES.flatMap((meal) =>
+                plan.slotsFor(date, meal).map((slot) => slot.recipes.name),
+              )
+              return (
+                <section
+                  key={date}
+                  className={cn(DAY, PAST, 'hover:ring-foreground/20 relative items-center gap-4')}
                 >
-                  {names.length ? names.join(', ') : 'Nothing planned'}
-                  <ChevronDown className={cn(TOGGLE, 'p-1')} />
-                </button>
+                  <DateLabel date={date} row />
+                  {/* Its ::after stretches over the row, so the date expands it too. */}
+                  <button
+                    type="button"
+                    aria-expanded={false}
+                    aria-label={`Show ${weekdayName(date)}`}
+                    onClick={() => toggle(date)}
+                    className="text-muted-foreground min-w-0 flex-1 truncate pr-6 text-left text-sm after:absolute after:inset-0 after:rounded-xl"
+                  >
+                    {names.length ? names.join(', ') : 'Nothing planned'}
+                    <ChevronDown className={cn(TOGGLE, 'p-1')} />
+                  </button>
+                </section>
+              )
+            }
+            return (
+              <section key={date} className={cn(DAY, 'relative pb-0', foldable && PAST)}>
+                {foldable && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded
+                    aria-label={`Hide ${weekdayName(date)}`}
+                    onClick={() => toggle(date)}
+                    className={cn(
+                      TOGGLE,
+                      'text-muted-foreground z-20 bg-inherit px-0 after:absolute after:-inset-x-1 after:-top-1 after:bottom-0',
+                    )}
+                  >
+                    <ChevronUp />
+                  </Button>
+                )}
+                <Strip>
+                  <div className="z-10 flex w-7 shrink-0 snap-start flex-col items-start justify-center bg-inherit md:sticky md:left-0 md:w-16.5 md:pl-2.5">
+                    <DateLabel date={date} isToday={date === today} />
+                  </div>
+                  {MEAL_TYPES.map((meal) => (
+                    <MealCell
+                      key={meal}
+                      date={date}
+                      mealType={meal}
+                      slots={plan.slotsFor(date, meal)}
+                      onAdd={(recipeId) => void plan.add(date, meal, recipeId)}
+                      onRemove={(slot) => void plan.remove(slot)}
+                    />
+                  ))}
+                </Strip>
               </section>
             )
-          }
-          return (
-            <section key={date} className={cn(DAY, 'relative pb-0', past && PAST)}>
-              {past && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-expanded
-                  aria-label={`Hide ${weekdayName(date)}`}
-                  onClick={() => toggle(date)}
-                  className={cn(
-                    TOGGLE,
-                    'text-muted-foreground z-20 bg-inherit px-0 after:absolute after:-inset-x-1 after:-top-1 after:bottom-0',
-                  )}
-                >
-                  <ChevronUp />
-                </Button>
-              )}
-              <Strip>
-                <div className="z-10 flex w-7 shrink-0 snap-start flex-col items-start justify-center bg-inherit md:sticky md:left-0 md:w-16.5 md:pl-2.5">
-                  <DateLabel date={date} isToday={date === today} />
-                </div>
-                {MEAL_TYPES.map((meal) => (
-                  <MealCell
-                    key={meal}
-                    date={date}
-                    mealType={meal}
-                    slots={plan.slotsFor(date, meal)}
-                    onAdd={(recipeId) => void plan.add(date, meal, recipeId)}
-                    onRemove={(slot) => void plan.remove(slot)}
-                  />
-                ))}
-              </Strip>
-            </section>
-          )
-        })}
-      </div>
-    </Header>
+          })}
+        </div>
+      )}
+    </>
   )
-}
-
-// Stands in for kitchen routing until there's a kitchen switcher.
-export function CurrentKitchenPlanner() {
-  const { kitchens, status, retry } = useKitchens()
-  // Only labels the header until MealPlanner pins its own week.
-  const dates = weekOf(parseISO(useToday()))
-
-  if (status !== 'ready')
-    return (
-      <Header dates={dates}>
-        <NotReady status={status} message="Could not load your kitchens." onRetry={retry} />
-      </Header>
-    )
-
-  const kitchen = currentKitchen(kitchens)
-  if (!kitchen)
-    return (
-      <Header dates={dates}>
-        <Empty className="mt-6 border">
-          <EmptyDescription>Create a kitchen to start planning.</EmptyDescription>
-          <EmptyContent>
-            <Button asChild>
-              <Link href="/settings/kitchens">Go to kitchens</Link>
-            </Button>
-          </EmptyContent>
-        </Empty>
-      </Header>
-    )
-
-  return <MealPlanner kitchenId={kitchen.id} />
 }

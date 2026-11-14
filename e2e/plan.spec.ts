@@ -43,3 +43,39 @@ test('plan: add a recipe to today, persist across reload, remove it', async ({ p
   await expect(link).toHaveCount(0)
   await expect(page.getByText(`Removed "Ambrosia" from ${where}`)).toBeVisible()
 })
+
+test('plan: navigate weeks with history, and open a misaligned week', async ({ page }) => {
+  const now = new Date()
+  const link = page.getByRole('link', { name: 'Ambrosia', exact: true })
+  const heading = page.getByRole('heading', { level: 1 })
+
+  await page.clock.setFixedTime(now)
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Plan', exact: true }).click()
+  await expect(heading).toHaveText('This week')
+
+  await page.getByRole('button', { name: 'Next week' }).click()
+  await expect(heading).toHaveText('Next week')
+  await page
+    .getByRole('button', { name: /^Add recipe to / })
+    .first()
+    .click()
+  await page.getByPlaceholder('Search recipes...').fill('ambros')
+  await page.getByRole('option', { name: 'Ambrosia', exact: true }).click()
+  await expect(link).toBeVisible()
+
+  await page.goBack()
+  await expect(heading).toHaveText('This week')
+  await expect(link).toHaveCount(0)
+  await page.goForward()
+  await expect(heading).toHaveText('Next week')
+  await expect(link).toBeVisible()
+
+  await page.reload()
+  await expect(heading).toHaveText('Next week')
+  await expect(link).toBeVisible()
+
+  const wednesday = '2026-03-04'
+  await page.goto(`/plan?week=${wednesday}`)
+  await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/Wednesday/)
+})
