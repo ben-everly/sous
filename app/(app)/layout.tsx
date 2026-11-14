@@ -6,7 +6,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireAuthedUser()
 
   return (
-    <Providers>
+    <Providers key={user.claims.sub} userId={user.claims.sub}>
       <AppHeader user={user} />
       {children}
     </Providers>

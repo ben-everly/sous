@@ -1,6 +1,6 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query'
+import { QueryClient, useQueryClient } from '@tanstack/react-query'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 const mocks = vi.hoisted(() => ({
@@ -30,9 +30,9 @@ const ClientProbe = () => {
   return null
 }
 
-const renderProviders = () =>
+const renderProviders = (userId = 'user-a') =>
   render(
-    <Providers>
+    <Providers key={userId} userId={userId}>
       <ClientProbe />
     </Providers>,
   )
@@ -55,9 +55,8 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('Providers auth-boundary cache isolation', () => {
-  it('clears the cache and refreshes on SIGNED_OUT without swapping clients', () => {
+  it('clears the cache and refreshes on SIGNED_OUT', () => {
     renderProviders()
-    emit('INITIAL_SESSION', sessionFor('user-a'))
 
     emit('SIGNED_OUT', null)
 
@@ -66,99 +65,47 @@ describe('Providers auth-boundary cache isolation', () => {
     expect(clients.size).toBe(1)
   })
 
-  it('swaps to a fresh client when a different user signs in', () => {
+  it('clears and refreshes without swapping clients when the session is another user', () => {
     renderProviders()
-    emit('INITIAL_SESSION', sessionFor('user-a'))
 
     emit('SIGNED_IN', sessionFor('user-b'))
 
-    expect(clients.size).toBe(2)
-  })
-
-  it('invalidates in place instead of swapping when an anon visitor signs in', () => {
-    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
-    renderProviders()
-    emit('INITIAL_SESSION', null)
-
-    emit('SIGNED_IN', sessionFor('user-a'))
-
-    expect(invalidateSpy).toHaveBeenCalledTimes(1)
+    expect(mocks.refresh).toHaveBeenCalledTimes(1)
+    expect(clearSpy).toHaveBeenCalledTimes(1)
     expect(clients.size).toBe(1)
   })
 
-  it('invalidates in place on the first sign-in after a sign-out', () => {
-    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+  it('does nothing for same-user events', () => {
     renderProviders()
+
     emit('INITIAL_SESSION', sessionFor('user-a'))
-    emit('SIGNED_OUT', null)
-
-    emit('SIGNED_IN', sessionFor('user-b'))
-
-    expect(invalidateSpy).toHaveBeenCalledTimes(1)
-    expect(clients.size).toBe(1)
-  })
-
-  it('does not swap on a token refresh for the same user', () => {
-    renderProviders()
-    emit('INITIAL_SESSION', sessionFor('user-a'))
-
     emit('TOKEN_REFRESHED', sessionFor('user-a'))
     emit('SIGNED_IN', sessionFor('user-a'))
 
+    expect(mocks.refresh).not.toHaveBeenCalled()
+    expect(clearSpy).not.toHaveBeenCalled()
     expect(clients.size).toBe(1)
   })
 
-  it('does not swap on the INITIAL_SESSION baseline event', () => {
+  it('does nothing for a null session other than SIGNED_OUT', () => {
     renderProviders()
 
-    emit('INITIAL_SESSION', sessionFor('user-a'))
+    emit('INITIAL_SESSION', null)
 
-    expect(clients.size).toBe(1)
+    expect(mocks.refresh).not.toHaveBeenCalled()
+    expect(clearSpy).not.toHaveBeenCalled()
   })
 
-  it('does not swap when SIGNED_IN arrives before INITIAL_SESSION', () => {
-    renderProviders()
+  it('gives a fresh client when re-rendered with a new key', () => {
+    const { rerender } = renderProviders()
 
-    emit('SIGNED_IN', sessionFor('user-a'))
-    emit('INITIAL_SESSION', sessionFor('user-a'))
-
-    expect(clients.size).toBe(1)
-  })
-
-  it('keeps the baseline across the resubscribe that follows a swap', () => {
-    renderProviders()
-    emit('INITIAL_SESSION', sessionFor('user-a'))
-    emit('SIGNED_IN', sessionFor('user-b'))
-
-    emit('INITIAL_SESSION', sessionFor('user-b'))
-
-    expect(clients.size).toBe(2)
-  })
-
-  it('refetches a query that was in flight when the user switched', async () => {
-    const resolvers: ((v: string) => void)[] = []
-    const Probe = () => {
-      const { data } = useQuery({
-        queryKey: ['probe'],
-        queryFn: () => new Promise<string>((resolve) => resolvers.push(resolve)),
-      })
-      return <>{data ?? 'loading'}</>
-    }
-    render(
-      <Providers>
-        <Probe />
+    rerender(
+      <Providers key="user-b" userId="user-b">
+        <ClientProbe />
       </Providers>,
     )
-    emit('INITIAL_SESSION', sessionFor('user-a'))
-    await waitFor(() => expect(resolvers).toHaveLength(1))
 
-    emit('SIGNED_IN', sessionFor('user-b'))
-    await waitFor(() => expect(resolvers).toHaveLength(2))
-    act(() => resolvers[0]('user-a data'))
-    act(() => resolvers[1]('user-b data'))
-
-    expect(await screen.findByText('user-b data')).toBeInTheDocument()
-    expect(screen.queryByText('user-a data')).not.toBeInTheDocument()
+    expect(clients.size).toBe(2)
   })
 
   it('unsubscribes from auth changes on unmount', () => {

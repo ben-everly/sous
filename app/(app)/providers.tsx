@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -22,42 +22,25 @@ const newClient = () =>
     mutationCache: new MutationCache({ onError: reportClientError }),
   })
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  // Keyed so the tree remounts: hooks bind observers to the first client they see.
-  // A fresh client, not resetQueries, so the old user's in-flight work settles into the discarded one.
-  const [{ client, generation }, setQueryState] = useState(() => ({
-    client: newClient(),
-    generation: 0,
-  }))
+export function Providers({ userId, children }: { userId: string; children: React.ReactNode }) {
+  const [client] = useState(newClient)
   const [supabase] = useState(createClient)
   const router = useRouter()
-  // Refs so the baseline survives the resubscribe a swap triggers.
-  // auth-js can emit SIGNED_IN before INITIAL_SESSION.
-  const baselined = useRef(false)
-  const currentUserId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      const userId = session?.user?.id
-      if (baselined.current && event === 'SIGNED_OUT') {
-        // A fresh client would refetch as anon; clear() is safe because refresh redirects to /login.
+      if (event === 'SIGNED_OUT' || (session && session.user.id !== userId)) {
+        // Not a fresh client: it would refetch every mounted query (as anon on sign-out) before the refresh
+        // remounts Providers or redirects to /login.
         client.clear()
         router.refresh()
-      } else if (baselined.current && currentUserId.current === undefined && userId) {
-        // Anon holds no user data to isolate, and a remount would re-run in-page sign-ins
-        // like the recovery form's single-use verifyOtp.
-        void client.invalidateQueries()
-      } else if (baselined.current && userId !== currentUserId.current) {
-        setQueryState((s) => ({ client: newClient(), generation: s.generation + 1 }))
       }
-      baselined.current = true
-      currentUserId.current = userId
     })
     return () => data.subscription.unsubscribe()
-  }, [supabase, client, router])
+  }, [supabase, client, router, userId])
 
   return (
-    <QueryClientProvider key={generation} client={client}>
+    <QueryClientProvider client={client}>
       {children}
       <Suspense>
         <ReactQueryDevtools />
