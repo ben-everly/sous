@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { env } from '@/lib/env'
 import { Toaster } from '@/components/ui/sonner'
-import { Providers } from './providers'
 import './globals.css'
 
 const geistSans = Geist({
@@ -34,10 +33,8 @@ export default function RootLayout({
             Sous requires JavaScript. Enable it and reload the page.
           </p>
         </noscript>
-        <Providers>
-          {children}
-          <Toaster />
-        </Providers>
+        {children}
+        <Toaster />
       </body>
     </html>
   )
