@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test'
 import { adminClient } from './admin-client'
 import { TEST_USER } from './test-user'
 
+// afterEach wipes all the user's slots, so tests can't run in parallel.
+test.describe.configure({ mode: 'default' })
+
 test.afterEach(async () => {
   const admin = adminClient()
   const { data, error } = await admin.auth.admin.listUsers()
@@ -20,6 +23,24 @@ test.afterEach(async () => {
       kitchens.map((k) => k.id),
     )
   if (deleteError) throw deleteError
+})
+
+test('plan: a full load renders server-prefetched kitchens without a browser fetch', async ({
+  page,
+}) => {
+  const fetches: string[] = []
+  const errors: string[] = []
+  page.on('request', (r) => {
+    if (r.method() === 'GET' && r.url().includes('/rest/v1/kitchens')) fetches.push(r.url())
+  })
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+
+  const html = await (await page.goto('/plan'))!.text()
+  expect(html).not.toContain('Loading your kitchens')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('This week')
+  await page.waitForLoadState('networkidle')
+  expect(fetches).toEqual([])
+  expect(errors).toEqual([])
 })
 
 test('plan: add a recipe to today, persist across reload, remove it', async ({ page }) => {

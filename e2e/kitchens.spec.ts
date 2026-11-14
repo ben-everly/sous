@@ -5,6 +5,24 @@ import { TEST_USER } from './test-user'
 const ownerKitchen = 'My Kitchen'
 
 test.describe('kitchens', () => {
+  test('a full load renders server-prefetched kitchens without a browser fetch', async ({
+    page,
+  }) => {
+    const fetches: string[] = []
+    const errors: string[] = []
+    page.on('request', (r) => {
+      if (r.method() === 'GET' && r.url().includes('/rest/v1/kitchens')) fetches.push(r.url())
+    })
+    page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+
+    const html = await (await page.goto('/settings/kitchens'))!.text()
+    expect(html).not.toContain('Loading kitchens')
+    await expect(page.getByText(ownerKitchen)).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    expect(fetches).toEqual([])
+    expect(errors).toEqual([])
+  })
+
   test('soft delete: undo, restore from trash, and permanent delete', async ({ page }) => {
     await page.goto('/')
 
