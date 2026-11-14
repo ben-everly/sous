@@ -37,13 +37,7 @@ export function useKitchens() {
 
   const kitchensQuery = useMemo(() => allKitchensQuery(supabase), [supabase])
 
-  const query = useQuery(kitchensQuery, {
-    // The single read is the source of truth; mutations patch it optimistically by PK and reconcile on
-    // settle, so a background refetch must never silently clobber an in-flight optimistic row.
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  })
+  const query = useQuery(kitchensQuery, { staleTime: Infinity })
   const queryKey = useMemo(() => encode(kitchensQuery, false), [kitchensQuery])
 
   const rows = useMemo(() => (query.data ?? []) as Kitchen[], [query.data])
