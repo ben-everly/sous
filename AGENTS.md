@@ -27,7 +27,7 @@ This document serves as the core set of instructions and architectural rules for
 
 ## 2. Architecture & Tech Stack
 
-- **Framework**: Next.js App Router. Server Components render the static shell; reach for Client Components wherever you touch Supabase data or need interactivity.
+- **Framework**: Next.js App Router. Server Components render the static shell and may prefetch Supabase reads; Client Components own Supabase reads and writes and any interactivity.
 - **Data access — client-first**: Prefer the **browser Supabase client** for reads and mutations (including auth — login/logout). RLS is the enforcement boundary, so direct client access is safe and unlocks realtime, optimistic updates, and logic shared with a future mobile client.
 - **Enforce invariants in the database, not app code**: Because clients talk to Supabase directly, every domain invariant must live in Postgres — RLS for authz, `CHECK`/`FK`/`UNIQUE` constraints and triggers for integrity, or an RPC for multi-row transactional rules. App-layer checks are UX, not security.
 - **When to go server-side**: Use the server (RSC / services / Server Actions / RPC) only when an operation _requires_ it:
@@ -36,7 +36,7 @@ This document serves as the core set of instructions and architectural rules for
   - it needs **heavy or sensitive computation** unsafe or impractical on the client;
   - it needs **multi-row transactional integrity** → prefer a Postgres function via `supabase.rpc(...)` (callable from web and mobile; RLS enforces authz);
   - it is **persistent app-shell UI** (header, nav) reading data the request already has server-side.
-- **Server reads (RSC)**: When a read must be server-side (per above), read directly in an async Server Component. Do not use Server Actions or API Routes for reads.
+- **Server reads (RSC)**: When a read must be server-side (per above), read directly in an async Server Component. Do not use Server Actions or API Routes for reads. A page's main reads are also prefetched there (e.g. `app/(app)/(kitchen)/layout.tsx`); the browser hook stays the sole reader and mutation path, so writes remain client-first.
 - **Business Logic**: Server-required logic lives in `lib/services/` as plain, framework-agnostic async functions (no `'use server'`) — validation, external calls, side effects — unit-testable in isolation and shareable with mobile.
 - **Data Mutations (web)**: When a mutation must run server-side, wrap the service in a **Server Action** in `lib/actions/` — resolve auth, call the service, then `revalidatePath`/`revalidateTag`. No business logic in actions.
 - **HTTP Endpoints**: Use API Routes (`app/api/v1/...`) only for streaming responses (Vercel AI SDK), webhooks, and endpoints consumed by non-web clients (e.g., a future React Native app). These are also thin wrappers around `lib/services/`.
