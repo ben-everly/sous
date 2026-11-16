@@ -27,7 +27,7 @@ This document serves as the core set of instructions and architectural rules for
 
 ## 2. Architecture & Tech Stack
 
-- **Framework**: Next.js App Router. Server Components render the static shell; reach for Client Components wherever you touch Supabase data or need interactivity.
+- **Framework**: Next.js App Router. Server Components render the static shell and may prefetch Supabase reads; Client Components own Supabase reads and writes and any interactivity.
 - **Data access — client-first**: Prefer the **browser Supabase client** for reads and mutations (including auth — login/logout). RLS is the enforcement boundary, so direct client access is safe and unlocks realtime, optimistic updates, and logic shared with a future mobile client.
 - **Enforce invariants in the database, not app code**: Because clients talk to Supabase directly, every domain invariant must live in Postgres — RLS for authz, `CHECK`/`FK`/`UNIQUE` constraints and triggers for integrity, or an RPC for multi-row transactional rules. App-layer checks are UX, not security.
 - **When to go server-side**: Use the server (RSC / services / Server Actions / RPC) only when an operation _requires_ it:
@@ -36,7 +36,7 @@ This document serves as the core set of instructions and architectural rules for
   - it needs **heavy or sensitive computation** unsafe or impractical on the client;
   - it needs **multi-row transactional integrity** → prefer a Postgres function via `supabase.rpc(...)` (callable from web and mobile; RLS enforces authz);
   - it is **persistent app-shell UI** (header, nav) reading data the request already has server-side.
-- **Server reads (RSC)**: When a read must be server-side (per above), read directly in an async Server Component. Do not use Server Actions or API Routes for reads.
+- **Server reads (RSC)**: When a read must be server-side (per above), read directly in an async Server Component. Do not use Server Actions or API Routes for reads. A page's main reads are also prefetched there (e.g. `app/(app)/(kitchen)/layout.tsx`); the browser hook stays the sole reader and mutation path, so writes remain client-first.
 - **Business Logic**: Server-required logic lives in `lib/services/` as plain, framework-agnostic async functions (no `'use server'`) — validation, external calls, side effects — unit-testable in isolation and shareable with mobile.
 - **Data Mutations (web)**: When a mutation must run server-side, wrap the service in a **Server Action** in `lib/actions/` — resolve auth, call the service, then `revalidatePath`/`revalidateTag`. No business logic in actions.
 - **HTTP Endpoints**: Use API Routes (`app/api/v1/...`) only for streaming responses (Vercel AI SDK), webhooks, and endpoints consumed by non-web clients (e.g., a future React Native app). These are also thin wrappers around `lib/services/`.
@@ -59,7 +59,7 @@ Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/que
 - **Plain writes**: table inserts/updates with no side invariants use cache-helpers' `useInsertMutation` / `useUpdateMutation` directly against `supabase.from(table)` — they reconcile the cache from the mutation's returned representation by primary key, no manual invalidation.
 - **RPC writes**: when invariants (state guards, authz) live in a `security-invoker` RPC, drive it with a plain `useMutation` on the optimistic lifecycle: `onMutate` awaits `queryClient.cancelQueries({ queryKey })`, then writes the optimistic row by PK (`upsertItem` for an update/restore, `deleteItem` for a destructive call), projected to the cached columns (`COLUMNS` in `queries.ts`); `onError` reverses that single by-PK write and toasts; `onSettled` calls `invalidateQueries({ queryKey })` to reconcile to server truth. Reverse only the mutated row, so a concurrent mutation on another row survives the rollback.
 - **Trust DB-enforced idempotency, no in-flight guard**: an RPC wrapper rejects only when `error != null` — a non-erroring response, including a zero-row no-op, is success. There is no per-row in-flight registry gating concurrent calls. Two concurrent calls on the same row are both harmless idempotent successes; a cross-type race (e.g. a restore firing while a delete is in flight) is last-write-wins, corrected by the losing mutation's settle-time `invalidateQueries` refetch.
-- **Error reporting**: mutation rejections surface through the root `MutationCache.onError` sink (`reportClientError`, wired in `app/providers.tsx`) — don't hand-log at the call site.
+- **Error reporting**: mutation rejections surface through the root `MutationCache.onError` sink (`reportClientError`, wired in `app/(app)/providers.tsx`) — don't hand-log at the call site.
 - **Exceptions**: fall back to separate filtered reads only when returning every row to derive a subset is genuinely too costly (large tables); reach for a hand-rolled reconcile only where invalidate-on-settle's extra read or its brief eventual-consistency window is unacceptable, and document the reason at the call site.
 - **Realtime — extension point, not yet shipped (SIDE-177)**: cache-helpers' `useSubscription` / `useSubscriptionQuery` are where a future realtime feed attaches, writing into the same query-key-derived cache entries reads already populate. No realtime subscription exists yet.
 

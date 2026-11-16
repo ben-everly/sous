@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient, createServerClient } from '@supabase/ssr'
+import { encode } from '@supabase-cache-helpers/postgrest-react-query'
 import type { Database } from '@/types/database.types'
 import { builderClient, searchParams } from '@/test/postgrest'
+import { MOCK_SUPABASE_PUBLISHABLE_KEY, MOCK_SUPABASE_URL } from '@/lib/supabase/test-utils'
 import {
   COLUMNS,
   allKitchensQuery,
@@ -51,6 +54,16 @@ describe('allKitchensQuery', () => {
     expect(params.get('select')).toBe(COLUMNS.replaceAll(' ', ''))
     expect([...params.keys()].sort()).toEqual(['order', 'select'])
     expect(params.get('order')).toBe('created_at.asc,id.asc')
+  })
+
+  it('derives the same cache key from a server client as from a browser client', () => {
+    const server = createServerClient<Database>(MOCK_SUPABASE_URL, MOCK_SUPABASE_PUBLISHABLE_KEY, {
+      cookies: { getAll: () => [], setAll: () => {} },
+    })
+    const browser = createBrowserClient<Database>(MOCK_SUPABASE_URL, MOCK_SUPABASE_PUBLISHABLE_KEY)
+    expect(encode(allKitchensQuery(server), false)).toEqual(
+      encode(allKitchensQuery(browser), false),
+    )
   })
 })
 

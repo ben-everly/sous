@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { renderToString } from 'react-dom/server'
+import { createElement } from 'react'
 import { useToday } from './use-today'
 
 beforeEach(() => {
@@ -9,6 +11,11 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('useToday', () => {
+  it('is null in server rendering', () => {
+    const Probe = () => String(useToday())
+    expect(renderToString(createElement(Probe))).toBe('null')
+  })
+
   it("returns today's local date", () => {
     expect(renderHook(() => useToday()).result.current).toBe('2026-10-17')
   })

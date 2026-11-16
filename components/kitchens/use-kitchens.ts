@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { queryStatus } from '@/lib/data/query-status'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
+import { liveKitchens } from '@/lib/kitchens/current-kitchen'
 import {
   COLUMNS,
   allKitchensQuery,
@@ -22,10 +23,6 @@ import {
   softDeleteKitchen,
 } from '@/lib/kitchens/queries'
 import type { Kitchen } from '@/lib/kitchens/types'
-
-// Matches the DB's order so a restored kitchen lands back in its original slot, not at the end.
-const byCreatedThenId = (a: Kitchen, b: Kitchen) =>
-  a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
 
 // id tiebreak gives the trash a total order.
 const byDeletedAtDesc = (a: Kitchen, b: Kitchen) =>
@@ -37,13 +34,7 @@ export function useKitchens() {
 
   const kitchensQuery = useMemo(() => allKitchensQuery(supabase), [supabase])
 
-  const query = useQuery(kitchensQuery, {
-    // The single read is the source of truth; mutations patch it optimistically by PK and reconcile on
-    // settle, so a background refetch must never silently clobber an in-flight optimistic row.
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  })
+  const query = useQuery(kitchensQuery, { staleTime: Infinity })
   const queryKey = useMemo(() => encode(kitchensQuery, false), [kitchensQuery])
 
   const rows = useMemo(() => (query.data ?? []) as Kitchen[], [query.data])
@@ -59,7 +50,7 @@ export function useKitchens() {
     primaryKeys: ['id'],
   })
 
-  const kitchens = useMemo(() => rows.filter((k) => !k.deleted_at).sort(byCreatedThenId), [rows])
+  const kitchens = useMemo(() => liveKitchens(rows), [rows])
   const deleted = useMemo(() => rows.filter((k) => k.deleted_at).sort(byDeletedAtDesc), [rows])
 
   const status = queryStatus(query)
