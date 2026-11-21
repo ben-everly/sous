@@ -12,6 +12,8 @@ runs on any App Router–capable host.
 
 - [ ] `npx supabase link --project-ref <ref>`
 - [ ] `npx supabase db push`
+- [ ] **Project Settings → Data API → Exposed schemas**: `public` only (remove
+      `graphql_public`), matching `config.toml`'s `[api] schemas`.
 
 ## 3. JWT signing keys
 
