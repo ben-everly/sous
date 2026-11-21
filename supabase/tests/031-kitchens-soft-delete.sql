@@ -182,19 +182,19 @@ set local role anon;
 select throws_ok(
   $$select public.soft_delete_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
   '42501',
-  null,
+  'permission denied for function soft_delete_kitchen',
   'anon cannot execute soft_delete_kitchen'
 );
 select throws_ok(
   $$select public.restore_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
   '42501',
-  null,
+  'permission denied for function restore_kitchen',
   'anon cannot execute restore_kitchen'
 );
 select throws_ok(
   $$select public.purge_kitchen('dddddddd-dddd-dddd-dddd-dddddddddddd')$$,
   '42501',
-  null,
+  'permission denied for function purge_kitchen',
   'anon cannot execute purge_kitchen'
 );
 reset role;

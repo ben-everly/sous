@@ -6,7 +6,7 @@ values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com', '{"full_name": "Bob"}'::jsonb);
 
-select plan(11);
+select plan(13);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass),
@@ -95,6 +95,8 @@ select is(
 reset role;
 
 select table_privs_are('public', 'profiles', 'anon', array[]::text[], 'anon holds no privileges on profiles');
+select table_privs_are('public', 'profiles', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated holds CRUD only on profiles');
+select ok(not has_table_privilege('authenticated', 'public.profiles', 'maintain'), 'authenticated lacks MAINTAIN on profiles');
 
 select * from finish();
 rollback;
