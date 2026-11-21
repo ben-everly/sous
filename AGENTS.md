@@ -66,9 +66,15 @@ Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/que
 ## 3. Supabase & Database Rules
 
 - **Strict Typing**: You must _always_ use the Supabase types from `types/database.types.ts` when interacting with the database. It merges overrides over the generated `types/database-generated.types.ts`, which is never imported directly and never hand-edited.
+- **Declarative Schema**: `supabase/schemas/` is the source of truth; migrations are generated from it, never hand-written.
+  1. Edit the schema files.
+  2. `npm run db:sync -- -f <name>` writes the migration.
+  3. `npm run db:migrate` applies it locally, under the shared-stack lock.
+  - Never run `db schema declarative generate` on the existing tree: it re-exports from the live DB and overwrites the files, comments included.
+  - Comment above a statement, never inside a function body — the body is part of the definition, so editing a comment there generates a migration.
 - **Regenerate Types**: Run `npm run db:types` after any schema change to keep `types/database-generated.types.ts` in sync, and commit the result alongside the migration.
 - **Table Naming**: The schema uses `snake_case` lowercase identifiers (Postgres convention). Do not hallucinate PascalCase or quoted variants.
-- **Plan schema changes as their own branch**: All worktrees share one local Supabase stack, so do them first on a dedicated branch (migration + `npm run db:types` + RLS/pgTAP tests), separate from feature-code branches. Don't start a feature-code branch until the schema branch has landed in `main`.
+- **Coordinate schema changes across worktrees**: they all share one local Supabase stack.
 
 ## 4. The "No-Breakage Guarantee", Testing & Verification Protocol
 
@@ -81,6 +87,7 @@ Worked example: `components/kitchens/use-kitchens.ts` (hook) + `lib/kitchens/que
   6. `npm run test:unit`
   7. `npm run test:db` (when schema, RLS, or triggers changed)
   8. `npm run db:advisors` (when schema, RLS, or triggers changed)
-  9. `npm run build`
-     _(Note: E2E tests via Playwright should also be run before finalizing major user-facing milestones using `npx playwright test` or `npm run test:e2e`)._
+  9. `npm run db:check` (when schema, RLS, or triggers changed)
+  10. `npm run build`
+      _(Note: E2E tests via Playwright should also be run before finalizing major user-facing milestones using `npx playwright test` or `npm run test:e2e`)._
 - **Self-Correction**: If any of these commands fail, you are strictly required to proactively fix the errors before concluding your turn. Do not leave a broken build or failing tests for the user.
