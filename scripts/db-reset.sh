@@ -4,4 +4,4 @@ dir=$(dirname "$0")
 
 # Guard first: fail fast instead of waiting on the lock only to be refused.
 bash "$dir/guard-shared-supabase.sh" db:reset
-exec bash "$dir/with-supabase-lock.sh" supabase db reset --local
+exec bash "$dir/with-supabase-lock.sh" supabase db reset
