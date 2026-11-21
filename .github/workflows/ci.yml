@@ -90,6 +90,8 @@ jobs:
         run: npm run test:db
       - name: Run database advisors
         run: npm run db:advisors
+      - name: Check schema files match migrations
+        run: npm run db:check
       # Only db saves, and last: test:db pulls pg_prove, making its image set a
       # superset of e2e's.
       - name: Save Supabase images

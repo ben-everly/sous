@@ -21,6 +21,8 @@
     "db:start": "bash scripts/db-start.sh",
     "db:stop": "bash scripts/db-stop.sh",
     "db:reset": "bash scripts/db-reset.sh",
+    "db:sync": "bash scripts/with-supabase-lock.sh supabase db schema declarative sync --no-apply --strict-coverage",
+    "db:check": "bash scripts/db-check.sh",
     "db:types": "supabase gen types typescript > types/database-generated.types.ts && prettier --write types/database-generated.types.ts",
     "db:advisors": "supabase db advisors",
     "myplate:capture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/myplate/capture.ts",
