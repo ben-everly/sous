@@ -22,6 +22,10 @@ test.describe('kitchens', () => {
     expect(fetches).toEqual([])
     expect(errors).toEqual([])
   })
+})
+
+test.describe('kitchens: soft delete', () => {
+  test.use({ isolatedUser: true })
 
   test('soft delete: undo, restore from trash, and permanent delete', async ({ page }) => {
     await page.goto('/')
