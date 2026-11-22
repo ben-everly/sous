@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { createClient } from '@supabase/supabase-js'
 import { adminClient } from './admin-client'
 import { makeGoogleOnly, identityProviders } from './db'

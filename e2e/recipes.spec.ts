@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import type { Database } from '@/types/database.types'
 import { adminClient } from './admin-client'
 
