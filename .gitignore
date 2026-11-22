@@ -15,8 +15,6 @@
 /playwright-report/
 /test-results/
 /blob-report/
-# Real auth tokens for the seeded E2E user.
-/e2e/.auth/
 
 # next.js
 /.next/

@@ -8,8 +8,6 @@ try {
   // missing .env is fine
 }
 
-const authFile = 'e2e/.auth/user.json'
-
 const port = process.env.PORT ?? '3000'
 const baseURL = `http://localhost:${port}`
 
@@ -26,13 +24,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-    },
-    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], storageState: authFile },
-      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
   webServer: {

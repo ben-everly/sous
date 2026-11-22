@@ -10,8 +10,6 @@ import {
   getConfirmationLink,
 } from './mailpit'
 
-test.use({ storageState: { cookies: [], origins: [] } })
-
 const PASSWORD = 'sup3r-secret-pw'
 
 async function deleteUser(email: string) {
@@ -22,6 +20,8 @@ async function deleteUser(email: string) {
 }
 
 test.describe('email/password auth', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
   test('sign-up sends a confirmation link that signs the user in', async ({ page }) => {
     const email = `signup-${Date.now()}@example.com`
     await deleteUser(email)
@@ -218,8 +218,6 @@ test.describe('email/password auth', () => {
 // secure_password_change is off, so GoTrue won't distinguish a recovery session from any
 // other — the client token gate is the only thing keeping a logged-in user out of the form.
 test.describe('reset-password authorization', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' })
-
   test('an authenticated session without a recovery token cannot reach the reset form', async ({
     page,
   }) => {

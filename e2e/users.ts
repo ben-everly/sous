@@ -1,14 +1,17 @@
-import { test, expect, type Browser } from '@playwright/test'
+import { expect, type Browser } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { adminClient } from './admin-client'
 import { TEST_USER } from './test-user'
 
-type StorageState = Awaited<ReturnType<Awaited<ReturnType<Browser['newContext']>>['storageState']>>
+export type StorageState = Awaited<
+  ReturnType<Awaited<ReturnType<Browser['newContext']>>['storageState']>
+>
 
 export async function createSignedInUser(
   browser: Browser,
   email: string,
+  baseURL: string,
 ): Promise<{ id: string; email: string; storageState: StorageState }> {
   const admin = adminClient()
 
@@ -67,7 +70,6 @@ export async function createSignedInUser(
     refresh_token: signIn.session.refresh_token,
   })
 
-  const baseURL = test.info().project.use.baseURL!
   const context = await browser.newContext({ baseURL })
   try {
     await context.addCookies(captured.map((c) => ({ ...c, url: baseURL })))
