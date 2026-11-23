@@ -97,12 +97,11 @@ export function ResetPasswordForm() {
       form.setError('root', { message: authErrorMessage(error) })
       return
     }
-    // A full navigation, not router.push: a Server Action refreshes its caller route and would
-    // clobber a soft client navigation. The backfill is best-effort and the password is already
-    // set, so never block the redirect.
+    // The backfill is best-effort and the password is already set, so never block the redirect.
     await backfillEmailIdentity().catch(() => {})
     startNavigating()
-    window.location.assign('/')
+    router.replace('/')
+    router.refresh()
   }
 
   if (status !== 'ready') {
