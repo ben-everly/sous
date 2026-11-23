@@ -21,7 +21,6 @@ alter table public.meal_plan_slots enable row level security;
 revoke all on public.meal_plan_slots from anon, authenticated;
 grant select, insert, delete on public.meal_plan_slots to authenticated;
 
--- Kitchen-owned tables gate on this: kitchens RLS owns "whose", the view owns "live".
 create view public.live_kitchens with (security_invoker = true) as
   select * from public.kitchens where deleted_at is null;
 revoke all on public.live_kitchens from anon, authenticated;
@@ -50,8 +49,6 @@ create policy "meal_plan_slots_select_own" on public.meal_plan_slots
 create policy "meal_plan_slots_insert_own" on public.meal_plan_slots
   for insert to authenticated with check (
     kitchen_id in (select id from public.live_kitchens)
-    -- Not a CHECK, so rows age out and stay valid. Covers the current week + 25 future weeks,
-    -- with a day of slack for the browser's local date differing from UTC.
     and date between current_date - 7 and current_date + 182
   );
 create policy "meal_plan_slots_delete_own" on public.meal_plan_slots

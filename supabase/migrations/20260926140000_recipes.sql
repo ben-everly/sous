@@ -35,8 +35,6 @@ create table public.recipes (
 
 alter table public.recipes enable row level security;
 
--- Column-level rather than table-level, so a column added later stays unreadable until its
--- own grant lands, despite the policy's `using (true)`.
 revoke all on public.recipes from anon, authenticated;
 grant select (
   id, slug, source_url, name, description, ingredients, directions,
