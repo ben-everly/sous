@@ -8,7 +8,6 @@ const replace = vi.fn()
 const verifyOtp = vi.fn()
 const updateUser = vi.fn()
 const backfillEmailIdentity = vi.fn()
-const assign = vi.fn()
 let search = new URLSearchParams()
 
 vi.mock('next/navigation', () => ({
@@ -30,9 +29,6 @@ beforeEach(() => {
   verifyOtp.mockReset()
   updateUser.mockReset()
   backfillEmailIdentity.mockReset().mockResolvedValue(undefined)
-  assign.mockReset()
-  // jsdom doesn't implement navigation; stand in so the success path can hard-redirect.
-  Object.defineProperty(window, 'location', { configurable: true, value: { assign } })
   search = new URLSearchParams('token_hash=abc&type=recovery')
 })
 
@@ -82,7 +78,8 @@ describe('ResetPasswordForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
     await vi.waitFor(() => expect(updateUser).toHaveBeenCalledWith({ password: 'password1' }))
     expect(backfillEmailIdentity).toHaveBeenCalled()
-    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/'))
+    expect(refresh).toHaveBeenCalled()
   })
 
   // The password is already changed before the best-effort backfill runs, so a failed
@@ -96,7 +93,8 @@ describe('ResetPasswordForm', () => {
     fireEvent.change(password, { target: { value: 'password1' } })
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password1' } })
     fireEvent.click(screen.getByRole('button', { name: /update password/i }))
-    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/'))
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/'))
+    expect(refresh).toHaveBeenCalled()
   })
 
   // Drive every dead-session code off the exported set so a vendor rename (or dropping a
