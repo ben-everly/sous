@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { TEST_USER } from './test-user'
 
 // The bootstrapped kitchen is nameless, so it renders with the first-person fallback label.
@@ -22,6 +22,10 @@ test.describe('kitchens', () => {
     expect(fetches).toEqual([])
     expect(errors).toEqual([])
   })
+})
+
+test.describe('kitchens: soft delete', () => {
+  test.use({ isolatedUser: true })
 
   test('soft delete: undo, restore from trash, and permanent delete', async ({ page }) => {
     await page.goto('/')

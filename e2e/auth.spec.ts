@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { TEST_USER } from './test-user'
 
 test.describe('unauthenticated', () => {
@@ -18,6 +18,10 @@ test.describe('authenticated', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible()
     await expect(page.getByText(TEST_USER.fullName)).toBeVisible()
   })
+})
+
+test.describe('sign-out', () => {
+  test.use({ isolatedUser: true })
 
   test('sign-out returns to /login and re-protects /', async ({ page }) => {
     await page.goto('/')

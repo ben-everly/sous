@@ -1,29 +1,6 @@
-import { test, expect } from '@playwright/test'
-import { adminClient } from './admin-client'
-import { TEST_USER } from './test-user'
+import { test, expect } from './fixtures'
 
-// afterEach wipes all the user's slots, so tests can't run in parallel.
-test.describe.configure({ mode: 'default' })
-
-test.afterEach(async () => {
-  const admin = adminClient()
-  const { data, error } = await admin.auth.admin.listUsers()
-  if (error) throw error
-  const user = data.users.find((u) => u.email === TEST_USER.email)!
-  const { data: kitchens, error: kitchensError } = await admin
-    .from('kitchens')
-    .select('id')
-    .eq('owner_id', user.id)
-  if (kitchensError) throw kitchensError
-  const { error: deleteError } = await admin
-    .from('meal_plan_slots')
-    .delete()
-    .in(
-      'kitchen_id',
-      kitchens.map((k) => k.id),
-    )
-  if (deleteError) throw deleteError
-})
+test.use({ isolatedUser: true })
 
 test('plan: a full load renders server-prefetched kitchens without a browser fetch', async ({
   page,

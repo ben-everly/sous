@@ -1,7 +1,11 @@
 const MAILPIT_URL = 'http://localhost:54324'
 
-export async function clearMailpit(): Promise<void> {
-  await fetch(`${MAILPIT_URL}/api/v1/messages`, { method: 'DELETE' })
+export async function deleteMail(recipient: string): Promise<void> {
+  const res = await fetch(
+    `${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${recipient}`)}`,
+    { method: 'DELETE' },
+  )
+  if (!res.ok) throw new Error(`Mailpit delete for ${recipient} failed: ${res.status}`)
 }
 
 export async function waitForEmail(recipient: string, timeoutMs = 15000): Promise<string> {
