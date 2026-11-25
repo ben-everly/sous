@@ -131,6 +131,26 @@ describe('useKitchens', () => {
     expect(result.current.kitchens).toEqual([beach])
   })
 
+  it.each([
+    [
+      { code: 'SC001', message: 'cap' },
+      "You've reached the kitchen limit. Delete a kitchen and empty it from the trash to make room.",
+    ],
+    [{ message: 'boom' }, "Couldn't create the kitchen. Try again."],
+  ])('create rejected with %j toasts the matching message', async (error, message) => {
+    mockSupabase.results.insert = { data: null, error }
+    const { result } = renderUseKitchens()
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    let ok!: boolean
+    await act(async () => {
+      ok = await result.current.create('New')
+    })
+
+    expect(ok).toBe(false)
+    expect(mockToast.error).toHaveBeenCalledWith(message)
+  })
+
   it('refresh refetches and populates the trash list', async () => {
     const { result } = renderUseKitchens()
     await waitFor(() => expect(result.current.status).toBe('ready'))

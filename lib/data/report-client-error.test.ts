@@ -18,9 +18,12 @@ describe('reportClientError', () => {
     expect(spy).toHaveBeenCalledWith(err)
   })
 
-  it('ignores an expected no-row match (PGRST116)', () => {
+  it.each([
+    ['no-row match', 'PGRST116'],
+    ['kitchen limit', 'SC001'],
+  ])('ignores an expected %s (%s)', (_, code) => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    reportClientError({ code: 'PGRST116', message: 'no rows returned' })
+    reportClientError({ code, message: 'expected' })
     expect(spy).not.toHaveBeenCalled()
   })
 })
