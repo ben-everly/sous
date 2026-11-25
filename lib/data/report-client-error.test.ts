@@ -21,6 +21,7 @@ describe('reportClientError', () => {
   it.each([
     ['no-row match', 'PGRST116'],
     ['kitchen limit', 'SC001'],
+    ['slot limit', 'SC002'],
   ])('ignores an expected %s (%s)', (_, code) => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     reportClientError({ code, message: 'expected' })

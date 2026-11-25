@@ -239,6 +239,18 @@ describe('useMealPlan', () => {
     expect(mockToast.error).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['SC002', "This kitchen's meal plan is full."],
+    ['23514', "Couldn't update the plan. Try again."],
+  ])('an add rejected with %s toasts %j', async (code, message) => {
+    const { result } = await render()
+    mockSupabase.results.insert = { data: null, error: { code, message: 'rejected' } }
+
+    act(() => result.current.add('2026-10-14', 'lunch', 'r9'))
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(message))
+  })
+
   it('remove drops the slot', async () => {
     const a = slot('2026-10-12', 'dinner')
     const b = slot('2026-10-12', 'dinner')

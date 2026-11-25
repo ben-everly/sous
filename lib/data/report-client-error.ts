@@ -1,9 +1,7 @@
-import { KITCHEN_LIMIT } from './limit-errors'
+import { KITCHEN_LIMIT, SLOT_LIMIT, codeOf } from './limit-errors'
 
-// Expected outcomes, not faults, so don't report them as errors: a .single() mutation matching no row
-// rejects with PGRST116 (RLS-filtered or a stale id), and a create past a DB row cap rejects with its
-// limit code, which the call site already explains to the user.
-const EXPECTED_CODES = new Set(['PGRST116', KITCHEN_LIMIT])
+const NO_ROW = 'PGRST116'
+const HANDLED_AT_CALL_SITE = new Set<unknown>([NO_ROW, KITCHEN_LIMIT, SLOT_LIMIT])
 
 // The single seam for reporting client-side data failures, wired to both the QueryClient's
 // QueryCache.onError and MutationCache.onError: swap the console for real error reporting (e.g. Sentry)
@@ -13,7 +11,6 @@ const EXPECTED_CODES = new Set(['PGRST116', KITCHEN_LIMIT])
 // Before sending anywhere off-device, scrub: a PostgREST error's message/details/hint can carry row and
 // column values, so report code plus a static category, not the raw fields.
 export function reportClientError(error: unknown) {
-  const code = (error as { code?: string } | null)?.code
-  if (code && EXPECTED_CODES.has(code)) return
+  if (HANDLED_AT_CALL_SITE.has(codeOf(error))) return
   console.error(error)
 }
