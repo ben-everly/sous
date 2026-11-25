@@ -34,6 +34,7 @@ const plan = (over = {}) =>
     stale: false,
     retry: vi.fn(),
     slotsFor: () => [] as Slot[],
+    dayFull: () => false,
     add: vi.fn(),
     remove: vi.fn(),
     ...over,

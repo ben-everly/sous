@@ -1,7 +1,7 @@
-import { KITCHEN_LIMIT, SLOT_LIMIT, codeOf } from './limit-errors'
+import { DAY_LIMIT, KITCHEN_LIMIT, SLOT_LIMIT, codeOf } from './limit-errors'
 
 const NO_ROW = 'PGRST116'
-const HANDLED_AT_CALL_SITE = new Set<unknown>([NO_ROW, KITCHEN_LIMIT, SLOT_LIMIT])
+const HANDLED_AT_CALL_SITE = new Set<unknown>([NO_ROW, KITCHEN_LIMIT, SLOT_LIMIT, DAY_LIMIT])
 
 // The single seam for reporting client-side data failures, wired to both the QueryClient's
 // QueryCache.onError and MutationCache.onError: swap the console for real error reporting (e.g. Sentry)

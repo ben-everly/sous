@@ -12,10 +12,10 @@ import {
 import { useQueryClient, type Query } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { codeOf, SLOT_LIMIT } from '@/lib/data/limit-errors'
+import { DAY_LIMIT, codeOf, SLOT_LIMIT } from '@/lib/data/limit-errors'
 import { queryStatus } from '@/lib/data/query-status'
 import { SLOT_COLUMNS, mealPlanQuery, type Slot } from '@/lib/plan/queries'
-import { shiftWeek, weekdayName, type MealType } from '@/lib/plan/week'
+import { MAX_SLOTS_PER_DAY, shiftWeek, weekdayName, type MealType } from '@/lib/plan/week'
 
 const FRESH = Infinity
 
@@ -61,7 +61,9 @@ export function useMealPlan(kitchenId: string, start: string) {
       void toast.error(
         codeOf(e) === SLOT_LIMIT
           ? "This kitchen's meal plan is full."
-          : "Couldn't update the plan. Try again.",
+          : codeOf(e) === DAY_LIMIT
+            ? 'This day is full.'
+            : "Couldn't update the plan. Try again.",
       ),
     onMutate: (rows: unknown) => {
       pending.current++
@@ -103,6 +105,8 @@ export function useMealPlan(kitchenId: string, start: string) {
     retry: () => void query.refetch(),
     slotsFor: (date: string, mealType: MealType) =>
       (query.data ?? []).filter((s) => s.date === date && s.meal_type === mealType),
+    dayFull: (date: string) =>
+      (query.data ?? []).filter((s) => s.date === date).length >= MAX_SLOTS_PER_DAY,
     add,
     remove: (slot: Slot) => del.mutate(slot),
   }

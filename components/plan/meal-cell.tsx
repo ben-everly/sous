@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { RecipePicker } from './recipe-picker'
 import type { Slot } from '@/lib/plan/queries'
 import { cn } from '@/lib/utils'
-import { MAX_RECIPES_PER_MEAL, weekdayName, type MealType } from '@/lib/plan/week'
+import { MAX_SLOTS_PER_DAY, weekdayName, type MealType } from '@/lib/plan/week'
 
 export const CARD = 'aspect-4/3 w-21 rounded-lg md:w-32'
 
@@ -14,13 +14,13 @@ type Props = {
   date: string
   mealType: MealType
   slots: Slot[]
+  full: boolean
   onAdd: (recipeId: string) => void
   onRemove: (slot: Slot) => void
 }
 
-export function MealCell({ date, mealType, slots, onAdd, onRemove }: Props) {
+export function MealCell({ date, mealType, slots, full, onAdd, onRemove }: Props) {
   const meal = `${weekdayName(date)} ${mealType}`
-  const full = slots.length >= MAX_RECIPES_PER_MEAL
 
   const title = (
     <span className="text-muted-foreground flex h-6 items-center gap-1 text-xs font-normal capitalize">
@@ -67,7 +67,7 @@ export function MealCell({ date, mealType, slots, onAdd, onRemove }: Props) {
           {title}
         </RecipePicker>
         {full && (
-          <span className="text-muted-foreground text-xs">Full ({MAX_RECIPES_PER_MEAL} max)</span>
+          <span className="text-muted-foreground text-xs">Day full ({MAX_SLOTS_PER_DAY} max)</span>
         )}
       </div>
       <ul className="flex gap-2">

@@ -5,7 +5,7 @@ export type MealType = Database['public']['Enums']['meal_type']
 
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const satisfies readonly MealType[]
 
-export const MAX_RECIPES_PER_MEAL = 20
+export const MAX_SLOTS_PER_DAY = 100
 
 type WeekInfo = { firstDay: number }
 

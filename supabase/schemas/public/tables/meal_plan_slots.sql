@@ -18,10 +18,10 @@ ALTER TABLE "public"."meal_plan_slots"
 
 CREATE INDEX meal_plan_slots_recipe_id_idx ON public.meal_plan_slots USING btree (recipe_id);
 
-CREATE TRIGGER meal_plan_slots_enforce_recipe_limit
+CREATE TRIGGER meal_plan_slots_enforce_kitchen_limits
   AFTER INSERT ON public.meal_plan_slots
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.meal_plan_slots_enforce_recipe_limit();
+  EXECUTE FUNCTION auth_hooks.meal_plan_slots_enforce_kitchen_limits();
 
 CREATE TRIGGER meal_plan_slots_set_timestamps
   BEFORE INSERT OR UPDATE ON public.meal_plan_slots
