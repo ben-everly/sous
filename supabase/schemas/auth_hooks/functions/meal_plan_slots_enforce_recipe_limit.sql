@@ -12,6 +12,11 @@ begin
   ) > 20 then
     raise exception 'a meal holds at most 20 recipes' using errcode = 'check_violation';
   end if;
+  if (
+    select count(*) from public.meal_plan_slots where kitchen_id = new.kitchen_id
+  ) > 50000 then
+    raise exception 'a kitchen holds at most 50000 meal plan slots' using errcode = 'SC002';
+  end if;
   return null;
 end
 $function$;
