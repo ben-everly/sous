@@ -13,6 +13,11 @@ CREATE TABLE "public"."kitchens" (
 ALTER TABLE "public"."kitchens"
   ENABLE ROW LEVEL SECURITY;
 
+CREATE TRIGGER kitchens_enforce_owner_limit
+  AFTER INSERT ON public.kitchens
+  FOR EACH ROW
+  EXECUTE FUNCTION auth_hooks.kitchens_enforce_owner_limit();
+
 CREATE TRIGGER kitchens_set_timestamps
   BEFORE INSERT OR UPDATE ON public.kitchens
   FOR EACH ROW
