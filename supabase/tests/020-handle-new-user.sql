@@ -206,7 +206,7 @@ select throws_ok(
      values ('aaaaaaaa-0000-0000-0000-000000000006', 'fatal@example.com', '{}'::jsonb)$$,
   'P0001',
   'forced profile failure',
-  'A failed profile insert aborts the signup (handle_new_user fails loud)'
+  'A failed profile insert aborts the signup (auth_users_handle_new fails loud)'
 );
 select is(
   (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000006'),
@@ -230,7 +230,7 @@ select throws_ok(
      values ('aaaaaaaa-0000-0000-0000-000000000007', 'nokitchen@example.com', '{}'::jsonb)$$,
   'P0001',
   'forced kitchen failure',
-  'A failed kitchen insert aborts the signup (handle_new_user fails loud)'
+  'A failed kitchen insert aborts the signup (auth_users_handle_new fails loud)'
 );
 select is(
   (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000007'),

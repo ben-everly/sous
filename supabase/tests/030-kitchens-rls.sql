@@ -1,6 +1,6 @@
 begin;
 
--- Seed two users; on_auth_user_created bootstraps one nameless kitchen for each.
+-- Seed two users; auth_users_handle_new bootstraps one nameless kitchen for each.
 insert into auth.users (id, email, raw_user_meta_data)
 values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),

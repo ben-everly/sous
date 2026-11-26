@@ -2,7 +2,7 @@
 -- no-op guards on wrong-state rows, and the partial unique index ignoring trashed rows.
 begin;
 
--- on_auth_user_created bootstraps one nameless kitchen per user.
+-- auth_users_handle_new bootstraps one nameless kitchen per user.
 insert into auth.users (id, email, raw_user_meta_data)
 values
   ('33333333-3333-3333-3333-333333333333', 'carol@example.com', '{"full_name": "Carol"}'::jsonb),
