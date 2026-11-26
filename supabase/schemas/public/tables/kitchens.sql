@@ -16,12 +16,12 @@ ALTER TABLE "public"."kitchens"
 CREATE TRIGGER kitchens_enforce_owner_limit
   AFTER INSERT ON public.kitchens
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.kitchens_enforce_owner_limit();
+  EXECUTE FUNCTION internal.kitchens_enforce_owner_limit();
 
 CREATE TRIGGER kitchens_set_timestamps
   BEFORE INSERT OR UPDATE ON public.kitchens
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.set_timestamps();
+  EXECUTE FUNCTION internal.set_timestamps();
 
 CREATE UNIQUE INDEX kitchens_one_unnamed_per_owner ON public.kitchens USING btree (owner_id)
   WHERE ((name IS NULL) AND (deleted_at IS NULL));

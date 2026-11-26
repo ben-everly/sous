@@ -1,83 +1,91 @@
 begin;
 
-select plan(36);
+select plan(38);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'auth_hooks' and has_function_privilege('authenticated', p.oid, 'execute')),
+     where n.nspname = 'internal' and has_function_privilege('authenticated', p.oid, 'execute')),
   0::bigint,
-  'no auth_hooks function is executable by authenticated'
+  'no internal function is executable by authenticated'
 );
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'auth_hooks' and has_function_privilege('anon', p.oid, 'execute')),
+     where n.nspname = 'internal' and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint,
-  'no auth_hooks function is executable by anon'
+  'no internal function is executable by anon'
+);
+select ok(
+  not has_schema_privilege('authenticated', 'internal', 'usage'),
+  'authenticated has no usage on internal'
+);
+select ok(
+  not has_schema_privilege('anon', 'internal', 'usage'),
+  'anon has no usage on internal'
 );
 
 -- The pure sanitizers the trigger reuses, tested directly.
 select is(
-  auth_hooks.sanitize_meta_name('{"full_name": "Grace Hopper"}'::jsonb),
+  internal.sanitize_meta_name('{"full_name": "Grace Hopper"}'::jsonb),
   'Grace Hopper',
   'name: returns full_name'
 );
 select is(
-  auth_hooks.sanitize_meta_name('{"name": "Ada"}'::jsonb),
+  internal.sanitize_meta_name('{"name": "Ada"}'::jsonb),
   'Ada',
   'name: falls back to the name key'
 );
 select is(
-  auth_hooks.sanitize_meta_name('{"full_name": "Grace", "name": "Ada"}'::jsonb),
+  internal.sanitize_meta_name('{"full_name": "Grace", "name": "Ada"}'::jsonb),
   'Grace',
   'name: full_name takes precedence over name'
 );
 select is(
-  auth_hooks.sanitize_meta_name('{"full_name": "  Ada  "}'::jsonb),
+  internal.sanitize_meta_name('{"full_name": "  Ada  "}'::jsonb),
   'Ada',
   'name: trims surrounding whitespace'
 );
 select is(
-  auth_hooks.sanitize_meta_name('{"full_name": "   "}'::jsonb),
+  internal.sanitize_meta_name('{"full_name": "   "}'::jsonb),
   null,
   'name: whitespace-only collapses to null'
 );
 select is(
-  auth_hooks.sanitize_meta_name('{}'::jsonb),
+  internal.sanitize_meta_name('{}'::jsonb),
   null,
   'name: absent keys yield null'
 );
 select is(
-  auth_hooks.sanitize_meta_name(jsonb_build_object('full_name', 'Bad' || chr(7) || 'Name')),
+  internal.sanitize_meta_name(jsonb_build_object('full_name', 'Bad' || chr(7) || 'Name')),
   'BadName',
   'name: strips control characters'
 );
 select is(
-  char_length(auth_hooks.sanitize_meta_name(jsonb_build_object('full_name', repeat('x', 300)))),
+  char_length(internal.sanitize_meta_name(jsonb_build_object('full_name', repeat('x', 300)))),
   200,
   'name: caps length at 200'
 );
 select is(
-  auth_hooks.sanitize_meta_avatar('{"avatar_url": "https://example.com/a.png"}'::jsonb),
+  internal.sanitize_meta_avatar('{"avatar_url": "https://example.com/a.png"}'::jsonb),
   'https://example.com/a.png',
   'avatar: returns an https avatar_url'
 );
 select is(
-  auth_hooks.sanitize_meta_avatar('{"picture": "https://example.com/p.png"}'::jsonb),
+  internal.sanitize_meta_avatar('{"picture": "https://example.com/p.png"}'::jsonb),
   'https://example.com/p.png',
   'avatar: falls back to the picture key'
 );
 select is(
-  auth_hooks.sanitize_meta_avatar('{"avatar_url": "https://a.example", "picture": "https://p.example"}'::jsonb),
+  internal.sanitize_meta_avatar('{"avatar_url": "https://a.example", "picture": "https://p.example"}'::jsonb),
   'https://a.example',
   'avatar: avatar_url takes precedence over picture'
 );
 select is(
-  auth_hooks.sanitize_meta_avatar('{"avatar_url": "http://insecure.example/a.png"}'::jsonb),
+  internal.sanitize_meta_avatar('{"avatar_url": "http://insecure.example/a.png"}'::jsonb),
   null,
   'avatar: drops a non-https URL'
 );
 select is(
-  auth_hooks.sanitize_meta_avatar('{}'::jsonb),
+  internal.sanitize_meta_avatar('{}'::jsonb),
   null,
   'avatar: absent keys yield null'
 );
@@ -206,7 +214,7 @@ select throws_ok(
      values ('aaaaaaaa-0000-0000-0000-000000000006', 'fatal@example.com', '{}'::jsonb)$$,
   'P0001',
   'forced profile failure',
-  'A failed profile insert aborts the signup (handle_new_user fails loud)'
+  'A failed profile insert aborts the signup (auth_users_handle_new fails loud)'
 );
 select is(
   (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000006'),
@@ -230,7 +238,7 @@ select throws_ok(
      values ('aaaaaaaa-0000-0000-0000-000000000007', 'nokitchen@example.com', '{}'::jsonb)$$,
   'P0001',
   'forced kitchen failure',
-  'A failed kitchen insert aborts the signup (handle_new_user fails loud)'
+  'A failed kitchen insert aborts the signup (auth_users_handle_new fails loud)'
 );
 select is(
   (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000007'),

@@ -16,9 +16,9 @@ ALTER TABLE "public"."profiles"
 CREATE TRIGGER profiles_set_timestamps
   BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.set_timestamps();
+  EXECUTE FUNCTION internal.set_timestamps();
 
--- No insert/delete policy: handle_new_user is the only writer and the auth.users cascade the
+-- No insert/delete policy: auth_users_handle_new is the only writer and the auth.users cascade the
 -- only remover.
 CREATE POLICY "profiles_select_own" ON "public"."profiles"
   FOR SELECT

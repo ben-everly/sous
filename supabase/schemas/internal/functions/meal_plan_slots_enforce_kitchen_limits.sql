@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION auth_hooks.meal_plan_slots_enforce_kitchen_limits()
+CREATE OR REPLACE FUNCTION internal.meal_plan_slots_enforce_kitchen_limits()
   RETURNS TRIGGER
   LANGUAGE plpgsql
   SECURITY DEFINER

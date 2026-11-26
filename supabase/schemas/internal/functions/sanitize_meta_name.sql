@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION auth_hooks.sanitize_meta_name (
+CREATE OR REPLACE FUNCTION internal.sanitize_meta_name (
   meta jsonb
 )
   RETURNS text

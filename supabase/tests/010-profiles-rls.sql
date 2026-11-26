@@ -1,6 +1,6 @@
 begin;
 
--- Seed two users; the on_auth_user_created trigger bootstraps their profiles.
+-- Seed two users; the auth_users_handle_new trigger bootstraps their profiles.
 insert into auth.users (id, email, raw_user_meta_data)
 values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com', '{"full_name": "Alice"}'::jsonb),

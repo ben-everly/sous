@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION auth_hooks.set_timestamps()
+CREATE OR REPLACE FUNCTION internal.set_timestamps()
   RETURNS TRIGGER
   LANGUAGE plpgsql
   SET search_path TO ''

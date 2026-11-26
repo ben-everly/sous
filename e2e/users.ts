@@ -34,7 +34,7 @@ export async function createSignedInUser(
     .eq('id', created.user.id)
     .maybeSingle()
   if (!profile) {
-    throw new Error('Seeded profile is missing — the handle_new_user trigger may be broken')
+    throw new Error('Seeded profile is missing — the auth_users_handle_new trigger may be broken')
   }
 
   // Email/password auth is off (Google-only app), so sign in via the admin

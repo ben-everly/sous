@@ -21,12 +21,12 @@ CREATE INDEX meal_plan_slots_recipe_id_idx ON public.meal_plan_slots USING btree
 CREATE TRIGGER meal_plan_slots_enforce_kitchen_limits
   AFTER INSERT ON public.meal_plan_slots
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.meal_plan_slots_enforce_kitchen_limits();
+  EXECUTE FUNCTION internal.meal_plan_slots_enforce_kitchen_limits();
 
 CREATE TRIGGER meal_plan_slots_set_timestamps
   BEFORE INSERT OR UPDATE ON public.meal_plan_slots
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.set_timestamps();
+  EXECUTE FUNCTION internal.set_timestamps();
 
 CREATE POLICY "meal_plan_slots_delete_own" ON "public"."meal_plan_slots"
   FOR DELETE

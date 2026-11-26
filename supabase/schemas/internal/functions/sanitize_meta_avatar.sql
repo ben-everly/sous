@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION auth_hooks.sanitize_meta_avatar (
+CREATE OR REPLACE FUNCTION internal.sanitize_meta_avatar (
   meta jsonb
 )
   RETURNS text
