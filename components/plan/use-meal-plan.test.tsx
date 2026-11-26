@@ -4,7 +4,7 @@ import { makeWrapper } from '@/test/query-wrapper'
 import { mockSupabase, resetMockSupabase } from '@/test/supabase-mock'
 import { mockToast } from '@/test/toast-mock'
 import type { Slot } from '@/lib/plan/queries'
-import type { MealType } from '@/lib/plan/week'
+import { MAX_SLOTS_PER_DAY, type MealType } from '@/lib/plan/week'
 import { useMealPlan } from './use-meal-plan'
 
 vi.mock('sonner')
@@ -203,6 +203,20 @@ describe('useMealPlan', () => {
     expect(result.current.slotsFor('2026-10-14', 'breakfast')).toEqual([])
   })
 
+  it('marks a day full at MAX_SLOTS_PER_DAY slots across meals', async () => {
+    const meals = ['breakfast', 'lunch', 'dinner'] as const
+    mockSupabase.results.select = {
+      data: [
+        ...Array.from({ length: MAX_SLOTS_PER_DAY }, (_, i) => slot('2026-10-12', meals[i % 3])),
+        ...Array.from({ length: MAX_SLOTS_PER_DAY - 1 }, () => slot('2026-10-13', 'dinner')),
+      ],
+      error: null,
+    }
+    const { result } = await render()
+    expect(result.current.dayFull('2026-10-12')).toBe(true)
+    expect(result.current.dayFull('2026-10-13')).toBe(false)
+  })
+
   it('add upserts ignoring duplicates, shows the slot, then refetches once', async () => {
     const { result } = await render()
     const added = slot('2026-10-14', 'lunch', {
@@ -237,6 +251,19 @@ describe('useMealPlan', () => {
 
     await waitFor(() => expect(result.current.slotsFor('2026-10-14', 'lunch')).toEqual([elsewhere]))
     expect(mockToast.error).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['SC002', "This kitchen's meal plan is full."],
+    ['SC003', 'This day is full.'],
+    ['23514', "Couldn't update the plan. Try again."],
+  ])('an add rejected with %s toasts %j', async (code, message) => {
+    const { result } = await render()
+    mockSupabase.results.insert = { data: null, error: { code, message: 'rejected' } }
+
+    act(() => result.current.add('2026-10-14', 'lunch', 'r9'))
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith(message))
   })
 
   it('remove drops the slot', async () => {

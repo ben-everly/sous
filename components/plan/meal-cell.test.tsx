@@ -39,6 +39,7 @@ const setup = (slots: Slot[] = [], over = {}) => {
     mealType: 'dinner' as const,
     slots,
     onAdd: vi.fn(),
+    full: false,
     onRemove: vi.fn(),
     ...over,
   }
@@ -66,19 +67,19 @@ describe('MealCell', () => {
     expect(p.onRemove).toHaveBeenCalledWith(slot(1))
   })
 
-  it('keeps add enabled at 19 slots', () => {
-    setup(Array.from({ length: 19 }, (_, i) => slot(i)))
+  it('keeps add enabled when the day has room', () => {
+    setup([slot(1)])
     expect(
       screen.getByRole('button', { name: 'Add recipe to Sunday dinner' }).hasAttribute('disabled'),
     ).toBe(false)
-    expect(screen.queryByText('Full (20 max)')).toBeNull()
+    expect(screen.queryByText('Day full (100 max)')).toBeNull()
   })
 
-  it('disables add and shows the hint at 20 slots', () => {
-    setup(Array.from({ length: 20 }, (_, i) => slot(i)))
+  it('disables add and shows the hint when the day is full', () => {
+    setup([slot(1)], { full: true })
     expect(
       screen.getByRole('button', { name: 'Add recipe to Sunday dinner' }).hasAttribute('disabled'),
     ).toBe(true)
-    expect(screen.getByText('Full (20 max)')).toBeTruthy()
+    expect(screen.getByText('Day full (100 max)')).toBeTruthy()
   })
 })

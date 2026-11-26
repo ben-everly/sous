@@ -12,6 +12,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { KITCHEN_LIMIT, codeOf } from '@/lib/data/limit-errors'
 import { queryStatus } from '@/lib/data/query-status'
 import { kitchenLabel } from '@/lib/kitchens/kitchen-label'
 import { liveKitchens } from '@/lib/kitchens/current-kitchen'
@@ -70,8 +71,12 @@ export function useKitchens() {
     try {
       await insert.mutateAsync([{ name }])
       return true
-    } catch {
-      toast.error("Couldn't create the kitchen. Try again.")
+    } catch (e) {
+      toast.error(
+        codeOf(e) === KITCHEN_LIMIT
+          ? "You've reached the kitchen limit. Delete a kitchen and empty it from the trash to make room."
+          : "Couldn't create the kitchen. Try again.",
+      )
       return false
     }
   }

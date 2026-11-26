@@ -1,3 +1,5 @@
+SET local check_function_bodies = off;
+
 CREATE OR REPLACE FUNCTION auth_hooks.meal_plan_slots_enforce_recipe_limit()
   RETURNS TRIGGER
   LANGUAGE plpgsql
@@ -11,6 +13,11 @@ begin
     where kitchen_id = new.kitchen_id and date = new.date and meal_type = new.meal_type
   ) > 20 then
     raise exception 'a meal holds at most 20 recipes' using errcode = 'check_violation';
+  end if;
+  if (
+    select count(*) from public.meal_plan_slots where kitchen_id = new.kitchen_id
+  ) > 50000 then
+    raise exception 'a kitchen holds at most 50000 meal plan slots' using errcode = 'SC002';
   end if;
   return null;
 end

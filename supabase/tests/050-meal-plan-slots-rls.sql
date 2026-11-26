@@ -20,7 +20,7 @@ values
 insert into public.recipes (slug, name, ingredients, directions)
 select 'zz-mps-lim-' || lpad(i::text, 2, '0'), 'Zzmps Lim ' || i,
   '[{"name": null, "items": ["x"]}]'::jsonb, '[{"name": null, "steps": ["x"]}]'::jsonb
-from generate_series(1, 21) i;
+from generate_series(1, 34) i;
 
 select plan(38);
 
@@ -170,24 +170,25 @@ select throws_ok(
 
 select lives_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
-    select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 10, 'dinner', id
-    from public.recipes where slug like 'zz-mps-lim-%' and slug <> 'zz-mps-lim-21'$$,
-  'A meal can hold 20 recipes'
+    select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 10, m, id
+    from public.recipes, unnest(enum_range(null::public.meal_type)) m
+    where slug like 'zz-mps-lim-%' and not (m = 'dinner' and slug >= 'zz-mps-lim-33')$$,
+  'A day can hold 100 slots, more than 20 in one meal'
 );
 select throws_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
     select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 10, 'dinner', id
-    from public.recipes where slug = 'zz-mps-lim-21'$$,
-  '23514',
+    from public.recipes where slug = 'zz-mps-lim-33'$$,
+  'SC003',
   null,
-  'A 21st recipe in one meal fails'
+  'A 101st slot in one day fails'
 );
 select lives_ok(
   $$insert into public.meal_plan_slots (kitchen_id, date, meal_type, recipe_id)
     select 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', current_date + 10, 'dinner', id
     from public.recipes where slug = 'zz-mps-lim-01'
     on conflict (kitchen_id, date, meal_type, recipe_id) do nothing$$,
-  'Re-adding a recipe to a full meal with ON CONFLICT DO NOTHING succeeds'
+  'Re-adding a slot to a full day with ON CONFLICT DO NOTHING succeeds'
 );
 
 with d as (delete from public.meal_plan_slots where date = current_date - 3650 returning 1)

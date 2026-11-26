@@ -278,6 +278,7 @@ function Planner({ today }: { today: string }) {
                       date={date}
                       mealType={meal}
                       slots={plan.slotsFor(date, meal)}
+                      full={plan.dayFull(date)}
                       onAdd={(recipeId) => void plan.add(date, meal, recipeId)}
                       onRemove={(slot) => void plan.remove(slot)}
                     />
