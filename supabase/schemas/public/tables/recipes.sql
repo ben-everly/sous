@@ -55,13 +55,13 @@ ALTER TABLE "public"."recipes"
 CREATE TRIGGER recipes_set_timestamps_on_insert
   BEFORE INSERT ON public.recipes
   FOR EACH ROW
-  EXECUTE FUNCTION auth_hooks.set_timestamps();
+  EXECUTE FUNCTION internal.set_timestamps();
 
 CREATE TRIGGER recipes_set_timestamps_on_update
   BEFORE UPDATE ON public.recipes
   FOR EACH ROW
   WHEN ((old.* IS DISTINCT FROM new.*))
-  EXECUTE FUNCTION auth_hooks.set_timestamps();
+  EXECUTE FUNCTION internal.set_timestamps();
 
 CREATE POLICY "recipes_select_all" ON "public"."recipes"
   FOR SELECT

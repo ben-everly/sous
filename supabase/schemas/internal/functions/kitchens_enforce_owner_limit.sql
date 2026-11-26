@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION auth_hooks.kitchens_enforce_owner_limit()
+CREATE OR REPLACE FUNCTION internal.kitchens_enforce_owner_limit()
   RETURNS TRIGGER
   LANGUAGE plpgsql
   SECURITY DEFINER
