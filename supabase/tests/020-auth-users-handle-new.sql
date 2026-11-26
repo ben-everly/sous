@@ -1,6 +1,6 @@
 begin;
 
-select plan(36);
+select plan(38);
 
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -13,6 +13,14 @@ select is(
      where n.nspname = 'internal' and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint,
   'no internal function is executable by anon'
+);
+select ok(
+  not has_schema_privilege('authenticated', 'internal', 'usage'),
+  'authenticated has no usage on internal'
+);
+select ok(
+  not has_schema_privilege('anon', 'internal', 'usage'),
+  'anon has no usage on internal'
 );
 
 -- The pure sanitizers the trigger reuses, tested directly.
