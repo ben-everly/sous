@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:arch": "depcruise app components lib types test proxy.ts --cache",
+    "lint:arch": "depcruise app components lib types test e2e scripts __mocks__ *.ts *.mjs --cache --ignore-known",
     "lint:sh": "shellcheck -x scripts/*.sh",
     "test:sh": "bats scripts/*.bats",
     "typecheck": "tsc --noEmit",

@@ -1,0 +1,166 @@
+[
+  {
+    "type": "dependency",
+    "from": "lib/auth/gate.ts",
+    "to": "node_modules/next/navigation.d.ts",
+    "unresolvedTo": "next/navigation",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/kitchens/prefetch.ts",
+    "to": "node_modules/@supabase-cache-helpers/postgrest-react-query/dist/index.d.ts",
+    "unresolvedTo": "@supabase-cache-helpers/postgrest-react-query",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/kitchens/prefetch.ts",
+    "to": "node_modules/@tanstack/react-query/build/modern/index.d.ts",
+    "unresolvedTo": "@tanstack/react-query",
+    "dependencyTypes": ["npm", "type-only", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/kitchens/prefetch.ts",
+    "to": "node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/supabase/proxy.ts",
+    "to": "node_modules/next/server.d.ts",
+    "unresolvedTo": "next/server",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/supabase/server.ts",
+    "to": "node_modules/next/headers.d.ts",
+    "unresolvedTo": "next/headers",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "lib/supabase/server.ts",
+    "to": "node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": ["npm", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "domain-not-to-ui-framework"
+    }
+  },
+  {
+    "type": "cycle",
+    "from": "scripts/myplate/capture/archive.ts",
+    "to": "scripts/myplate/capture/manifest.ts",
+    "unresolvedTo": "./manifest.ts",
+    "dependencyTypes": ["local", "type-only", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "scripts/myplate/capture/manifest.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/captures.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/cdx.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/archive.ts",
+        "dependencyTypes": ["local", "import"]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "scripts/myplate/capture/cdx.ts",
+    "to": "scripts/myplate/capture/store.ts",
+    "unresolvedTo": "./store.ts",
+    "dependencyTypes": ["local", "type-only", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "scripts/myplate/capture/store.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/captures.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/cdx.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "scripts/myplate/capture/manifest.ts",
+    "to": "scripts/myplate/capture/store.ts",
+    "unresolvedTo": "./store.ts",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "scripts/myplate/capture/store.ts",
+        "dependencyTypes": ["local", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/captures.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/cdx.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/archive.ts",
+        "dependencyTypes": ["local", "import"]
+      },
+      {
+        "name": "scripts/myplate/capture/manifest.ts",
+        "dependencyTypes": ["local", "type-only", "import"]
+      }
+    ]
+  }
+]

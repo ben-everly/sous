@@ -1,4 +1,4 @@
-const TEST = '(^test/|[.]test[.]tsx?$|(^|/)__mocks__/)'
+const TEST = '(^test/|[.]test[.]tsx?$|(^|/)__mocks__/|^vitest[.]setup[.]ts$)'
 const PROVIDERS = '^app/\\(app\\)/providers\\.tsx$'
 
 module.exports = {
@@ -10,12 +10,46 @@ module.exports = {
     { from: { path: '^components/' }, to: { path: '^(components|lib|types)/' } },
     { from: { path: '^lib/' }, to: { path: '^(lib|types)/' } },
     { from: { path: '^types/' }, to: { path: '^(types/|lib/[^/]+/types\\.ts$)' } },
+    { from: { path: '^e2e/' }, to: { path: '^(e2e|types)/' } },
+    { from: { path: '^scripts/' }, to: { path: '^(scripts|lib|types)/' } },
+    { from: { path: '^[^/]+[.]config[.][cm]?[jt]s$' }, to: {} },
     {
       from: {},
       to: { dependencyTypes: ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'core'] },
     },
   ],
   forbidden: [
+    {
+      name: 'domain-not-to-ui-framework',
+      severity: 'error',
+      comment:
+        'domain logic stays framework-agnostic so web and a future React Native UI share one core',
+      from: { path: '^lib/', pathNot: [TEST, '^lib/hooks/'] },
+      to: {
+        path: '^node_modules/(@types/)?(react|react-dom|next|sonner|react-hook-form|@hookform/resolvers|radix-ui|@radix-ui/[^/]+|lucide-react|cmdk|@tanstack/react-query|@supabase-cache-helpers/postgrest-react-query)/',
+      },
+    },
+    {
+      name: 'services-not-to-web-glue',
+      severity: 'error',
+      comment: 'services must not depend on web-only actions or hooks',
+      from: { path: '^lib/services/' },
+      to: { path: '^lib/(actions|hooks)/' },
+    },
+    {
+      name: 'components-not-to-services',
+      severity: 'error',
+      comment: 'components call hooks/queries; services are server-side logic',
+      from: { path: '^components/' },
+      to: { path: '^lib/services/' },
+    },
+    {
+      name: 'generated-types-via-wrapper',
+      severity: 'error',
+      comment: 'import Database from types/database.types.ts, never the generated file',
+      from: { pathNot: '^types/database\\.types\\.ts$' },
+      to: { path: '^types/database-generated\\.types\\.ts$' },
+    },
     {
       name: 'no-circular',
       severity: 'error',
@@ -35,7 +69,7 @@ module.exports = {
           '(^|/)[.][^/]+[.](?:js|cjs|mjs|ts|cts|mts|json)$',
           '[.]d[.]ts$',
           '(^|/)tsconfig[.]json$',
-          '(^|/)(?:babel|webpack)[.]config[.](?:js|cjs|mjs|ts|cts|mts|json)$',
+          '(^|/)[^/]+[.]config[.](?:js|cjs|mjs|ts|cts|mts|json)$',
           '^app/.*(?<![^/])(page|layout|loading|error|global-error|not-found|template|default|route|opengraph-image|twitter-image|icon|apple-icon|sitemap|robots|manifest)\\.tsx?$',
           '^test/stubs/',
         ],
@@ -49,15 +83,7 @@ module.exports = {
       from: {},
       to: {
         dependencyTypes: ['core'],
-        path: [
-          '^async_hooks$',
-          '^punycode$',
-          '^domain$',
-          '^constants$',
-          '^sys$',
-          '^_linklist$',
-          '^_stream_wrap$',
-        ],
+        path: ['^punycode$', '^domain$', '^constants$', '^sys$', '^_linklist$', '^_stream_wrap$'],
       },
     },
     {
@@ -172,6 +198,7 @@ module.exports = {
     },
   ],
   options: {
+    exclude: { path: '^next-env[.]d[.]ts$' },
     doNotFollow: {
       path: ['node_modules'],
     },
@@ -187,5 +214,6 @@ module.exports = {
       mainFields: ['main', 'types', 'typings'],
     },
     skipAnalysisNotInRules: true,
+    preserveSymlinks: true,
   },
 }
