@@ -2,6 +2,19 @@ const TEST = '(^test/|[.]test[.]tsx?$|(^|/)__mocks__/)'
 const PROVIDERS = '^app/\\(app\\)/providers\\.tsx$'
 
 module.exports = {
+  allowedSeverity: 'error',
+  allowed: [
+    { from: { path: TEST }, to: {} },
+    { from: { path: '^app/' }, to: { path: '^(app|components|lib|types)/' } },
+    { from: { path: '^proxy\\.ts$' }, to: { path: '^lib/' } },
+    { from: { path: '^components/' }, to: { path: '^(components|lib|types)/' } },
+    { from: { path: '^lib/' }, to: { path: '^(lib|types)/' } },
+    { from: { path: '^types/' }, to: { path: '^(types/|lib/[^/]+/types\\.ts$)' } },
+    {
+      from: {},
+      to: { dependencyTypes: ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'core'] },
+    },
+  ],
   forbidden: [
     {
       name: 'no-circular',
