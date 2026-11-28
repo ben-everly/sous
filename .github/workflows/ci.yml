@@ -25,10 +25,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: package.json
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
+      - run: npm run lint:arch
       - run: npm run lint:sh
       - run: npm run test:sh
       - run: npm run format:check
@@ -41,7 +42,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: package.json
           cache: 'npm'
       - run: npm ci
       - run: npm run test:unit
@@ -59,7 +60,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: package.json
           cache: 'npm'
       - run: npm ci
       - name: Cache Next.js build
@@ -78,7 +79,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: package.json
           cache: 'npm'
       - run: npm ci
       - name: Restore Supabase images
@@ -111,7 +112,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: package.json
           cache: 'npm'
       - run: npm ci
       - name: Get Playwright version
